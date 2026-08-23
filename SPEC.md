@@ -293,3 +293,13 @@ one-at-a-time 감도(고정 설정): d 문턱이 핵심(d≥1: +6~12%, d≥8: �
 결과(WAF, 동일 공간·RAM): 기본 mix 8.85 / 8.91 / 6.25 / 3.42 vs tiered 8.53 / 7.67 / 5.16 / 2.76 (+4~24%), small-heavy 0.99: 9.24 vs 7.15 (+29%), small-heavy 균등은 예약 블록 고갈(미수정).
 원인: fragment(수명 짧음)와 chunk(cold)가 같은 블록에 섞여 저-valid 블록이 사라짐 → 모든 GC가 ~84% valid 블록에서 fragment까지 복사(clean copy 비중 0.71→0.77). tiered의 이득은 fragment만 모인 fine 블록을 valid 29–71%에서 싸게 비우는 데서 나옴. 예산 eviction은 기본 mix에서 0회 발동(GC 비용식만으로 RAM이 예산 이하).
 → tiered 유지. mixed는 ablation/related-work 반박용으로만 보존.
+
+## Janus-FTL baseline (`mode=janus`, Kwon et al. EMSOFT'10, 본문 §3–4 기준) — 2026-08-23
+- BMA(블록맵 데이터 블록) + PMA(페이지맵: OP 블록 + fused 블록). **Fusion**: 논리 블록의 첫 sub-block 갱신 시 그 물리 블록이 그대로 PMA에 편입(invalid 공간을 OP로 재활용, 비용 0). **Defusion**: LRU 논리 블록을 P페이지 복사해 BMA로 복귀. PMA GC = greedy min-valid. 빈 블록 ≥2 유지.
+- 정책: 새 active 블록 필요 시 PMA 사용률 > u\*(`janus_u`, 기본 0.7)이면 defusion, 아니면 GC. 논문은 u\*를 비용 모델로 찾음(128 KB 블록 기준).
+- DRAM 제약: fused 블록당 P×4B 페이지맵 → 10% 예산이면 fused ≤ 34블록(`janus_cap`, 0=예산, −1=무제한). 초과 시 즉시 LRU defusion.
+- 결과(64 GiB, 192 MiB 블록, 동일 공간; zipf 0 / 0.99 / 1.2):
+  - cap 34 (RAM 10%): **2,445 / 645 / 140** (요청 대부분이 fusion→즉시 192 MiB defusion)
+  - cap 없음 u\*=0.7: 38.7 / 188 / 66.5; u\*=0.9: 58.5 / 48.9 / 13.5
+  - u\*=1.0 (defusion 없음 = 순수 page mapping, RAM 64 MiB): 6.97 / 5.97 / 3.99 (page4k 6.74 / 4.98 / 3.02)
+- 해석: 거대 블록에선 defusion(블록 단위 demote)이 어떤 빈도로든 손해 → Janus 스펙트럼의 최적점이 page-mapping 끝으로 퇴화. "coarse 단위 = 블록"인 모든 하이브리드의 공통 한계이며, IU 단위 chunk(fold 16페이지)가 필요한 직접 근거. cap 실행은 aging 1× + 측정 0.1×(defusion당 49k 복사로 시뮬 비용 큼), 나머지는 기본 설정.

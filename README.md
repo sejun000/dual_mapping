@@ -86,3 +86,11 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 - small-heavy(4K 50%…): proposed 13.36 / 7.15 (zipf 0 / 0.99), DFTL 7.86 / 5.38, IU+RMW 35.4 / 26.3.
 - 정책 비교(기본 mix zipf 0 / small-heavy zipf 0): 고정 d≥4: 8.95 / 15.40, d≥8: 8.36 / 17.49, **cost: 8.53 / 13.36** — 압박(v)에 따라 d 문턱이 자동으로 움직여 양쪽을 모두 커버.
 - aging: seq fill 1× + 워크로드 8× → 리셋 → 측정 1×. μ-FTL은 논문대로 GC 복사를 host와 같은 update block에 써서 장기 aging에서 악화(의도적 유지).
+
+## Janus-FTL baseline (`results/janus`, 64 GiB, 192 MiB 블록, 동일 공간)
+| zipf | DRAM 10% (fused≤34), u*=0.7 | 무제한 u*=0.7 | u*=0.9 | u*=1.0 (= page mapping, 64 MiB) | page4k | proposed |
+|---|---|---|---|---|---|---|
+| 0 | 2,445 | 38.7 | 58.5 | 6.97 | 6.74 | 8.53 |
+| 0.99 | 645 | 188 | 48.9 | 5.97 | 4.98 | 5.16 |
+| 1.2 | 140 | 66.5 | 13.5 | 3.99 | 3.02 | 2.76 |
+거대 블록에선 defusion(블록 단위 demote)이 항상 손해 → Janus는 page-mapping 끝점에서만 성립(DRAM 64 MiB). 상세 SPEC 참조.

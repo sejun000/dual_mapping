@@ -72,6 +72,8 @@ struct Cfg {
     int mu_parts = 8;             // mu: logical address space partitions (each has its own update block)
     int mu_max_extent = 128;      // mu: max extent length (pages)
     int mu_leaf_fanout = 256;     // mu: extents per mu-tree leaf page (one 4K page holds the path; leaf ~ half)
+    double janus_u = 0.7;         // janus: PMA utilization target (defuse when above, else GC)
+    int janus_cap = 0;            // janus: max fused blocks (0 = from 10% RAM budget; -1 = unlimited)
     u64 last_k = 0;               // hot update-interval threshold in pages (0 = auto: hot partition capacity)    // true: random rank->IU permutation (hot IUs scattered); false: rank==IU (hot region contiguous)
 };
 
@@ -806,12 +808,10 @@ struct HybridSim {
     int nseq = 0, R = 0, hot_cap = 0, cold_cap = 0;
     std::vector<int> seqb, hotb, coldb;   // membership lists (active = back)
     std::unordered_map<u32, int> seq_of_lb;
-    u64 cache_bytes = 12ull << 20; // dftl / mu: RAM for cached mapping (translation-page cache / mu-tree cache)
-    u64 bitmap_cache_bytes = 32768; // mu: bitmap (invalid-extent) cache
-    int mu_parts = 8;             // mu: logical address space partitions (each has its own update block)
-    int mu_max_extent = 128;      // mu: max extent length (pages)
-    int mu_leaf_fanout = 256;     // mu: extents per mu-tree leaf page (one 4K page holds the path; leaf ~ half)
     u64 last_k = 0;
+    // Janus-FTL (Kwon et al., EMSOFT 2010): BMA (block-mapped data blocks) + PMA (page-mapped: OP blocks + fused data blocks).
+    std::vector<uint8_t> fused; std::vector<u64> lb_last; int fused_n = 0, fused_cap = 0; int janus_active = -1;
+    u64 n_fusion = 0, n_defusion = 0, n_jgc = 0, jgc_valid_sum = 0;
 
     Stats st; FILE* ts = nullptr; u64 ts_next = 0, ts_interval = 0; bool measuring = false;
     std::mt19937_64 rng;
@@ -831,6 +831,13 @@ struct HybridSim {
             R = nlog - nseq; if (R < 2) DIE("random log buffer too small");
             hot_cap = std::max(1, std::min(R - 1, (int)(R * c.last_hot_frac))); cold_cap = R - hot_cap;
             last_k = c.last_k ? c.last_k : (u64)hot_cap * P;
+        }
+        if (c.mode == "janus") {
+            fused.assign(NLB, 0); lb_last.assign(NLB, 0);
+            double budget = 0.10 * (double)L * 4.0;                       // mapping RAM = 10% of page4k
+            fused_cap = std::max(1, (int)((budget - (double)NLB * 4.0) / ((double)P * 4.0)));
+            if (c.janus_cap > 0) fused_cap = c.janus_cap; else if (c.janus_cap < 0) fused_cap = (int)NLB;
+            fprintf(stderr, "[cfg] janus: fused block cap = %d (RAM budget %.2f MiB), u*=%.2f\n", fused_cap, budget / (1 << 20), c.janus_u);
         }
         st.reset(U); rng.seed(c.seed);
         fprintf(stderr, "[cfg] mode=%s L=%llu pages (%.1f GB) NB=%d NLB=%u nlog=%d (seq=%d hot=%d cold=%d) P=%d (%.0f MiB) T=%d zipf=%.2f\n",
@@ -1018,9 +1025,92 @@ struct HybridSim {
         log_append(b, lpn, S_HOST);
     }
 
+
+    // ================= Janus-FTL =================
+    bool is_pma(int b) const { return btag[b] == H_LOG; }
+    double pma_util() const {   // valid data in PMA / PMA space
+        u64 valid = 0, space = 0;
+        for (int b = 0; b < NB; ++b) if (is_pma(b)) { valid += bvalid[b]; space += P; }
+        return space ? (double)valid / space : 0.0;
+    }
+    void fusion(u32 lb) {
+        u32 db = dmap[lb];
+        n_fusion++; fused[lb] = 1; fused_n++;
+        if (db != NONE) {
+            for (int off = 0; off < P; ++off) { u64 lpn = (u64)lb * P + off; if (lmap[lpn] == NONE && p2l[db * P + off] == (u32)lpn) lmap[lpn] = db * P + off; }
+            // physical data block becomes a PMA block: its valid pages are now page-mapped in place
+            btag[db] = H_LOG; lg[db] = LogBlk(); lg[db].kind = K_RW; lg[db].next = P;
+            for (int off = 0; off < P; ++off) { u64 lpn = (u64)lb * P + off; if (lmap[lpn] == db * P + off) lg[db].assoc[lb]++; }
+            dmap[lb] = NONE;
+        }
+    }
+    void defusion(u32 lb) {
+        n_defusion++;
+        int nb = pop_free(H_DATA);
+        for (int off = 0; off < P; ++off) {
+            u64 lpn = (u64)lb * P + off;
+            u32 src = latest(lpn);
+            if (src != NONE) st.read_gc_copy++;
+            st.prog[S_FULLMERGE]++;
+            p2l[(u32)nb * P + off] = (u32)lpn;
+            if (lmap[lpn] != NONE) drop_log_copy(lpn);
+        }
+        bvalid[nb] = P; dmap[lb] = nb; fused[lb] = 0; fused_n--;
+    }
+    void janus_gc() {
+        int v = -1, bv = INT32_MAX;
+        for (int b = 0; b < NB; ++b) if (is_pma(b) && b != janus_active && bvalid[b] < bv) { bv = bvalid[b]; v = b; }
+        if (v < 0) DIE("janus: no PMA victim");
+        n_jgc++; jgc_valid_sum += bvalid[v];
+        u32 base = (u32)v * P;
+        for (int s0 = 0; s0 < P && bvalid[v] > 0; ++s0) {
+            u32 lpn = p2l[base + s0];
+            if (lpn == NONE || lmap[lpn] != base + s0) continue;
+            st.read_gc_copy++;
+            log_append(janus_log_block(true), lpn, S_PGC);
+        }
+        if (bvalid[v] != 0) DIE("janus gc left valid");
+        erase(v);
+    }
+    int janus_log_block(bool in_gc) {
+        if (janus_active >= 0 && lg[janus_active].next < P) return janus_active;
+        if (!in_gc) {
+            while ((int)freelist.size() <= T) {
+                bool over_cap = fused_n > fused_cap;
+                if (over_cap || pma_util() > c.janus_u) {
+                    // defuse the LRU fused logical block
+                    u32 lb = NONE; u64 best = ~0ull;
+                    for (u32 x = 0; x < NLB; ++x) if (fused[x] && lb_last[x] < best) { best = lb_last[x]; lb = x; }
+                    if (lb == NONE) { janus_gc(); continue; }
+                    defusion(lb);
+                    // blocks left with no valid pages after defusion are freed immediately
+                    for (int b = 0; b < NB; ++b) if (is_pma(b) && b != janus_active && bvalid[b] == 0) erase(b);
+                } else janus_gc();
+            }
+        }
+        janus_active = pop_free(H_LOG); lg[janus_active].kind = K_RW; return janus_active;
+    }
+    void janus_enforce_cap(u32 keep) {
+        while (fused_n > fused_cap) {
+            u32 lb = NONE; u64 best = ~0ull;
+            for (u32 x = 0; x < NLB; ++x) if (fused[x] && x != keep && lb_last[x] < best) { best = lb_last[x]; lb = x; }
+            if (lb == NONE) return;
+            while ((int)freelist.size() <= T) janus_gc();    // defusion needs an empty block
+            defusion(lb);
+            for (int b = 0; b < NB; ++b) if (is_pma(b) && b != janus_active && bvalid[b] == 0) erase(b);
+        }
+    }
+    void janus_write_page(u64 lpn) {
+        u32 lb = (u32)(lpn / P);
+        if (!fused[lb]) { fusion(lb); janus_enforce_cap(lb); }
+        lb_last[lb] = ++tick;
+        log_append(janus_log_block(false), lpn, S_HOST);
+    }
+
     void host_write(u64 lpn, u64 n) {
         st.host_pages += n;
-        if (c.mode == "fast") { for (u64 p = lpn; p < lpn + n; ++p) fast_write_page(p); }
+        if (c.mode == "janus") { for (u64 p = lpn; p < lpn + n; ++p) janus_write_page(p); }
+        else if (c.mode == "fast") { for (u64 p = lpn; p < lpn + n; ++p) fast_write_page(p); }
         else if (c.mode == "last") {
             if (n > c.last_seq_thresh) { st.n_seq_req++; for (u64 p = lpn; p < lpn + n; ++p) last_seq_write_page(p); }
             else { st.n_rand_req++; for (u64 p = lpn; p < lpn + n; ++p) last_rand_write_page(p); }
@@ -1058,11 +1148,12 @@ struct HybridSim {
                (unsigned long long)st.n_seq_req, (unsigned long long)st.n_rand_req, (unsigned long long)st.n_hot_pages, (unsigned long long)st.n_cold_pages);
         { u64 logpages = 0; for (u64 l = 0; l < L; ++l) logpages += lmap[l] != NONE;
           double a = (double)NLB * 4;                                       // block map
-          double b2 = hash_bytes((double)logpages, c.mode == "last" ? 12 : 8);  // lpn -> log ppn (+4B write-seq for LAST hotness)
+          double b2 = c.mode == "janus" ? (double)fused_n * P * 4.0 : hash_bytes((double)logpages, c.mode == "last" ? 12 : 8);  // janus: dense page map per fused block
           double c2 = c.mode == "last" ? (double)nlog * 1 : 0;              // per-log-block associativity degree
           double mem = a + b2 + c2;
           printf("  \"log_pages_end\": %llu,\n", (unsigned long long)logpages);
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
+        printf("  \"janus\": {\"fusion\": %llu, \"defusion\": %llu, \"gc\": %llu, \"avg_gc_valid\": %.0f, \"fused_end\": %d, \"fused_cap\": %d, \"pma_util_end\": %.3f},\n", (unsigned long long)n_fusion, (unsigned long long)n_defusion, (unsigned long long)n_jgc, n_jgc ? (double)jgc_valid_sum / n_jgc : 0.0, fused_n, fused_cap, c.mode == "janus" ? pma_util() : 0.0);
         printf("  \"hot_cap_end\": %d, \"cold_cap_end\": %d\n", hot_cap, cold_cap);
         printf("}\n");
     }
@@ -1415,13 +1506,15 @@ int main(int argc, char** argv) {
         else if (k == "mu_parts") c.mu_parts = atoi(v.c_str());
         else if (k == "mu_max_extent") c.mu_max_extent = atoi(v.c_str());
         else if (k == "mu_leaf_fanout") c.mu_leaf_fanout = atoi(v.c_str());
+        else if (k == "janus_u") c.janus_u = atof(v.c_str());
+        else if (k == "janus_cap") c.janus_cap = atoi(v.c_str());
         else if (k == "last_k") c.last_k = strtoull(v.c_str(), nullptr, 10);
         else { fprintf(stderr, "unknown key %s\n", k.c_str()); return 1; }
     }
     if (c.mode == "cftl") c.mode = "dftl";  // alias
     if (c.U > 32) { fprintf(stderr, "U > 32 unsupported (bitmap)\n"); return 1; }
     if (c.P == 0) { u64 pages = c.capacity / 4096; u64 p = pages * 3 / 1024; p -= p % (64 * c.U); if (p < (u64)(64 * c.U)) p = 64 * c.U; c.P = (int)p; }
-    if (c.mode == "fast" || c.mode == "last") { HybridSim s(c); Runner<HybridSim> r(s); r.run(); }
+    if (c.mode == "fast" || c.mode == "last" || c.mode == "janus") { HybridSim s(c); Runner<HybridSim> r(s); r.run(); }
     else if (c.mode == "mu") { MuSim s(c); Runner<MuSim> r(s); r.run(); }
     else { Sim s(c); Runner<Sim> r(s); r.run(); }
     return 0;
