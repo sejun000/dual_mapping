@@ -41,6 +41,8 @@ struct Cfg {
     std::string mode = "proposed";
     double zipf = 0.0;
     int min_k = 0, max_k = 6;     // request size = 2^k pages, log-uniform by request count
+    u64 wbuf_pages = 256;         // device write buffer (default 1 MiB) (pages): coalesce fragments per IU; full IU -> aligned write, LRU IU evicted as fragments. 0 = off
+    bool seq_pattern = false;     // sequential host writes (request starts advance sequentially, wrap at end) instead of zipf/uniform
     std::string size_weights;     // optional comma list of weights for k=min_k..max_k (e.g. "64,32,16,8,4,2,1" = small-heavy)
     u64 seed = 1;
     double age_x = 8.0;           // workload aging multiples of capacity (after seq fill)
@@ -1390,6 +1392,7 @@ struct Runner {
     std::vector<double> cdf;   // over NIU ranks
     std::vector<u32> rank2iu;
     std::vector<double> size_cdf;
+    u64 seq_pos = 0;
     void build_workload() {
         if (!c.size_weights.empty()) {
             double acc = 0; size_t pos = 0; std::string w = c.size_weights + ",";
@@ -1414,6 +1417,41 @@ struct Runner {
         if (r >= NIU) r = NIU - 1;
         return rank2iu[r];
     }
+    // ---- device write buffer (applies to every FTL mode identically)
+    std::list<u64> wb_lru;                                                   // front = MRU, holds IU ids
+    std::unordered_map<u64, std::pair<std::list<u64>::iterator, u32>> wb;  // iu -> (lru pos, bitmap)
+    u64 wb_pages = 0;
+    void wb_flush_iu(u64 iu, u32 bm) {
+        // emit contiguous runs of buffered pages
+        int off = 0;
+        while (off < U) {
+            if (!(bm & (1u << off))) { off++; continue; }
+            int start = off; while (off < U && (bm & (1u << off))) off++;
+            s.host_write(iu * U + start, off - start);
+        }
+        wb_pages -= __builtin_popcount(bm);
+    }
+    void wb_write(u64 lpn, u64 n) {
+        if (!c.wbuf_pages) { s.host_write(lpn, n); return; }
+        u64 cur = lpn, end = lpn + n;
+        while (cur < end) {
+            u64 iu = cur / U; int off = (int)(cur % U);
+            int w = (int)std::min<u64>(end - cur, (u64)(U - off));
+            u32 bits = ((w == 32 ? 0xFFFFFFFFu : ((1u << w) - 1)) << off);
+            auto it = wb.find(iu);
+            if (it == wb.end()) { wb_lru.push_front(iu); it = wb.emplace(iu, std::make_pair(wb_lru.begin(), 0u)).first; }
+            else { wb_lru.erase(it->second.first); wb_lru.push_front(iu); it->second.first = wb_lru.begin(); }
+            u32 old = it->second.second; u32 nb = old | bits;
+            wb_pages += __builtin_popcount(nb) - __builtin_popcount(old);   // overwrites of buffered pages are absorbed
+            it->second.second = nb;
+            if (__builtin_popcount(nb) == U) { wb_lru.erase(it->second.first); wb.erase(it); s.host_write(iu * U, U); wb_pages -= U; }
+            cur += w;
+            while (wb_pages > c.wbuf_pages && !wb_lru.empty()) {           // evict LRU IU as fragments
+                u64 v = wb_lru.back(); wb_lru.pop_back(); u32 bm = wb[v].second; wb.erase(v); wb_flush_iu(v, bm);
+            }
+        }
+    }
+    void wb_drain() { while (!wb_lru.empty()) { u64 v = wb_lru.back(); wb_lru.pop_back(); u32 bm = wb[v].second; wb.erase(v); wb_flush_iu(v, bm); } }
     void run_workload(u64 pages) {
         u64 done = 0;
         while (done < pages) {
@@ -1423,8 +1461,9 @@ struct Runner {
             else { double u = std::uniform_real_distribution<double>(0.0, 1.0)(s.rng); k = c.min_k + (int)(std::lower_bound(size_cdf.begin(), size_cdf.end(), u) - size_cdf.begin()); if (k > c.max_k) k = c.max_k; }
             u64 n = 1ull << k;
             u64 lpn = iu * U + (s.rng() % U);
+            if (c.seq_pattern) { lpn = seq_pos; seq_pos += n; if (seq_pos >= L) seq_pos = 0; }
             if (lpn + n > L) lpn = L - n;
-            s.host_write(lpn, n);
+            wb_write(lpn, n);
             done += n;
         }
     }
@@ -1438,6 +1477,7 @@ struct Runner {
         if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
         if (c.age_x > 0) { fprintf(stderr, "[phase] aging %.2fx\n", c.age_x); run_workload((u64)(L * c.age_x)); }
         s.verify();
+        wb_drain();
         fprintf(stderr, "[phase] reset stats, measure %.2fx\n", c.measure_x);
         s.st.reset(U);
         s.measuring = true;
@@ -1445,6 +1485,7 @@ struct Runner {
         s.ts_next = s.ts_interval;
         if (!c.out_ts.empty()) { s.ts = fopen(c.out_ts.c_str(), "w"); if (s.ts) s.ts_header(); }
         run_workload((u64)(L * c.measure_x));
+        wb_drain();
         if (s.ts) { s.ts_sample(); fclose(s.ts); }
         s.verify();
         s.report();
@@ -1479,6 +1520,8 @@ int main(int argc, char** argv) {
         else if (k == "min_k") c.min_k = atoi(v.c_str());
         else if (k == "max_k") c.max_k = atoi(v.c_str());
         else if (k == "size_weights") c.size_weights = v;
+        else if (k == "wbuf") c.wbuf_pages = parse_bytes(v) / 4096;
+        else if (k == "seq_pattern") c.seq_pattern = atoi(v.c_str()) != 0;
         else if (k == "fine_budget_bytes") c.fine_budget_bytes = parse_bytes(v);
         else if (k == "seed") c.seed = strtoull(v.c_str(), nullptr, 10);
         else if (k == "age_x") c.age_x = atof(v.c_str());
