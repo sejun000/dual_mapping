@@ -310,3 +310,8 @@ one-at-a-time 감도(고정 설정): d 문턱이 핵심(d≥1: +6~12%, d≥8: �
 - 해결: 모든 정책 공통의 IU 단위 coalescing 쓰기 버퍼(`wbuf`, 기본 1 MiB = 256페이지). IU별로 페이지를 모아 16이 차면 정렬 IU 쓰기, 버퍼 초과 시 LRU IU를 조각 run으로 내림. 버퍼 내 덮어쓰기는 흡수.
 - 결과: 순차 4K 전 정책 1.00; 랜덤 mix ±3%(1.2에서 전 정책 WAF 소폭 상승 — 버퍼가 최상위 hot 덮어쓰기를 흡수해 FTL 도달 트래픽의 skew가 감소). canonical 표는 README v2.3.
 - 후속 아이디어(미구현): **switch fold** — IU 16 조각이 fine 블록에 물리적으로 연속·순서대로 있으면 복사 없이 매핑만 chunk로 전환(FAST switch merge 유사). 버퍼 도입 후 기회는 다중 순차 스트림이 버퍼를 넘칠 때로 제한 → 기회 측정 후 구현 여부 결정.
+
+## 시도 후 기각: RAM-cap fine 티어 (`fine_cap=ram`, 2026-08-23)
+블록 태그는 유지하되 fine 블록 수 제한을 없애고 fine 맵 RAM 예산(2.4 MiB)만 제한, 공간 압박 시 두 티어를 합쳐 valid 최소 블록을 victim으로.
+결과: zipf 0.8/0.99/1.2에서 +23/+26/+21% 손해, fine 블록이 2개(frontier)로 수렴, 예산 fold 0회, 균등은 예약 블록 고갈.
+원인: 갓 찬 fine 블록은 조각이 빨리 죽어 항상 valid 최소 → 전역 greedy GC가 즉시 회수 → 조각이 덮어써질 체류 시간을 못 받음. **블록 quota는 RAM 대리변수일 뿐 아니라 fine 블록을 greedy GC로부터 보호하는 최소 체류 시간 장치**. 이를 GC에 맡기려면 age-aware cost-benefit GC(추가 정책/상수)가 필요 → 고정 quota 유지.

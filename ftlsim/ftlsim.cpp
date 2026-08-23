@@ -54,7 +54,8 @@ struct Cfg {
     bool fine_extra = true;       // fine quota is physical space ADDED on top of OP (else carved from OP)
     bool gc_frontier = true;      // separate active blocks for GC/reclaim writes vs host writes (hot/cold separation)
     bool zipf_shuffle = false;
-    u64 fine_budget_bytes = 0;    // mixed: RAM budget for the fine map (0 = 10% of page4k L2P minus coarse map)
+    std::string fine_cap = "blocks"; // proposed: blocks (fixed fine block quota) | ram (no block quota; fine map capped by RAM budget, global greedy GC across tiers)
+    u64 fine_budget_bytes = 0;    // mixed/ram: RAM budget for the fine map (0 = 10% of page4k L2P minus coarse map)
     std::string fine_policy = "cost";  // fine victim handling: cost (default, parameter-free: fold IU iff 16/d < v/(P-v)) | cold (pressure-gated coldest-first) | greedy (d>=fold_d) | block (whole-block cost test)
                                        // | fifo_fold (oldest fine block, fold all) | greedy_copy (min-valid block, copy only) | alt (alternate fifo_fold / greedy_copy 1:1)
                                        // | cost (per-IU, parameter-free: fold iff 16/d < v/(P-v)) | cost_cold (cost + fine-cold filter)
@@ -141,12 +142,13 @@ struct Sim {
     bool fold_allowed = true;      // cold policy: set per victim by the pressure gate
     // ---- mixed mode: one pool (no fine/coarse block tags), fine map capped by RAM budget, single greedy GC
     bool mixed = false;
+    bool ram_cap = false;          // proposed + fine_cap=ram
     double fine_budget = 0;                       // bytes
     std::vector<std::unordered_set<u32>> by_d;    // d -> IUs with that many fragments (for budget eviction)
     u64 fine_ius_n = 0, fine_frags_n = 0;
     double fine_mem() const { return hash_bytes((double)fine_ius_n, 4 + 2 + 4) + 4.0 * fine_frags_n; }
     void track_d(u64 iu, int oldd, int newd) {
-        if (!mixed) return;
+        if (!mixed && !ram_cap) return;
         if (oldd > 0) by_d[oldd].erase((u32)iu);
         if (newd > 0) by_d[newd].insert((u32)iu);
         fine_frags_n += newd - oldd;
@@ -172,6 +174,11 @@ struct Sim {
         if (c.mode == "proposed") {
             fine_quota_blocks = std::max(1, (int)(NB * c.fine_quota));
             if (c.fine_extra) NB += fine_quota_blocks;   // fine tier is extra physical space
+            if (c.fine_cap == "ram") {
+                ram_cap = true; fine_quota_blocks = NB;    // no block quota
+                fine_budget = c.fine_budget_bytes ? (double)c.fine_budget_bytes : 0.10 * (double)L * 4.0 - (double)NIU * 4.0;
+                by_d.resize(U + 1);
+            }
         } else if (c.mode == "mixed") {
             mixed = true;
             fine_quota_blocks = std::max(1, (int)(NB * c.fine_quota));
@@ -191,7 +198,7 @@ struct Sim {
         for (int b = NB - 1; b >= 0; --b) freelist.push_back(b);
         st.reset(U);
         rng.seed(c.seed);
-        if (mixed) fprintf(stderr, "[cfg] mixed: fine map budget = %.2f MiB\n", fine_budget / (1 << 20));
+        if (mixed || ram_cap) fprintf(stderr, "[cfg] %s: fine map budget = %.2f MiB\n", mixed ? "mixed" : "ram-cap", fine_budget / (1 << 20));
         fprintf(stderr, "[cfg] mode=%s L=%llu pages (%.1f GB) NP=%llu NB=%d P=%d U=%d OP=%.3f fine_quota=%d blocks (extra=%d) T=%d zipf=%.2f\n",
                 c.mode.c_str(), (unsigned long long)L, L * 4096.0 / (1 << 30), (unsigned long long)NP, NB, P, U, c.op,
                 fine_quota_blocks, (int)c.fine_extra, c.T, c.zipf);
@@ -288,6 +295,11 @@ struct Sim {
                 size_t before = freelist.size();
                 if (is_pg()) page_gc();
                 else if (mixed) mixed_gc();
+                else if (ram_cap) {
+                    int vf = pick_victim(B_FINE), vc = pick_victim(B_COARSE);
+                    bool use_fine = vf >= 0 && (vc < 0 || bvalid[vf] <= bvalid[vc]);
+                    if (use_fine) { in_cgc = true; fine_reclaim(); in_cgc = false; } else coarse_gc();
+                }
                 else coarse_gc();
                 if (freelist.size() <= before) { if (++stall > 64) DIE("GC makes no progress: coarse tier over-committed (free=%zu fine=%d coarse=%d quota=%d NB=%d). Try fine_extra=1 or smaller fine_quota.", freelist.size(), fine_blocks, coarse_blocks, fine_quota_blocks, NB); }
                 else stall = 0;
@@ -341,7 +353,7 @@ struct Sim {
             if (popc(fbitmap[fi]) == U && coarse_map[iu] != NONE) { coarse_map[iu] = NONE; st.n_extent_drop++; }  // extent fully dead
         }
         fslot[(u64)fi * U + off] = ppn;
-        if (mixed && src == S_HOST) mixed_enforce_budget();
+        if ((mixed || ram_cap) && src == S_HOST) mixed_enforce_budget();
     }
 
     // full IU write into coarse tier; invalidates old extent and fine fragments
@@ -1523,6 +1535,7 @@ int main(int argc, char** argv) {
         else if (k == "wbuf") c.wbuf_pages = parse_bytes(v) / 4096;
         else if (k == "seq_pattern") c.seq_pattern = atoi(v.c_str()) != 0;
         else if (k == "fine_budget_bytes") c.fine_budget_bytes = parse_bytes(v);
+        else if (k == "fine_cap") c.fine_cap = v;
         else if (k == "seed") c.seed = strtoull(v.c_str(), nullptr, 10);
         else if (k == "age_x") c.age_x = atof(v.c_str());
         else if (k == "measure_x") c.measure_x = atof(v.c_str());
