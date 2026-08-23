@@ -1,0 +1,6 @@
+[cfg] mode=last L=262144 pages (1.0 GB) NB=301 NLB=256 nlog=43 (seq=10 hot=16 cold=17) P=1024 (4 MiB) T=2 zipf=0.99
+[phase] seq fill
+[phase] aging 2.00x
+[verify] ok. log_pages=1231 log_blocks=28 free=17 hot_cap=16 cold_cap=17
+[phase] reset stats, measure 1.00x
+[verify] ok. log_pages=1211 log_blocks=28 free=17 hot_cap=16 cold_cap=17

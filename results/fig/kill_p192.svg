@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 520" font-family="Inter,Helvetica,Arial,sans-serif" font-size="12">
+<rect width="100%" height="100%" fill="#fcfcfb"/>
+<text x="60" y="28" font-size="15" font-weight="600" fill="#0b0b0b">A. WAF vs. Zipf skew (64 GiB, 192 MiB blocks, equal physical space 75.3 GiB)</text>
+<line x1="60" x2="620" y1="450.0" y2="450.0" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="454.0" text-anchor="end" fill="#52514e">1</text>
+<line x1="60" x2="620" y1="413.5" y2="413.5" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="417.5" text-anchor="end" fill="#52514e">2</text>
+<line x1="60" x2="620" y1="365.3" y2="365.3" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="369.3" text-anchor="end" fill="#52514e">5</text>
+<line x1="60" x2="620" y1="328.8" y2="328.8" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="332.8" text-anchor="end" fill="#52514e">10</text>
+<line x1="60" x2="620" y1="292.3" y2="292.3" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="296.3" text-anchor="end" fill="#52514e">20</text>
+<line x1="60" x2="620" y1="244.1" y2="244.1" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="248.1" text-anchor="end" fill="#52514e">50</text>
+<line x1="60" x2="620" y1="207.7" y2="207.7" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="211.7" text-anchor="end" fill="#52514e">100</text>
+<line x1="60" x2="620" y1="171.2" y2="171.2" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="175.2" text-anchor="end" fill="#52514e">200</text>
+<line x1="60" x2="620" y1="123.0" y2="123.0" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="127.0" text-anchor="end" fill="#52514e">500</text>
+<line x1="60" x2="620" y1="86.5" y2="86.5" stroke="#e6e5e1" stroke-width="1"/><text x="52" y="90.5" text-anchor="end" fill="#52514e">1000</text>
+<text x="100.0" y="468" text-anchor="middle" fill="#52514e">α=0</text>
+<text x="260.0" y="468" text-anchor="middle" fill="#52514e">α=0.8</text>
+<text x="420.0" y="468" text-anchor="middle" fill="#52514e">α=0.99</text>
+<text x="580.0" y="468" text-anchor="middle" fill="#52514e">α=1.2</text>
+<text x="340.0" y="488" text-anchor="middle" fill="#52514e">Zipf α (IU-rank; 4K–256K log-uniform sizes)</text>
+<text transform="translate(18,250.0) rotate(-90)" text-anchor="middle" fill="#52514e">WAF (log scale)</text>
+<polyline points="100.0,369.0 260.0,373.3 420.0,385.2 580.0,421.9" fill="none" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="100.0" cy="369.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>proposed, α=0: WAF 4.66</title></circle>
+<circle cx="260.0" cy="373.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>proposed, α=0.8: WAF 4.30</title></circle>
+<circle cx="420.0" cy="385.2" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>proposed, α=0.99: WAF 3.43</title></circle>
+<circle cx="580.0" cy="421.9" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>proposed, α=1.2: WAF 1.71</title></circle>
+<text x="590.0" y="425.9" fill="#0b0b0b">proposed</text>
+<polyline points="100.0,381.6 260.0,377.8 420.0,385.4 580.0,427.9" fill="none" stroke="#eb6834" stroke-width="2"/>
+<circle cx="100.0" cy="381.6" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>page4k, α=0: WAF 3.67</title></circle>
+<circle cx="260.0" cy="377.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>page4k, α=0.8: WAF 3.94</title></circle>
+<circle cx="420.0" cy="385.4" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>page4k, α=0.99: WAF 3.41</title></circle>
+<circle cx="580.0" cy="427.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>page4k, α=1.2: WAF 1.52</title></circle>
+<text x="590.0" y="431.9" fill="#0b0b0b">page4k</text>
+<polyline points="100.0,379.0 260.0,376.3 420.0,384.5 580.0,427.5" fill="none" stroke="#1baf7a" stroke-width="2"/>
+<circle cx="100.0" cy="379.0" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>DFTL (cache=proposed RAM), α=0: WAF 3.86</title></circle>
+<circle cx="260.0" cy="376.3" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>DFTL (cache=proposed RAM), α=0.8: WAF 4.06</title></circle>
+<circle cx="420.0" cy="384.5" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>DFTL (cache=proposed RAM), α=0.99: WAF 3.47</title></circle>
+<circle cx="580.0" cy="427.5" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>DFTL (cache=proposed RAM), α=1.2: WAF 1.53</title></circle>
+<text x="590.0" y="431.5" fill="#0b0b0b">DFTL</text>
+<polyline points="100.0,348.7 260.0,332.1 420.0,350.2 580.0,395.4" fill="none" stroke="#eda100" stroke-width="2"/>
+<circle cx="100.0" cy="348.7" r="4" fill="#eda100" stroke="#fcfcfb" stroke-width="2"><title>μ-FTL (cache=proposed RAM), α=0: WAF 6.86</title></circle>
+<circle cx="260.0" cy="332.1" r="4" fill="#eda100" stroke="#fcfcfb" stroke-width="2"><title>μ-FTL (cache=proposed RAM), α=0.8: WAF 9.40</title></circle>
+<circle cx="420.0" cy="350.2" r="4" fill="#eda100" stroke="#fcfcfb" stroke-width="2"><title>μ-FTL (cache=proposed RAM), α=0.99: WAF 6.67</title></circle>
+<circle cx="580.0" cy="395.4" r="4" fill="#eda100" stroke="#fcfcfb" stroke-width="2"><title>μ-FTL (cache=proposed RAM), α=1.2: WAF 2.82</title></circle>
+<text x="590.0" y="399.4" fill="#0b0b0b">μ-FTL</text>
+<polyline points="100.0,349.9 260.0,346.1 420.0,355.0 580.0,386.5" fill="none" stroke="#e87ba4" stroke-width="2"/>
+<circle cx="100.0" cy="349.9" r="4" fill="#e87ba4" stroke="#fcfcfb" stroke-width="2"><title>IU+RMW, α=0: WAF 6.71</title></circle>
+<circle cx="260.0" cy="346.1" r="4" fill="#e87ba4" stroke="#fcfcfb" stroke-width="2"><title>IU+RMW, α=0.8: WAF 7.20</title></circle>
+<circle cx="420.0" cy="355.0" r="4" fill="#e87ba4" stroke="#fcfcfb" stroke-width="2"><title>IU+RMW, α=0.99: WAF 6.09</title></circle>
+<circle cx="580.0" cy="386.5" r="4" fill="#e87ba4" stroke="#fcfcfb" stroke-width="2"><title>IU+RMW, α=1.2: WAF 3.34</title></circle>
+<text x="590.0" y="390.5" fill="#0b0b0b">IU+RMW</text>
+<polyline points="100.0,343.3 260.0,330.4 420.0,297.0 580.0,257.7" fill="none" stroke="#008300" stroke-width="2"/>
+<circle cx="100.0" cy="343.3" r="4" fill="#008300" stroke="#fcfcfb" stroke-width="2"><title>FAST, α=0: WAF 7.59</title></circle>
+<circle cx="260.0" cy="330.4" r="4" fill="#008300" stroke="#fcfcfb" stroke-width="2"><title>FAST, α=0.8: WAF 9.70</title></circle>
+<circle cx="420.0" cy="297.0" r="4" fill="#008300" stroke="#fcfcfb" stroke-width="2"><title>FAST, α=0.99: WAF 18.32</title></circle>
+<circle cx="580.0" cy="257.7" r="4" fill="#008300" stroke="#fcfcfb" stroke-width="2"><title>FAST, α=1.2: WAF 38.66</title></circle>
+<text x="590.0" y="261.7" fill="#0b0b0b">FAST</text>
+<polyline points="100.0,65.5 260.0,88.1 420.0,124.7 580.0,199.0" fill="none" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="100.0" cy="65.5" r="4" fill="#4a3aa7" stroke="#fcfcfb" stroke-width="2"><title>LAST, α=0: WAF 1489.29</title></circle>
+<circle cx="260.0" cy="88.1" r="4" fill="#4a3aa7" stroke="#fcfcfb" stroke-width="2"><title>LAST, α=0.8: WAF 970.02</title></circle>
+<circle cx="420.0" cy="124.7" r="4" fill="#4a3aa7" stroke="#fcfcfb" stroke-width="2"><title>LAST, α=0.99: WAF 483.87</title></circle>
+<circle cx="580.0" cy="199.0" r="4" fill="#4a3aa7" stroke="#fcfcfb" stroke-width="2"><title>LAST, α=1.2: WAF 117.80</title></circle>
+<text x="590.0" y="203.0" fill="#0b0b0b">LAST</text>
+<text x="700" y="28" font-size="15" font-weight="600" fill="#0b0b0b">B. Mapping RAM relative to page4k (= 64 MiB = 100%)</text>
+<line y1="50" y2="450" x1="760.0" x2="760.0" stroke="#e6e5e1"/><text x="760.0" y="468" text-anchor="middle" fill="#52514e">0.1%</text>
+<line y1="50" y2="450" x1="875.1" x2="875.1" stroke="#e6e5e1"/><text x="875.1" y="468" text-anchor="middle" fill="#52514e">1%</text>
+<line y1="50" y2="450" x1="990.2" x2="990.2" stroke="#e6e5e1"/><text x="990.2" y="468" text-anchor="middle" fill="#52514e">10%</text>
+<line y1="50" y2="450" x1="1105.3" x2="1105.3" stroke="#e6e5e1"/><text x="1105.3" y="468" text-anchor="middle" fill="#52514e">100%</text>
+<text x="950.0" y="488" text-anchor="middle" fill="#52514e">RAM, % of page4k (log scale; hash-managed page maps, LF 0.7)</text>
+<rect x="760.0" y="56.0" width="260.2" height="45.1" rx="4" fill="#2a78d6"><title>proposed: 11.66 MiB = 18.2% of page4k</title></rect>
+<text x="752" y="82.6" text-anchor="end" fill="#0b0b0b">proposed</text>
+<text x="1026.2" y="82.6" fill="#52514e">11.7 MiB (18.2%)</text>
+<rect x="760.0" y="113.1" width="345.3" height="45.1" rx="4" fill="#eb6834"><title>page4k: 64.00 MiB = 100.0% of page4k</title></rect>
+<text x="752" y="139.7" text-anchor="end" fill="#0b0b0b">page4k</text>
+<text x="1111.3" y="139.7" fill="#52514e">64.0 MiB (100.0%)</text>
+<rect x="760.0" y="170.3" width="260.5" height="45.1" rx="4" fill="#1baf7a"><title>DFTL (cache=proposed RAM): 11.72 MiB = 18.3% of page4k</title></rect>
+<text x="752" y="196.9" text-anchor="end" fill="#0b0b0b">DFTL</text>
+<text x="1026.5" y="196.9" fill="#52514e">11.7 MiB (18.3%) (set = proposed)</text>
+<rect x="760.0" y="227.4" width="260.3" height="45.1" rx="4" fill="#eda100"><title>μ-FTL (cache=proposed RAM): 11.69 MiB = 18.3% of page4k</title></rect>
+<text x="752" y="254.0" text-anchor="end" fill="#0b0b0b">μ-FTL</text>
+<text x="1026.3" y="254.0" fill="#52514e">11.7 MiB (18.3%) (set = proposed)</text>
+<rect x="760.0" y="284.6" width="206.7" height="45.1" rx="4" fill="#e87ba4"><title>IU+RMW: 4.00 MiB = 6.2% of page4k</title></rect>
+<text x="752" y="311.1" text-anchor="end" fill="#0b0b0b">IU+RMW</text>
+<text x="972.7" y="311.1" fill="#52514e">4.0 MiB (6.2%)</text>
+<rect x="760.0" y="341.7" width="271.4" height="45.1" rx="4" fill="#008300"><title>FAST: 14.59 MiB = 22.8% of page4k</title></rect>
+<text x="752" y="368.3" text-anchor="end" fill="#0b0b0b">FAST</text>
+<text x="1037.4" y="368.3" fill="#52514e">14.6 MiB (22.8%)</text>
+<rect x="760.0" y="398.9" width="66.1" height="45.1" rx="4" fill="#4a3aa7"><title>LAST: 0.24 MiB = 0.4% of page4k</title></rect>
+<text x="752" y="425.4" text-anchor="end" fill="#0b0b0b">LAST</text>
+<text x="832.1" y="425.4" fill="#52514e">0.2 MiB (0.4%) (log nearly empty at end)</text>
+</svg>

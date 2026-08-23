@@ -1,0 +1,8 @@
+[cfg] mode=page4k L=16777216 pages (64.0 GB) NP=19709952 NB=401 P=49152 U=16 OP=0.177 fine_quota=401 blocks (extra=1) T=2 zipf=0.80
+[phase] seq fill
+[phase] aging 2.00x
+[verify] ok. fine_valid_pages=0 fine_blocks=399 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 1 0 0 0 0 0 0 114 164 118 2
+[phase] reset stats, measure 1.00x
+[verify] ok. fine_valid_pages=0 fine_blocks=399 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 1 0 0 0 120 143 134 1
