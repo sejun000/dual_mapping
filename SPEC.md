@@ -322,4 +322,4 @@ one-at-a-time 감도(고정 설정): d 문턱이 핵심(d≥1: +6~12%, d≥8: �
 python3 tools/plot.py [outdir]   # 기본 results/fig
 ```
 - matplotlib은 시스템에 없어 `~/tools/pyenv`(Debian 패키지 추출본)에 두고, 스크립트가 PYTHONPATH/LD_LIBRARY_PATH/MATPLOTLIBRC를 세팅해 자기 자신을 re-exec.
-- 그림 목록: fig1 WAF vs zipf(7정책, 로그), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.
+- 그림 목록: fig1 WAF vs zipf(6정책, 로그; LAST는 스케일 압축 때문에 그림에서 제외, 표에는 유지), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.

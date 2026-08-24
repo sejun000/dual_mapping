@@ -44,6 +44,7 @@ import matplotlib  # noqa: E402
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+from matplotlib.ticker import FixedLocator, FuncFormatter  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "results", "fig")
@@ -77,8 +78,9 @@ POLICIES = [
     ("iu_rmw_eq",  "IU+RMW",    "#eda100", "D"),
     ("mu_eq",      r"$\mu$-FTL", "#e87ba4", "v"),
     ("fast_eq",    "FAST",      "#008300", "P"),
-    ("last_eq",    "LAST",      "#4a3aa7", "X"),
 ]
+# LAST is excluded from the figures (WAF 150-2200 compresses every other curve);
+# its numbers stay in the result tables.
 
 
 def load(d, name):
@@ -93,6 +95,13 @@ def save(fig, stem):
         fig.savefig(path)
     plt.close(fig)
     print("wrote", os.path.join(OUT, stem) + ".{pdf,png}")
+
+
+def log_ticks(ax, vals):
+    """Readable decimal ticks on a narrow log axis."""
+    ax.yaxis.set_major_locator(FixedLocator(vals))
+    ax.yaxis.set_minor_locator(FixedLocator([]))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
 
 
 def outside_legend(ax, ncol, y=1.02):
@@ -111,6 +120,8 @@ def fig_waf_zipf():
                 markersize=11 if tag == "proposed" else 8,
                 zorder=3 if tag == "proposed" else 2)
     ax.set_yscale("log")
+    log_ticks(ax, [3, 5, 10, 20, 50])
+    ax.set_ylim(2.5, 60)
     ax.set_xticks(range(len(ZS)))
     ax.set_xticklabels([f"{z}" for z in ZS])
     ax.set_xlabel(r"Zipf skew $\alpha$ (IU rank)")
@@ -118,7 +129,7 @@ def fig_waf_zipf():
     ax.set_xlim(-0.25, len(ZS) - 0.75)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    outside_legend(ax, 4)
+    outside_legend(ax, 3)
     save(fig, "fig1_waf_zipf")
 
 
@@ -140,6 +151,7 @@ def fig_waf_sizes():
                         ha="center", va="bottom", fontsize=15, xytext=(0, 2),
                         textcoords="offset points")
     ax.set_yscale("log")
+    log_ticks(ax, [1, 2, 5, 10, 20, 40])
     ax.set_ylim(1, 48)
     ax.set_xticks(x)
     ax.set_xticklabels([g[0] for g in groups])
@@ -252,7 +264,8 @@ def fig_seq():
             ax.annotate(f"{v:.2f}", (b.get_x() + b.get_width() / 2, v), ha="center",
                         va="bottom", fontsize=15, xytext=(0, 2), textcoords="offset points")
     ax.set_yscale("log")
-    ax.set_ylim(0.8, 40)
+    log_ticks(ax, [1, 2, 5, 10, 20])
+    ax.set_ylim(0.85, 30)
     ax.set_xticks(x)
     ax.set_xticklabels([m[1] for m in mods])
     ax.set_ylabel("WAF")
