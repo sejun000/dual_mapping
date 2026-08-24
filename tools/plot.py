@@ -249,39 +249,88 @@ def fig_breakdown_sizes():
 
 
 def fig_breakdown_policies():
+    """Write breakdown per policy for the default size mix (canonical setting)."""
     mods = POLICIES[:4]
-    gc_keys = ["pgc", "cgc_clean", "cgc_refold", "finegc", "fold", "unfold",
-               "fullmerge", "partialmerge", "zerofill"]
-    fig, ax = plt.subplots(figsize=(10, 6))
     zshow = ["0", "0.99"]
-    x = np.arange(len(mods) * len(zshow))
-    labels, host, rmw, gc, mp = [], [], [], [], []
-    for zi, z in enumerate(zshow):
-        for tag, label, _, _ in mods:
-            r = load(CANON, f"{tag}_z{z}.json")
-            h = r["host_pages"]
-            labels.append(f"{label}\n" + r"$\alpha$=" + z)
-            host.append(r["prog"]["host"] / h)
-            rmw.append(r["prog"].get("rmw", 0) / h)
-            gc.append(sum(r["prog"].get(k, 0) for k in gc_keys) / h)
-            mp.append(r["prog"].get("map", 0) / h)
-    host, rmw, gc, mp = map(np.array, (host, rmw, gc, mp))
-    ax.bar(x, host, 0.6, label="Host", color="#2a78d6")
-    ax.bar(x, rmw, 0.6, bottom=host, label="RMW", color="#eda100")
-    ax.bar(x, gc, 0.6, bottom=host + rmw, label="GC / merge", color="#eb6834")
-    ax.bar(x, mp, 0.6, bottom=host + rmw + gc, label="Map write", color="#1baf7a")
-    tot = host + rmw + gc + mp
-    for xi, t in zip(x, tot):
-        ax.annotate(f"{t:.1f}", (xi, t), ha="center", va="bottom", fontsize=15,
-                    xytext=(0, 3), textcoords="offset points")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=15)
+    fig, ax = plt.subplots(figsize=(11, 6))
+    labels, recs, xs = [], [], []
+    for gi, z in enumerate(zshow):
+        for mi, (tag, label, _, _) in enumerate(mods):
+            recs.append(load(CANON, f"{tag}_z{z}.json"))
+            labels.append(label)
+            xs.append(gi * (len(mods) + 0.8) + mi)
+    tot = _stack(ax, np.array(xs, dtype=float), recs)
+    ax.set_xticks(xs)
+    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=16)
+    for gi, z in enumerate(zshow):
+        ax.annotate(r"$\alpha$=" + z, (gi * (len(mods) + 0.8) + (len(mods) - 1) / 2, 0),
+                    xytext=(0, -68), textcoords="offset points", ha="center", fontsize=18)
     ax.set_ylabel("NAND writes per host page")
+    ax.set_ylim(0, max(tot) * 1.1)
     outside_legend(ax, 4)
-    ax.set_ylim(0, max(tot) * 1.12)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     save(fig, "fig5_breakdown_policies")
+
+
+# Unified write-source stack used by the policy-comparison figures.
+# page4k / DFTL map everything at 4 KB, so their GC is counted as fine-tier GC.
+STACK = [("host",       ["host"],               "Host",                      "#2a78d6"),
+         ("rmw",        ["rmw"],                "RMW",                       "#7a5195"),
+         ("coarse",     ["cgc_clean"],          "Coarse-tier GC",            "#eb6834"),
+         ("refold",     ["cgc_refold"],         "Merge with coarse-tier GC", "#1baf7a"),
+         ("fold",       ["fold", "unfold"],     "Merge with fine-tier GC",   "#eda100"),
+         ("fine",       ["finegc", "pgc"],      "Fine-tier GC",              "#e87ba4"),
+         ("map",        ["map"],                "Map write",                 "#4a3aa7")]
+
+
+def _stack(ax, xs, recs, width=0.6, annotate=True):
+    bottom = np.zeros(len(recs))
+    for _, keys, label, color in STACK:
+        vals = np.array([sum(r["prog"].get(k, 0) for k in keys) / r["host_pages"] for r in recs])
+        if vals.max() > 0:
+            ax.bar(xs, vals, width, bottom=bottom, label=label, color=color)
+        bottom += vals
+    if annotate:
+        for x, t in zip(xs, bottom):
+            ax.annotate(f"{t:.1f}", (x, t), ha="center", va="bottom", fontsize=14,
+                        xytext=(0, 2), textcoords="offset points")
+    return bottom
+
+
+def fig_breakdown_sizes_policies():
+    """Write breakdown per policy for the small-heavy and large-heavy size mixes."""
+    mods = POLICIES[:4]
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    for ax, dist, title, ymax in ((axes[0], "small", "small-heavy (50% 4 KB requests)", 38),
+                                  (axes[1], "large", "large-heavy (50% 256 KB requests)", 10)):
+        labels, recs, xs = [], [], []
+        for gi, z in enumerate(["0", "0.99"]):
+            for mi, (tag, label, _, _) in enumerate(mods):
+                key = tag.replace("_eq", "")
+                recs.append(load(SIZES, f"{key}_{dist}_z{z}.json"))
+                labels.append(label)
+                xs.append(gi * (len(mods) + 0.8) + mi)
+        _stack(ax, np.array(xs, dtype=float), recs)
+        ax.set_xticks(xs)
+        ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=15)
+        ax.set_ylim(0, ymax)
+        ax.set_title(title, fontsize=17)
+        ax.grid(axis="y", color="#dddddd", linewidth=0.8)
+        ax.set_axisbelow(True)
+        for gi, z in enumerate(["0", "0.99"]):
+            ax.annotate(r"$\alpha$=" + z, (gi * (len(mods) + 0.8) + (len(mods) - 1) / 2, 0),
+                        xytext=(0, -62), textcoords="offset points", ha="center", fontsize=17)
+    axes[0].set_ylabel("NAND writes per host page")
+    h, l = axes[0].get_legend_handles_labels()
+    h2, l2 = axes[1].get_legend_handles_labels()
+    for hh, ll in zip(h2, l2):
+        if ll not in l:
+            h.append(hh)
+            l.append(ll)
+    fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 0.97), ncol=4, frameon=False,
+               handlelength=1.6, columnspacing=1.4, handletextpad=0.5)
+    save(fig, "fig5b_breakdown_sizes_policies")
 
 
 def fig_seq():
@@ -442,6 +491,7 @@ if __name__ == "__main__":
     fig_breakdown_proposed()
     fig_breakdown_sizes()
     fig_breakdown_policies()
+    fig_breakdown_sizes_policies()
     fig_seq()
     fig_map_read()
     fig_related_work()
