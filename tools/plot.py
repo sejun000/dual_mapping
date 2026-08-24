@@ -329,11 +329,14 @@ ROW_BG = ("#ccd1d5", "#e3e8eb")
 
 # Feature keys (the proposal satisfies all of them):
 #  sub   : coarse mapping entry covers less than one erase block, so a merge writes << one block
-#  dual  : a 4 KB map coexists with the coarse map over the same logical space
+#  dual  : the SAME logical range is mapped at 4 KB and at coarse granularity at once,
+#          the 4 KB copy superseding part of the coarse unit (not a mode switch, not disjoint
+#          regions, not medium tiering)
 #  plain : needs no special media or host support (no page re-programming, no SLC tier,
 #          no host hints, no interface change)
 #  cost  : an explicit write-cost comparison decides "reclaim the 4 KB area" vs. "merge into coarse"
-#  gcmrg : the coarse area is garbage collected, and the merge rides on that relocation for free
+#  gcmrg : the coarse area is garbage collected, and the cross-tier merge rides on that
+#          relocation for free (no extra program)
 #  dram  : the whole mapping is DRAM-resident (no synchronous map read from flash on the I/O path)
 FEATS = {
     "sub":   "Sub-block\ncoarse unit",
@@ -348,13 +351,13 @@ RW = [
     ("BAST / FAST / LAST",  dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
     ("Superblock FTL",      dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
     ("Janus-FTL",           dict(sub=0, dual=1, plain=1, cost=1, gcmrg=0, dram=1)),
-    ("CFTL",                dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=0)),
+    ("CFTL",                dict(sub=0, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
     ("DFTL / LeaFTL",       dict(sub=0, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
-    (r"$\mu$-FTL",          dict(sub=1, dual=1, plain=1, cost=0, gcmrg=0, dram=0)),
+    (r"$\mu$-FTL",          dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
     ("Subpage-aware SSD",   dict(sub=1, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
     ("MGA-FTL",             dict(sub=1, dual=1, plain=0, cost=0, gcmrg=0, dram=1)),
     ("SLC cache / CSAL",    dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
-    ("Mixed-IU + FDP",      dict(sub=1, dual=1, plain=0, cost=0, gcmrg=0, dram=1)),
+    ("Mixed-IU + FDP",      dict(sub=1, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
     ("IU + RMW (QLC)",      dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=1)),
     ("Proposed",            dict(sub=1, dual=1, plain=1, cost=1, gcmrg=1, dram=1)),
 ]

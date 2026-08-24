@@ -331,10 +331,10 @@ Proposed가 전부 만족하는 6개 feature로 분해. 각 행은 최소 하나
 | feature | 정의 (왜 필요한가) |
 |---|---|
 | **Sub-block coarse unit** | coarse 매핑 엔트리가 erase block보다 작다(IU 64 KB = 16페이지) → merge 1회 비용이 블록 크기가 아니라 16페이지. 192 MiB 슈퍼블록에서 블록 단위 hybrid가 붕괴하는 원인 |
-| **Coexisting 4 KB map** | 같은 논리 공간을 4 KB로도 매핑해 sub-IU 쓰기를 RMW 없이 흡수 |
+| **Coexisting 4 KB map** | **같은 논리 범위**가 4 KB와 coarse 단위로 **동시에** 매핑되고, 4 K 사본이 coarse 단위의 일부를 supersede. (모드 전환·영역 분리·매체 티어링은 해당 안 됨) |
 | **No special media/host** | page re-programming(NOP≥2), SLC 티어, 호스트 힌트/인터페이스 변경 없이 QLC에 그대로 적용 |
 | **Cost-based GC vs. merge** | "4 K 영역을 그대로 회수" vs "coarse로 merge"를 쓰기 비용으로 결정(고정 규칙·핫니스 분류가 아님) |
-| **Merge in coarse GC** | coarse 영역에 GC가 있고, 그 재배치에 merge를 얹어 추가 program 0으로 처리(refold) |
+| **Merge in coarse GC** | coarse 영역에 자체 GC가 있고, 그 재배치에 **티어 간 merge**를 얹어 추가 program 0으로 처리(refold). coarse GC가 없으면(로그블록 하이브리드) 또는 merge가 별도 연산이면 X |
 | **In-DRAM map** | 매핑 전체가 DRAM 상주 → I/O 경로에 동기 map read 없음 |
 
 | 연구 | sub | dual | plain | cost | gc-merge | dram | 근거 / 주된 차이 |
@@ -342,13 +342,13 @@ Proposed가 전부 만족하는 6개 feature로 분해. 각 행은 최소 하나
 | BAST(2002) / FAST(TECS'07) / LAST(OSR'08) | X | O | O | X | X | O | 로그 블록 = 페이지 매핑, 데이터 블록 = 블록 매핑. 회수는 merge뿐(로그 내 GC 없음), 데이터 블록 GC 없음 |
 | Superblock FTL (EMSOFT'06, TECS'10) | X | O | O | X | X | O | coarse 단위가 superblock(블록 여러 개 = 더 큼), superblock 내부만 페이지 매핑 |
 | Janus-FTL (EMSOFT'10) | X | O | O | **O** | X | O | PMA GC vs defusion을 사용률 u* 임계로 선택(가장 가까운 선행). coarse = 블록, BMA에 GC 없음, 결정이 전역·블록 단위 |
-| CFTL (SIGMETRICS'10) | X | O | O | X | X | X | 접근 패턴으로 블록별 page↔block 매핑 전환, tier-2 페이지맵은 플래시 상주 |
+| CFTL (SIGMETRICS'10) | X | X | O | X | X | X | 블록별 page↔block **모드 전환**(동시 공존 아님). 블록맵은 연속 PPN 읽기 가속용이고 데이터는 항상 페이지맵이 정본. tier-2는 플래시 상주 |
 | DFTL (ASPLOS'09) / LeaFTL / LearnedFTL | X | X | O | X | X | X | 단일 4 K granularity + 캐시/학습으로 DRAM 절감 → 동기 map read 발생 |
-| μ-FTL (EMSOFT'08) | O | O | O | X | X | X | 가변 extent(1–128페이지) μ-tree. 회수 시점 merge 정책 없음(삽입 시 기회적 extent 병합만), μ-tree 플래시 상주 |
+| μ-FTL (EMSOFT'08) | O | X | O | X | X | X | **단일** 가변-granularity 맵(extent 1–128페이지)이라 티어 공존 아님. extent 병합은 논리·물리 연속일 때 기회적으로만(비용 판단 없음), μ-tree 플래시 상주 |
 | Subpage-aware SSD (TC'18, ICS'20) / Minipage-FTL (NAS'18) | O | O | O | X | X | O | 큰 물리 페이지 내 4 K 서브페이지 매핑, 병합 기준은 갱신 빈도(핫니스) 클러스터링 |
 | MGA-FTL (**DATE'17**) | O | O | X | X | X | O | 2-level(page 16 K + subpage 4 K) 매핑으로 DRAM 제어. **page re-programming(NOP) 필요** → MLC/TLC/QLC는 LLH 등 별도 기법. subpage merging 기준은 조각 수·**read count**(읽기 성능)로 쓰기 비용이 아님 |
-| SLC cache (ComboFTL'10, warm-block'18) / CSAL (EuroSys'24) | X | X | X | X | X | O | 매체 티어링(SLC 영역/별도 디바이스 필요). CSAL은 호스트측 계층 + 2-level L2P |
-| Mixed-IU + FDP (Silicon Motion OCP'24; US 10409500, US 10222984) | O | O | X | X | X | O | 4 K IU 영역과 16 K IU 영역을 **정적으로** 두고 호스트가 배치 결정, granularity 간 데이터 이동 없음 |
+| SLC cache (ComboFTL'10, warm-block'18) / CSAL (EuroSys'24) | X | X | X | X | X | O | **매체** 티어링: 두 티어 모두 4 K 매핑이고 coarse 맵 자체가 없음(DRAM 절감 목적 아님). CSAL의 2-level L2P는 4 K granularity를 값싸게 색인하는 계층 구조이며 호스트측 계층 + 별도 SLC 디바이스 필요 |
+| Mixed-IU + FDP (Silicon Motion OCP'24; US 10409500, US 10222984) | O | X | X | X | X | O | 4 K IU 영역과 16 K IU 영역을 **정적·배타적**으로 분리(한 LBA는 한쪽만) → 동시 공존 아님. 호스트가 배치 결정, granularity 간 이동 없음 |
 | IU + RMW (현행 QLC) | O | X | O | X | X | O | coarse 매핑만, sub-IU 쓰기는 RMW |
 | **Proposed** | **O** | **O** | **O** | **O** | **O** | **O** | |
 
