@@ -323,6 +323,67 @@ def fig_map_read():
     save(fig, "fig7_map_read")
 
 
+# ---------------------------------------------------------------- related work table
+HDR_BG, HDR_FG = "#33627d", "#ffffff"
+ROW_BG = ("#ccd1d5", "#e3e8eb")
+
+# Columns: what each design does.
+#  1. coarse mapping unit finer than an erase block (IU / extent, not a whole block)
+#  2. cost model that chooses between reclaiming the 4K area and merging into the coarse area
+#  3. a merge operation that shrinks the fine mapping table
+#  4. garbage collection inside the coarse-mapped area itself
+RW_COLS = ["Sub-block coarse\nmapping unit",
+           "GC vs. merge\ncost model",
+           "Map shrink\nby merge",
+           "Coarse-area\nGC"]
+RW_ROWS = [
+    ("FAST",        ["X", "X", "O", "X"]),
+    ("Janus-FTL",   ["X", "O", "O", "X"]),
+    (r"$\mu$-FTL",  ["O", "X", "X", "O"]),
+    ("Proposed",    ["O", "O", "O", "O"]),
+]
+RW_ROWS_EXT = [
+    ("FAST / LAST", ["X", "X", "O", "X"]),
+    ("Superblock",  ["X", "X", "O", "X"]),
+    ("Janus-FTL",   ["X", "O", "O", "X"]),
+    ("DFTL / CFTL", ["X", "X", "X", "O"]),
+    (r"$\mu$-FTL",  ["O", "X", "X", "O"]),
+    ("IU + RMW",    ["O", "X", "X", "O"]),
+    ("Proposed",    ["O", "O", "O", "O"]),
+]
+
+
+def _table(rows, cols, stem, label_w=0.22, row_h=0.115, hdr_h=0.20, figsize=(13, 4.4)):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, hdr_h + row_h * len(rows))
+    ax.axis("off")
+    cw = (1.0 - label_w) / len(cols)
+    top = hdr_h + row_h * len(rows)
+    ax.add_patch(plt.Rectangle((label_w, top - hdr_h), 1 - label_w, hdr_h,
+                               facecolor=HDR_BG, edgecolor="white", linewidth=1.5))
+    for j, c in enumerate(cols):
+        ax.text(label_w + cw * (j + 0.5), top - hdr_h / 2, c, color=HDR_FG,
+                fontsize=17, fontweight="bold", va="center", ha="center",
+                linespacing=1.3)
+    for i, (name, marks) in enumerate(rows):
+        y = top - hdr_h - row_h * (i + 1)
+        ax.add_patch(plt.Rectangle((0, y), 1, row_h, facecolor=ROW_BG[i % 2],
+                                   edgecolor="white", linewidth=1.5))
+        ax.text(0.012, y + row_h / 2, name, fontsize=19, va="center", ha="left")
+        for j, m in enumerate(marks):
+            ax.text(label_w + cw * (j + 0.5), y + row_h / 2, m, fontsize=20,
+                    va="center", ha="center",
+                    color="#0b0b0b" if m == "O" else "#777777")
+    save(fig, stem)
+
+
+def fig_related_work():
+    _table(RW_ROWS, RW_COLS, "fig8_related_work")
+    _table(RW_ROWS_EXT, RW_COLS, "fig8b_related_work_ext",
+           row_h=0.085, hdr_h=0.15, figsize=(13, 5.6))
+
+
 if __name__ == "__main__":
     fig_waf_zipf()
     fig_waf_zipf_main()
@@ -332,3 +393,4 @@ if __name__ == "__main__":
     fig_breakdown_policies()
     fig_seq()
     fig_map_read()
+    fig_related_work()

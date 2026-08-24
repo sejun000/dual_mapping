@@ -323,3 +323,16 @@ python3 tools/plot.py [outdir]   # 기본 results/fig
 ```
 - matplotlib은 시스템에 없어 `~/tools/pyenv`(Debian 패키지 추출본)에 두고, 스크립트가 PYTHONPATH/LD_LIBRARY_PATH/MATPLOTLIBRC를 세팅해 자기 자신을 re-exec.
 - 그림 목록: fig1 WAF vs zipf(6정책, 로그; LAST는 스케일 압축 때문에 그림에서 제외, 표에는 유지), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.
+
+## 선행연구 비교표 (fig8)
+열 4개: (1) coarse 매핑 단위가 erase block보다 작은가(IU/extent), (2) 4K 영역 회수 vs coarse로 merge를 비용으로 고르는가, (3) merge가 fine 매핑 테이블 크기를 줄이는가, (4) coarse 영역 자체에 GC가 있는가.
+| | (1) | (2) | (3) | (4) |
+|---|---|---|---|---|
+| FAST / LAST | X | X | O | X |
+| Superblock | X | X | O | X |
+| Janus-FTL | X | O | O | X |
+| DFTL / CFTL | X | X | X | O |
+| μ-FTL | O | X | X | O |
+| IU + RMW | O | X | X | O |
+| **Proposed** | **O** | **O** | **O** | **O** |
+주의(리뷰 대비): μ-FTL은 extent 삽입 시 논리·물리 연속이면 기회적으로 extent를 합치지만, 회수 시점에 매핑을 줄이려고 수행하는 merge 연산은 없으므로 (2)(3) = X. DFTL/CFTL은 매핑 자체가 4K 단일 granularity라 (1)(3) = X이고 (4)는 일반 page-level GC. `tools/plot.py`의 `RW_ROWS`/`RW_ROWS_EXT`에서 수정.
