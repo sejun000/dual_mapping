@@ -301,11 +301,11 @@ def _stack(ax, xs, recs, width=0.6, annotate=True):
 def fig_breakdown_sizes_policies():
     """Write breakdown per policy for the three request-size mixes."""
     mods = POLICIES[:4]
-    panels = [(CANON, "",      "default mix\n(4 KB-256 KB, uniform by request)", 13.5),
-              (SIZES, "small", "small-heavy\n(50% 4 KB requests)",              38),
-              (SIZES, "large", "large-heavy\n(50% 256 KB requests)",            10)]
-    fig, axes = plt.subplots(1, 3, figsize=(19, 6.2))
-    for ax, (d, dist, title, ymax) in zip(axes, panels):
+    panels = [(CANON, "",      "default mix\n(4 KB-256 KB, uniform by request)"),
+              (SIZES, "small", "small-heavy\n(50% 4 KB requests)"),
+              (SIZES, "large", "large-heavy\n(50% 256 KB requests)")]
+    fig, axes = plt.subplots(1, 3, figsize=(19, 6.2), sharey=True)   # common y axis across panels
+    for ax, (d, dist, title) in zip(axes, panels):
         labels, recs, xs = [], [], []
         for gi, z in enumerate(["0", "0.99"]):
             for mi, (tag, label, _, _) in enumerate(mods):
@@ -316,7 +316,7 @@ def fig_breakdown_sizes_policies():
         _stack(ax, np.array(xs, dtype=float), recs)
         ax.set_xticks(xs)
         ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=15)
-        ax.set_ylim(0, ymax)
+        ax.set_ylim(0, 37)
         ax.set_title(title, fontsize=17)
         ax.grid(axis="y", color="#dddddd", linewidth=0.8)
         ax.set_axisbelow(True)

@@ -323,7 +323,7 @@ one-at-a-time 감도(고정 설정): d 문턱이 핵심(d≥1: +6~12%, d≥8: �
 python3 tools/plot.py [outdir]   # 기본 results/fig
 ```
 - matplotlib은 시스템에 없어 `~/tools/pyenv`(Debian 패키지 추출본)에 두고, 스크립트가 PYTHONPATH/LD_LIBRARY_PATH/MATPLOTLIBRC를 세팅해 자기 자신을 re-exec.
-- 그림 목록: fig5/fig5b는 정책별 쓰기 분해를 **동일한 구성 요소**로 그림(Host / RMW / Coarse-tier GC / Merge with coarse-tier GC / Merge with fine-tier GC / Fine-tier GC / Map write). page4k·DFTL은 전 영역을 4 K로 매핑하므로 그들의 GC(`pgc`)는 **Fine-tier GC**로 집계. fig5b는 크기 분포 3종(default / small-heavy / large-heavy) × 정책 × zipf(0, 0.99). default 패널만 1 MiB 버퍼 설정(canonical), 나머지 두 패널은 버퍼 없음. fig4b = 크기 분포별(small/large-heavy × zipf 0/0.99) proposed 쓰기 분해. fig1 WAF vs zipf(6정책, 로그; LAST는 스케일 압축 때문에 그림에서 제외, 표에는 유지), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.
+- 그림 목록: fig5/fig5b는 정책별 쓰기 분해를 **동일한 구성 요소**로 그림(Host / RMW / Coarse-tier GC / Merge with coarse-tier GC / Merge with fine-tier GC / Fine-tier GC / Map write). page4k·DFTL은 전 영역을 4 K로 매핑하므로 그들의 GC(`pgc`)는 **Fine-tier GC**로 집계. fig5b는 y축을 세 패널이 공유(비교 가능). 크기 분포 3종(default / small-heavy / large-heavy) × 정책 × zipf(0, 0.99). default 패널만 1 MiB 버퍼 설정(canonical), 나머지 두 패널은 버퍼 없음. fig4b = 크기 분포별(small/large-heavy × zipf 0/0.99) proposed 쓰기 분해. fig1 WAF vs zipf(6정책, 로그; LAST는 스케일 압축 때문에 그림에서 제외, 표에는 유지), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.
 
 ## 선행연구 조사 및 비교표 (fig8, v2.5)
 Proposed가 전부 만족하는 6개 feature로 분해. 각 행은 최소 하나씩 X.
