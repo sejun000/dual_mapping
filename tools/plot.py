@@ -45,6 +45,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.ticker import FixedLocator, FuncFormatter  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "results", "fig")
@@ -251,86 +252,82 @@ def fig_breakdown_sizes():
 def fig_breakdown_policies():
     """Write breakdown per policy for the default size mix (canonical setting)."""
     mods = POLICIES[:4]
-    zshow = ["0", "0.99"]
-    fig, ax = plt.subplots(figsize=(11, 6))
-    labels, recs, xs = [], [], []
-    for gi, z in enumerate(zshow):
-        for mi, (tag, label, _, _) in enumerate(mods):
-            recs.append(load(CANON, f"{tag}_z{z}.json"))
-            labels.append(label)
-            xs.append(gi * (len(mods) + 0.8) + mi)
-    tot = _stack(ax, np.array(xs, dtype=float), recs)
-    ax.set_xticks(xs)
-    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=16)
-    for gi, z in enumerate(zshow):
-        ax.annotate(r"$\alpha$=" + z, (gi * (len(mods) + 0.8) + (len(mods) - 1) / 2, 0),
-                    xytext=(0, -68), textcoords="offset points", ha="center", fontsize=18)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    x = np.arange(len(mods), dtype=float)
+    tot = 0
+    for zi, (z, hatch) in enumerate([("0", None), ("0.99", "//")]):
+        recs = [load(CANON, f"{tag}_z{z}.json") for tag, _, _, _ in mods]
+        t = _stack(ax, x + (zi - 0.5) * 0.42, recs, width=0.4, hatch=hatch, legend=(zi == 0))
+        tot = max(tot, t.max())
+    ax.set_xticks(x)
+    ax.set_xticklabels([m[1] for m in mods], fontsize=17)
+    ax.set_xlim(-0.6, len(mods) - 0.4)
+    ax.set_ylim(0, tot * 1.12)
     ax.set_ylabel("NAND writes per host page")
-    ax.set_ylim(0, max(tot) * 1.1)
-    outside_legend(ax, 4)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
+    h, l = ax.get_legend_handles_labels()
+    h += [Patch(facecolor="#c9c9c9"), Patch(facecolor="#c9c9c9", hatch="//")]
+    l += [r"$\alpha$=0", r"$\alpha$=0.99"]
+    ax.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=3, frameon=False,
+              handlelength=1.6, columnspacing=1.4, handletextpad=0.5)
     save(fig, "fig5_breakdown_policies")
-
 
 # Unified write-source stack used by the policy-comparison figures.
 # page4k / DFTL map everything at 4 KB, so their GC is counted as fine-tier GC.
-STACK = [("host",       ["host"],               "Host",                      "#2a78d6"),
-         ("rmw",        ["rmw"],                "RMW",                       "#7a5195"),
-         ("coarse",     ["cgc_clean"],          "Coarse-tier GC",            "#eb6834"),
-         ("refold",     ["cgc_refold"],         "Merge with coarse-tier GC", "#1baf7a"),
-         ("fold",       ["fold", "unfold"],     "Merge with fine-tier GC",   "#eda100"),
-         ("fine",       ["finegc", "pgc"],      "Fine-tier GC",              "#e87ba4"),
-         ("map",        ["map"],                "Map write",                 "#4a3aa7")]
+STACK = [("host",   ["host"],           "Host",                      "#2a78d6"),
+         ("rmw",    ["rmw"],            "RMW",                       "#7a5195"),
+         ("coarse", ["cgc_clean"],      "Coarse-tier GC",            "#eb6834"),
+         ("refold", ["cgc_refold"],     "Merge with coarse-tier GC", "#1baf7a"),
+         ("fold",   ["fold", "unfold"], "Merge with fine-tier GC",   "#eda100"),
+         ("fine",   ["finegc", "pgc"],  "Fine-tier GC",              "#e87ba4"),
+         ("map",    ["map"],            "Map write",                 "#4a3aa7")]
 
 
-def _stack(ax, xs, recs, width=0.6, annotate=True):
+def _stack(ax, xs, recs, width=0.6, annotate=True, hatch=None, legend=True):
     bottom = np.zeros(len(recs))
     for _, keys, label, color in STACK:
         vals = np.array([sum(r["prog"].get(k, 0) for k in keys) / r["host_pages"] for r in recs])
         if vals.max() > 0:
-            ax.bar(xs, vals, width, bottom=bottom, label=label, color=color)
+            ax.bar(xs, vals, width, bottom=bottom, color=color, hatch=hatch,
+                   label=label if legend else None)
         bottom += vals
     if annotate:
         for x, t in zip(xs, bottom):
-            ax.annotate(f"{t:.1f}", (x, t), ha="center", va="bottom", fontsize=14,
+            ax.annotate(f"{t:.1f}", (x, t), ha="center", va="bottom", fontsize=13,
                         xytext=(0, 2), textcoords="offset points")
     return bottom
 
 
 def fig_breakdown_sizes_policies():
-    """Write breakdown per policy for the three request-size mixes."""
+    """Write breakdown per policy, grouped by policy, for the three request-size mixes."""
     mods = POLICIES[:4]
-    panels = [(CANON, "",      "default mix\n(4 KB-256 KB, uniform by request)", 13.5),
-              (SIZES, "small", "small-heavy\n(50% 4 KB requests)",              38),
-              (SIZES, "large", "large-heavy\n(50% 256 KB requests)",            10)]
-    fig, axes = plt.subplots(1, 3, figsize=(19, 6.2))
+    panels = [(CANON, "",      "default mix\n(4 KB-256 KB, uniform by request)", 14.5),
+              (SIZES, "small", "small-heavy\n(50% 4 KB requests)",              40),
+              (SIZES, "large", "large-heavy\n(50% 256 KB requests)",            10.5)]
+    fig, axes = plt.subplots(1, 3, figsize=(19, 6))
+    x = np.arange(len(mods), dtype=float)
     for ax, (d, dist, title, ymax) in zip(axes, panels):
-        labels, recs, xs = [], [], []
-        for gi, z in enumerate(["0", "0.99"]):
-            for mi, (tag, label, _, _) in enumerate(mods):
+        for zi, (z, hatch) in enumerate([("0", None), ("0.99", "//")]):
+            recs = []
+            for tag, _, _, _ in mods:
                 name = f"{tag}_z{z}.json" if not dist else f"{tag.replace('_eq','')}_{dist}_z{z}.json"
                 recs.append(load(d, name))
-                labels.append(label)
-                xs.append(gi * (len(mods) + 0.8) + mi)
-        _stack(ax, np.array(xs, dtype=float), recs)
-        ax.set_xticks(xs)
-        ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=15)
+            _stack(ax, x + (zi - 0.5) * 0.42, recs, width=0.4, hatch=hatch,
+                   legend=(zi == 0 and ax is axes[0]))
+        ax.set_xticks(x)
+        ax.set_xticklabels([m[1] for m in mods], fontsize=16)
+        ax.set_xlim(-0.6, len(mods) - 0.4)
         ax.set_ylim(0, ymax)
         ax.set_title(title, fontsize=17)
         ax.grid(axis="y", color="#dddddd", linewidth=0.8)
         ax.set_axisbelow(True)
-        for gi, z in enumerate(["0", "0.99"]):
-            ax.annotate(r"$\alpha$=" + z, (gi * (len(mods) + 0.8) + (len(mods) - 1) / 2, 0),
-                        xytext=(0, -62), textcoords="offset points", ha="center", fontsize=17)
     axes[0].set_ylabel("NAND writes per host page")
-    h, l = [], []
-    for ax in axes:
-        for hh, ll in zip(*ax.get_legend_handles_labels()):
-            if ll not in l:
-                h.append(hh)
-                l.append(ll)
-    fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 0.97), ncol=4, frameon=False,
+    h, l = axes[0].get_legend_handles_labels()
+    h += [Patch(facecolor="#c9c9c9", label=r"$\alpha$=0"),
+          Patch(facecolor="#c9c9c9", hatch="//", label=r"$\alpha$=0.99")]
+    l += [r"$\alpha$=0", r"$\alpha$=0.99"]
+    fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 0.94), ncol=5, frameon=False,
                handlelength=1.6, columnspacing=1.4, handletextpad=0.5)
     save(fig, "fig5b_breakdown_sizes_policies")
 
