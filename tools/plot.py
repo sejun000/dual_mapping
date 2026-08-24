@@ -95,6 +95,13 @@ def save(fig, stem):
     print("wrote", os.path.join(OUT, stem) + ".{pdf,png}")
 
 
+def outside_legend(ax, ncol, y=1.02):
+    """Horizontal legend above the axes."""
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, y), ncol=ncol,
+              frameon=False, handlelength=1.6, columnspacing=1.4,
+              handletextpad=0.5, borderaxespad=0.0)
+
+
 def fig_waf_zipf():
     fig, ax = plt.subplots(figsize=(9, 6))
     for tag, label, color, marker in POLICIES:
@@ -111,7 +118,7 @@ def fig_waf_zipf():
     ax.set_xlim(-0.25, len(ZS) - 0.75)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    ax.legend(ncol=2, frameon=False, loc="upper right")
+    outside_legend(ax, 4)
     save(fig, "fig1_waf_zipf")
 
 
@@ -133,13 +140,13 @@ def fig_waf_sizes():
                         ha="center", va="bottom", fontsize=15, xytext=(0, 2),
                         textcoords="offset points")
     ax.set_yscale("log")
-    ax.set_ylim(1, 70)
+    ax.set_ylim(1, 48)
     ax.set_xticks(x)
     ax.set_xticklabels([g[0] for g in groups])
     ax.set_ylabel("WAF")
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    ax.legend(ncol=4, frameon=False, loc="upper center")
+    outside_legend(ax, 4)
     save(fig, "fig2_waf_sizes")
 
 
@@ -189,7 +196,7 @@ def fig_breakdown_proposed():
     ax.set_xticklabels(ZS)
     ax.set_xlabel(r"Zipf skew $\alpha$ (IU rank)")
     ax.set_ylabel("NAND writes per host page")
-    ax.legend(frameon=False, loc="upper right")
+    outside_legend(ax, 3)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     save(fig, "fig4_breakdown_proposed")
@@ -224,8 +231,8 @@ def fig_breakdown_policies():
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=15)
     ax.set_ylabel("NAND writes per host page")
-    ax.legend(frameon=False, ncol=4, loc="upper center")
-    ax.set_ylim(0, max(tot) * 1.28)
+    outside_legend(ax, 4)
+    ax.set_ylim(0, max(tot) * 1.12)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     save(fig, "fig5_breakdown_policies")
@@ -249,8 +256,7 @@ def fig_seq():
     ax.set_xticks(x)
     ax.set_xticklabels([m[1] for m in mods])
     ax.set_ylabel("WAF")
-    ax.set_title("Sequential 4 KiB writes", fontsize=18)
-    ax.legend(frameon=False, loc="upper left")
+    outside_legend(ax, 2)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     save(fig, "fig6_seq_4k")
@@ -270,10 +276,10 @@ def fig_waf_zipf_main():
     ax.set_xlabel(r"Zipf skew $\alpha$ (IU rank)")
     ax.set_ylabel("WAF")
     ax.set_xlim(-0.15, len(ZS) - 0.85)
-    ax.set_ylim(0, 14.5)
+    ax.set_ylim(0, 13.5)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="upper right")
+    outside_legend(ax, 4)
     save(fig, "fig1b_waf_zipf_main")
 
 
@@ -297,8 +303,8 @@ def fig_map_read():
     ax.set_xticklabels(ZS)
     ax.set_xlabel(r"Zipf skew $\alpha$ (IU rank)")
     ax.set_ylabel("Synchronous map reads\nper host page")
-    ax.set_ylim(0, max(dftl) * 1.25)
-    ax.legend(frameon=False, loc="upper right")
+    ax.set_ylim(0, max(dftl) * 1.15)
+    outside_legend(ax, 2)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     save(fig, "fig7_map_read")
