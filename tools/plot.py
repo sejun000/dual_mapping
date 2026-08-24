@@ -187,10 +187,10 @@ def fig_ram():
 
 def fig_breakdown_proposed():
     parts = [("host", "Host", "#2a78d6"),
-             ("cgc_clean", "GC relocation (clean)", "#eb6834"),
-             ("cgc_refold", "GC relocation (refold)", "#1baf7a"),
-             ("fold", "Fold", "#eda100"),
-             ("finegc", "Fine-tier copy", "#e87ba4")]
+             ("cgc_clean", "Coarse-tier GC", "#eb6834"),
+             ("cgc_refold", "Merge with coarse-tier GC", "#1baf7a"),
+             ("fold", "Merge with fine-tier GC", "#eda100"),
+             ("finegc", "Fine-tier GC", "#e87ba4")]
     fig, ax = plt.subplots(figsize=(9, 6))
     x = np.arange(len(ZS))
     bottom = np.zeros(len(ZS))
@@ -208,7 +208,7 @@ def fig_breakdown_proposed():
     ax.set_xticklabels(ZS)
     ax.set_xlabel(r"Zipf skew $\alpha$ (IU rank)")
     ax.set_ylabel("NAND writes per host page")
-    outside_legend(ax, 3)
+    outside_legend(ax, 2)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     save(fig, "fig4_breakdown_proposed")

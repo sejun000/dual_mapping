@@ -205,6 +205,7 @@ DFTL의 숨은 비용 — 매핑 miss read (host 페이지당): zipf 0: **0.94 r
   **refold** = coarse GC가 chunk를 옮기면서 수행하는 fold(추가 쓰기 0). **unfold** = chunk의 남은 (16−d)페이지를 fragment로 옮기고 chunk를 dead 처리 → IU가 fine에 상주(`unfold=hot`, `unfold_tau`).
   **clean copy** = fragment 없는 chunk의 GC 이동. **dead chunk** = 이미 교체된 chunk, GC에서 skip.
 - 정책 설명 시 캐시 관점 용어 병기: fine 티어 = hot IU 캐시, unfold = promote(admission), fold = demote(eviction).
+- 논문/그림 표기 ↔ JSON 키: **Fine-tier GC** = `finegc`(fine 블록 회수 시 조각 복사), **Merge with fine-tier GC** = `fold`(fine 회수 중 자발적 merge), **Merge with coarse-tier GC** = `cgc_refold`(coarse GC가 chunk를 옮기며 조각 흡수, 추가 쓰기 0), **Coarse-tier GC** = `cgc_clean`(조각 없는 chunk 이동).
 - JSON 키: prog.{fold, cgc_refold, unfold, cgc_clean, finegc}, events.{fold, refold, unfold, blockfold, forced_fold}, d_hist_{fold, refold, unfold}.
 - merge/split은 쓰지 않음(log-block merge, μ-FTL extent split과 충돌). fold는 SLC folding과 같은 계보임을 related work에서 인정.
 
