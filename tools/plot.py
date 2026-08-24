@@ -327,61 +327,74 @@ def fig_map_read():
 HDR_BG, HDR_FG = "#33627d", "#ffffff"
 ROW_BG = ("#ccd1d5", "#e3e8eb")
 
-# Columns: what each design does.
-#  1. coarse mapping unit finer than an erase block (IU / extent, not a whole block)
-#  2. cost model that chooses between reclaiming the 4K area and merging into the coarse area
-#  3. a merge operation that shrinks the fine mapping table
-#  4. garbage collection inside the coarse-mapped area itself
-RW_COLS = ["Sub-block coarse\nmapping unit",
-           "GC vs. merge\ncost model",
-           "Map shrink\nby merge",
-           "Coarse-area\nGC"]
-RW_ROWS = [
-    ("FAST",        ["X", "X", "O", "X"]),
-    ("Janus-FTL",   ["X", "O", "O", "X"]),
-    (r"$\mu$-FTL",  ["O", "X", "X", "O"]),
-    ("Proposed",    ["O", "O", "O", "O"]),
+# Feature keys (the proposal satisfies all of them):
+#  sub   : coarse mapping entry covers less than one erase block, so a merge writes << one block
+#  dual  : a 4 KB map coexists with the coarse map over the same logical space
+#  plain : needs no special media or host support (no page re-programming, no SLC tier,
+#          no host hints, no interface change)
+#  cost  : an explicit write-cost comparison decides "reclaim the 4 KB area" vs. "merge into coarse"
+#  gcmrg : the coarse area is garbage collected, and the merge rides on that relocation for free
+#  dram  : the whole mapping is DRAM-resident (no synchronous map read from flash on the I/O path)
+FEATS = {
+    "sub":   "Sub-block\ncoarse unit",
+    "dual":  "Coexisting\n4 KB map",
+    "plain": "No special\nmedia/host",
+    "cost":  "Cost-based\nGC vs. merge",
+    "gcmrg": "Merge in\ncoarse GC",
+    "dram":  "In-DRAM\nmap",
+}
+# 1 = has it, 0 = does not
+RW = [
+    ("BAST / FAST / LAST",  dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
+    ("Superblock FTL",      dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
+    ("Janus-FTL",           dict(sub=0, dual=1, plain=1, cost=1, gcmrg=0, dram=1)),
+    ("CFTL",                dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=0)),
+    ("DFTL / LeaFTL",       dict(sub=0, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
+    (r"$\mu$-FTL",          dict(sub=1, dual=1, plain=1, cost=0, gcmrg=0, dram=0)),
+    ("Subpage-aware SSD",   dict(sub=1, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
+    ("MGA-FTL",             dict(sub=1, dual=1, plain=0, cost=0, gcmrg=0, dram=1)),
+    ("SLC cache / CSAL",    dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
+    ("Mixed-IU + FDP",      dict(sub=1, dual=1, plain=0, cost=0, gcmrg=0, dram=1)),
+    ("IU + RMW (QLC)",      dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=1)),
+    ("Proposed",            dict(sub=1, dual=1, plain=1, cost=1, gcmrg=1, dram=1)),
 ]
-RW_ROWS_EXT = [
-    ("FAST / LAST", ["X", "X", "O", "X"]),
-    ("Superblock",  ["X", "X", "O", "X"]),
-    ("Janus-FTL",   ["X", "O", "O", "X"]),
-    ("DFTL / CFTL", ["X", "X", "X", "O"]),
-    (r"$\mu$-FTL",  ["O", "X", "X", "O"]),
-    ("IU + RMW",    ["O", "X", "X", "O"]),
-    ("Proposed",    ["O", "O", "O", "O"]),
-]
+COMPACT_KEYS = ["sub", "dual", "cost", "gcmrg", "dram"]
+COMPACT_ROWS = ["FAST", "Janus-FTL", r"$\mu$-FTL", "Proposed"]
 
 
-def _table(rows, cols, stem, label_w=0.22, row_h=0.115, hdr_h=0.20, figsize=(13, 4.4)):
+def _table(rows, keys, stem, label_w=0.22, row_h=0.09, hdr_h=0.155, figsize=(14, 5.8)):
     fig, ax = plt.subplots(figsize=figsize)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, hdr_h + row_h * len(rows))
     ax.axis("off")
-    cw = (1.0 - label_w) / len(cols)
+    cw = (1.0 - label_w) / len(keys)
     top = hdr_h + row_h * len(rows)
     ax.add_patch(plt.Rectangle((label_w, top - hdr_h), 1 - label_w, hdr_h,
                                facecolor=HDR_BG, edgecolor="white", linewidth=1.5))
-    for j, c in enumerate(cols):
-        ax.text(label_w + cw * (j + 0.5), top - hdr_h / 2, c, color=HDR_FG,
-                fontsize=17, fontweight="bold", va="center", ha="center",
-                linespacing=1.3)
-    for i, (name, marks) in enumerate(rows):
+    for j, k in enumerate(keys):
+        ax.text(label_w + cw * (j + 0.5), top - hdr_h / 2, FEATS[k], color=HDR_FG,
+                fontsize=15, fontweight="bold", va="center", ha="center", linespacing=1.3)
+    for i, (name, f) in enumerate(rows):
         y = top - hdr_h - row_h * (i + 1)
-        ax.add_patch(plt.Rectangle((0, y), 1, row_h, facecolor=ROW_BG[i % 2],
+        last = (i == len(rows) - 1)
+        ax.add_patch(plt.Rectangle((0, y), 1, row_h,
+                                   facecolor="#b9d3e6" if last else ROW_BG[i % 2],
                                    edgecolor="white", linewidth=1.5))
-        ax.text(0.012, y + row_h / 2, name, fontsize=19, va="center", ha="left")
-        for j, m in enumerate(marks):
-            ax.text(label_w + cw * (j + 0.5), y + row_h / 2, m, fontsize=20,
-                    va="center", ha="center",
-                    color="#0b0b0b" if m == "O" else "#777777")
+        ax.text(0.012, y + row_h / 2, name, fontsize=17, va="center", ha="left",
+                fontweight="bold" if last else "normal")
+        for j, k in enumerate(keys):
+            ax.text(label_w + cw * (j + 0.5), y + row_h / 2, "O" if f[k] else "X",
+                    fontsize=19, va="center", ha="center",
+                    color="#0b0b0b" if f[k] else "#777777")
     save(fig, stem)
 
 
 def fig_related_work():
-    _table(RW_ROWS, RW_COLS, "fig8_related_work")
-    _table(RW_ROWS_EXT, RW_COLS, "fig8b_related_work_ext",
-           row_h=0.085, hdr_h=0.15, figsize=(13, 5.6))
+    _table(RW, list(FEATS), "fig8_related_work")
+    compact = [(n, f) for n, f in RW if n in COMPACT_ROWS or n.startswith("BAST")]
+    compact = [(("FAST" if n.startswith("BAST") else n), f) for n, f in compact]
+    _table(compact, COMPACT_KEYS, "fig8b_related_work_compact",
+           row_h=0.13, hdr_h=0.20, figsize=(12, 4.4))
 
 
 if __name__ == "__main__":
