@@ -214,6 +214,40 @@ def fig_breakdown_proposed():
     save(fig, "fig4_breakdown_proposed")
 
 
+def fig_breakdown_sizes():
+    """Same write breakdown as fig4, for the small-heavy / large-heavy size mixes."""
+    parts = [("host", "Host", "#2a78d6"),
+             ("cgc_clean", "Coarse-tier GC", "#eb6834"),
+             ("cgc_refold", "Merge with coarse-tier GC", "#1baf7a"),
+             ("fold", "Merge with fine-tier GC", "#eda100"),
+             ("finegc", "Fine-tier GC", "#e87ba4")]
+    groups = [("small-heavy\n" + r"$\alpha$=0", "small", "0"),
+              ("small-heavy\n" + r"$\alpha$=0.99", "small", "0.99"),
+              ("large-heavy\n" + r"$\alpha$=0", "large", "0"),
+              ("large-heavy\n" + r"$\alpha$=0.99", "large", "0.99")]
+    fig, ax = plt.subplots(figsize=(9.5, 6))
+    x = np.arange(len(groups))
+    bottom = np.zeros(len(groups))
+    for key, label, color in parts:
+        vals = []
+        for _, d, z in groups:
+            r = load(SIZES, f"proposed_{d}_z{z}.json")
+            vals.append(r["prog"].get(key, 0) / r["host_pages"])
+        ax.bar(x, vals, 0.55, bottom=bottom, label=label, color=color)
+        bottom += np.array(vals)
+    for xi, tot in zip(x, bottom):
+        ax.annotate(f"{tot:.2f}", (xi, tot), ha="center", va="bottom", fontsize=16,
+                    xytext=(0, 3), textcoords="offset points")
+    ax.set_xticks(x)
+    ax.set_xticklabels([g[0] for g in groups])
+    ax.set_ylabel("NAND writes per host page")
+    ax.set_ylim(0, max(bottom) * 1.1)
+    outside_legend(ax, 2)
+    ax.grid(axis="y", color="#dddddd", linewidth=0.8)
+    ax.set_axisbelow(True)
+    save(fig, "fig4b_breakdown_sizes")
+
+
 def fig_breakdown_policies():
     mods = POLICIES[:4]
     gc_keys = ["pgc", "cgc_clean", "cgc_refold", "finegc", "fold", "unfold",
@@ -406,6 +440,7 @@ if __name__ == "__main__":
     fig_waf_sizes()
     fig_ram()
     fig_breakdown_proposed()
+    fig_breakdown_sizes()
     fig_breakdown_policies()
     fig_seq()
     fig_map_read()
