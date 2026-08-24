@@ -315,3 +315,11 @@ one-at-a-time 감도(고정 설정): d 문턱이 핵심(d≥1: +6~12%, d≥8: �
 블록 태그는 유지하되 fine 블록 수 제한을 없애고 fine 맵 RAM 예산(2.4 MiB)만 제한, 공간 압박 시 두 티어를 합쳐 valid 최소 블록을 victim으로.
 결과: zipf 0.8/0.99/1.2에서 +23/+26/+21% 손해, fine 블록이 2개(frontier)로 수렴, 예산 fold 0회, 균등은 예약 블록 고갈.
 원인: 갓 찬 fine 블록은 조각이 빨리 죽어 항상 valid 최소 → 전역 greedy GC가 즉시 회수 → 조각이 덮어써질 체류 시간을 못 받음. **블록 quota는 RAM 대리변수일 뿐 아니라 fine 블록을 greedy GC로부터 보호하는 최소 체류 시간 장치**. 이를 GC에 맡기려면 age-aware cost-benefit GC(추가 정책/상수)가 필요 → 고정 quota 유지.
+
+## 그림 생성 (v2.4, 2026-08-24)
+`tools/plot.py` (matplotlib 3.6.3, STIXGeneral = Times 호환 serif, 본문 폰트 19–20pt). 그림당 파일 하나, PDF + PNG 동시 출력.
+```bash
+python3 tools/plot.py [outdir]   # 기본 results/fig
+```
+- matplotlib은 시스템에 없어 `~/tools/pyenv`(Debian 패키지 추출본)에 두고, 스크립트가 PYTHONPATH/LD_LIBRARY_PATH/MATPLOTLIBRC를 세팅해 자기 자신을 re-exec.
+- 그림 목록: fig1 WAF vs zipf(7정책, 로그), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.
