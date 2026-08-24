@@ -363,3 +363,7 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - **결과**: 16 KB 페이지에서 WAF −30.8%, erase −40%, 평균 응답시간 −53~72%(Synth-A). DRAM은 page-level 대비 **+16.5%**, 순수 subpage 매핑 대비 1/3. baseline = page-level(PM), sector-log hybrid. 규모는 블록 128페이지.
 - **우리와의 차이**: coarse 단위가 물리 페이지 vs **IU(매핑 단위, 물리 페이지와 독립)**; fine 배치가 같은 페이지 부분 프로그램 vs **별도 fine 블록 log-append**; 매체 요구 NOP≥2 vs **없음**; merge 기준 read count vs **쓰기 비용식**; GC 통합 없음 vs **refold(추가 쓰기 0)**; DRAM이 결과 보고(+16.5%) vs **예산을 입력으로 고정(page4k의 10%)**; 블록 128페이지 vs **49,152페이지(192 MiB)**.
 - 절대 DRAM 비교(1 TB): MGA-FTL의 coarse는 16 KB → 64 M 엔트리 × 4 B = 256 MB(+16.5%). 우리 coarse는 64 KB IU → 16 M × 4 B = 64 MB + fine ≈ 40 MB ≈ **104 MB**.
+
+### 물리 페이지가 커져도 부분 프로그램이 필요 없는 이유 (discussion용)
+문제의 층위가 다르다: MGA-FTL 계열은 **프로그램 단위(물리 페이지)** 가 커진 것이 원인이라 조각을 같은 물리 페이지에 나중에 끼워 넣어야 하고(→ NOP 필요), 우리는 **매핑 단위(IU)** 가 커진 것이 원인이라 조각을 아무 빈 페이지에나 정상 프로그램하면 된다.
+16 KB 물리 페이지 + 64 KB IU가 동시에 오는 경우에도, fine frontier는 append-only이므로 **서로 다른 IU의 조각 4개를 모아 16 KB 페이지 하나를 꽉 채워** 프로그램하면 되고 부분 프로그램이 필요 없다(조각별 매핑이라 한 물리 페이지에 여러 IU의 조각이 섞여도 무관). 반면 coarse 티어는 chunk가 물리적으로 연속이어야 매핑 엔트리 1개를 유지하므로 fold가 16페이지를 함께 쓴다 — 이것이 fold 비용 16의 근거.
