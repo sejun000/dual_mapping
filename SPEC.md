@@ -347,7 +347,8 @@ Proposed가 전부 만족하는 6개 feature로 분해. 각 행은 최소 하나
 | μ-FTL (EMSOFT'08) | O | X | O | X | X | X | **단일** 가변-granularity 맵(extent 1–128페이지)이라 티어 공존 아님. extent 병합은 논리·물리 연속일 때 기회적으로만(비용 판단 없음), μ-tree 플래시 상주 |
 | Subpage-aware SSD (TC'18, ICS'20) / Minipage-FTL (NAS'18) | O | O | O | X | X | O | 큰 물리 페이지 내 4 K 서브페이지 매핑, 병합 기준은 갱신 빈도(핫니스) 클러스터링 |
 | MGA-FTL (**DATE'17**) | O | O | X | X | X | O | 2-level(page 16 K + subpage 4 K) 매핑으로 DRAM 제어. **page re-programming(NOP) 필요** → MLC/TLC/QLC는 LLH 등 별도 기법. subpage merging 기준은 조각 수·**read count**(읽기 성능)로 쓰기 비용이 아님 |
-| SLC cache (ComboFTL'10, warm-block'18) / CSAL (EuroSys'24) | X | X | X | X | X | O | **매체** 티어링: 두 티어 모두 4 K 매핑이고 coarse 맵 자체가 없음(DRAM 절감 목적 아님). CSAL의 2-level L2P는 4 K granularity를 값싸게 색인하는 계층 구조이며 호스트측 계층 + 별도 SLC 디바이스 필요 |
+| SLC cache, 디바이스 내부 (ComboFTL'10, warm-block'18) | X | X | X | X | X | O | **매체** 티어링: 두 티어 모두 4 K 매핑이고 coarse 맵이 없음(DRAM 절감 목적 아님), SLC 영역 필요 |
+| CSAL (EuroSys'24, 호스트측) | X | X | X | X | X | X | 아티팩트 기준 검증: **4 KB 블록/매핑**, L2P DRAM 상한 **2048 MB**(전체 테이블보다 작은 캐시), OP 18%, 빠른 드라이브를 FIFO 로그 버퍼로 쓰고 compaction 때 유효 로그를 QLC에 큰 순차 쓰기로 이동, L2P는 한 시점에 한 위치만 지시. **미검증**: band/chunk 크기, 2-level L2P의 구조, hot/cold 분리 granularity (EuroSys 원문 접근 불가) |
 | Mixed-IU + FDP (Silicon Motion OCP'24; US 10409500, US 10222984) | O | X | X | X | X | O | 4 K IU 영역과 16 K IU 영역을 **정적·배타적**으로 분리(한 LBA는 한쪽만) → 동시 공존 아님. 호스트가 배치 결정, granularity 간 이동 없음 |
 | IU + RMW (현행 QLC) | O | X | O | X | X | O | coarse 매핑만, sub-IU 쓰기는 RMW |
 | **Proposed** | **O** | **O** | **O** | **O** | **O** | **O** | |

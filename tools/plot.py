@@ -440,7 +440,8 @@ RW = [
     (r"$\mu$-FTL",          dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
     ("Subpage-aware SSD",   dict(sub=1, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
     ("MGA-FTL",             dict(sub=1, dual=1, plain=0, cost=0, gcmrg=0, dram=1)),
-    ("SLC cache / CSAL",    dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
+    ("SLC cache (device)",  dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
+    ("CSAL (host-side)",    dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=0)),
     ("Mixed-IU + FDP",      dict(sub=1, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
     ("IU + RMW (QLC)",      dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=1)),
     ("Proposed",            dict(sub=1, dual=1, plain=1, cost=1, gcmrg=1, dram=1)),
@@ -449,7 +450,7 @@ COMPACT_KEYS = ["sub", "dual", "cost", "gcmrg", "dram"]
 COMPACT_ROWS = ["FAST", "Janus-FTL", r"$\mu$-FTL", "Proposed"]
 
 
-def _table(rows, keys, stem, label_w=0.22, row_h=0.09, hdr_h=0.155, figsize=(14, 5.8)):
+def _table(rows, keys, stem, label_w=0.22, row_h=0.085, hdr_h=0.15, figsize=(14, 6.0)):
     fig, ax = plt.subplots(figsize=figsize)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, hdr_h + row_h * len(rows))
