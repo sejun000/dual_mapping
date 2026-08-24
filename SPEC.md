@@ -369,3 +369,10 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 ### 물리 페이지가 커져도 부분 프로그램이 필요 없는 이유 (discussion용)
 문제의 층위가 다르다: MGA-FTL 계열은 **프로그램 단위(물리 페이지)** 가 커진 것이 원인이라 조각을 같은 물리 페이지에 나중에 끼워 넣어야 하고(→ NOP 필요), 우리는 **매핑 단위(IU)** 가 커진 것이 원인이라 조각을 아무 빈 페이지에나 정상 프로그램하면 된다.
 16 KB 물리 페이지 + 64 KB IU가 동시에 오는 경우에도, fine frontier는 append-only이므로 **서로 다른 IU의 조각 4개를 모아 16 KB 페이지 하나를 꽉 채워** 프로그램하면 되고 부분 프로그램이 필요 없다(조각별 매핑이라 한 물리 페이지에 여러 IU의 조각이 섞여도 무관). 반면 coarse 티어는 chunk가 물리적으로 연속이어야 매핑 엔트리 1개를 유지하므로 fold가 16페이지를 함께 쓴다 — 이것이 fold 비용 16의 근거.
+
+## fig5c: FAST / μ-FTL 쓰기 분해
+- **Full merge**(FAST/LAST): victim 로그 블록의 유효 페이지가 속한 **논리 블록마다** 빈 블록을 잡아 그 논리 블록의 전 페이지(P=49,152) 최신본을 모아 쓰고 구 데이터 블록을 erase. 로그 블록 하나 회수에 연관 논리 블록 수만큼 반복.
+- **Partial merge**: 로그 블록이 오프셋 0부터 **순서대로** 쓰였지만 다 안 찬 경우, 데이터 블록의 **남은 (P−written) 페이지를 복사**해 채운 뒤 switch. 거대 블록에서는 "남은 페이지"가 수만 개라 전혀 싸지 않음 → skew가 커져 순차 로그 블록이 일찍 쫓겨날수록 폭증(FAST α=1.2에서 36.9, small-heavy α=0.99에서 **56.4**).
+- **Switch merge**: 로그 블록이 P페이지를 순서대로 다 채운 경우 매핑만 교체(복사 0). 우리 실험에서는 거의 발생하지 않음.
+- μ-FTL은 merge 개념이 없고 전부 **GC relocation**(`pgc`) + μ-tree **map write**. small-heavy에서 extent 수가 폭증해 map write가 3.2–8.0까지 커짐(기본 mix에서는 0.03–0.72).
+- LAST는 full merge 197–2203이라 그림에서 제외.

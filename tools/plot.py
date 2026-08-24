@@ -284,12 +284,12 @@ STACK = [("host",       ["host"],               "Host",                      "#2
          ("map",        ["map"],                "Map write",                 "#4a3aa7")]
 
 
-def _stack(ax, xs, recs, width=0.6, annotate=True):
+def _stack(ax, xs, recs, width=0.6, annotate=True, stack=None, legend=True):
     bottom = np.zeros(len(recs))
-    for _, keys, label, color in STACK:
+    for _, keys, label, color in (stack or STACK):
         vals = np.array([sum(r["prog"].get(k, 0) for k in keys) / r["host_pages"] for r in recs])
         if vals.max() > 0:
-            ax.bar(xs, vals, width, bottom=bottom, label=label, color=color)
+            ax.bar(xs, vals, width, bottom=bottom, color=color, label=label if legend else None)
         bottom += vals
     if annotate:
         for x, t in zip(xs, bottom):
@@ -333,6 +333,62 @@ def fig_breakdown_sizes_policies():
     fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 0.97), ncol=4, frameon=False,
                handlelength=1.6, columnspacing=1.4, handletextpad=0.5)
     save(fig, "fig5b_breakdown_sizes_policies")
+
+# Write sources of the legacy hybrid / extent baselines (merge-based, no fine/coarse tiers).
+STACK_LEGACY = [("host",    ["host"],         "Host",           "#2a78d6"),
+                ("full",    ["fullmerge"],    "Full merge",     "#eb6834"),
+                ("partial", ["partialmerge"], "Partial merge",  "#eda100"),
+                ("gc",      ["pgc"],          "GC relocation",  "#e87ba4"),
+                ("map",     ["map"],          "Map write",      "#4a3aa7")]
+
+
+def fig_breakdown_legacy():
+    """Write breakdown of FAST and mu-FTL (LAST is 198-2205 and left out of the plot)."""
+    pol = [("fast", "FAST"), ("mu", r"$\mu$-FTL")]
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6.2), sharey=True,
+                             gridspec_kw={"width_ratios": [1.15, 1]})
+    # left: default mix over the zipf sweep
+    ax = axes[0]
+    labels, recs, xs = [], [], []
+    for gi, z in enumerate(ZS):
+        for mi, (key, label) in enumerate(pol):
+            recs.append(load(CANON, f"{key}_eq_z{z}.json"))
+            labels.append(label)
+            xs.append(gi * (len(pol) + 0.7) + mi)
+    _stack(ax, np.array(xs, dtype=float), recs, width=0.75, stack=STACK_LEGACY)
+    ax.set_xticks(xs)
+    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=15)
+    for gi, z in enumerate(ZS):
+        ax.annotate(r"$\alpha$=" + z, (gi * (len(pol) + 0.7) + (len(pol) - 1) / 2, 0),
+                    xytext=(0, -58), textcoords="offset points", ha="center", fontsize=16)
+    ax.set_title("default mix, Zipf sweep", fontsize=17)
+    ax.set_ylabel("NAND writes per host page")
+    # right: size mixes
+    ax = axes[1]
+    groups = [("small\n" + r"$\alpha$=0", "small", "0"), ("small\n" + r"$\alpha$=0.99", "small", "0.99"),
+              ("large\n" + r"$\alpha$=0", "large", "0"), ("large\n" + r"$\alpha$=0.99", "large", "0.99")]
+    labels, recs, xs = [], [], []
+    for gi, (_, dist, z) in enumerate(groups):
+        for mi, (key, label) in enumerate(pol):
+            recs.append(load(SIZES, f"{key}_{dist}_z{z}.json"))
+            labels.append(label)
+            xs.append(gi * (len(pol) + 0.7) + mi)
+    _stack(ax, np.array(xs, dtype=float), recs, width=0.75, stack=STACK_LEGACY, legend=False)
+    ax.set_xticks(xs)
+    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=15)
+    for gi, (gname, _, _) in enumerate(groups):
+        ax.annotate(gname, (gi * (len(pol) + 0.7) + (len(pol) - 1) / 2, 0),
+                    xytext=(0, -70), textcoords="offset points", ha="center", fontsize=16)
+    ax.set_title("request-size mixes", fontsize=17)
+    for ax in axes:
+        ax.set_ylim(0, 75)
+        ax.grid(axis="y", color="#dddddd", linewidth=0.8)
+        ax.set_axisbelow(True)
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 0.96), ncol=5, frameon=False,
+               handlelength=1.6, columnspacing=1.4, handletextpad=0.5)
+    save(fig, "fig5c_breakdown_legacy")
+
 
 def fig_seq():
     mods = POLICIES[:4]
@@ -494,6 +550,7 @@ if __name__ == "__main__":
     fig_breakdown_sizes()
     fig_breakdown_policies()
     fig_breakdown_sizes_policies()
+    fig_breakdown_legacy()
     fig_seq()
     fig_map_read()
     fig_related_work()
