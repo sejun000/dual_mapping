@@ -299,16 +299,18 @@ def _stack(ax, xs, recs, width=0.6, annotate=True):
 
 
 def fig_breakdown_sizes_policies():
-    """Write breakdown per policy for the small-heavy and large-heavy size mixes."""
+    """Write breakdown per policy for the three request-size mixes."""
     mods = POLICIES[:4]
-    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-    for ax, dist, title, ymax in ((axes[0], "small", "small-heavy (50% 4 KB requests)", 38),
-                                  (axes[1], "large", "large-heavy (50% 256 KB requests)", 10)):
+    panels = [(CANON, "",      "default mix\n(4 KB-256 KB, uniform by request)", 13.5),
+              (SIZES, "small", "small-heavy\n(50% 4 KB requests)",              38),
+              (SIZES, "large", "large-heavy\n(50% 256 KB requests)",            10)]
+    fig, axes = plt.subplots(1, 3, figsize=(19, 6.2))
+    for ax, (d, dist, title, ymax) in zip(axes, panels):
         labels, recs, xs = [], [], []
         for gi, z in enumerate(["0", "0.99"]):
             for mi, (tag, label, _, _) in enumerate(mods):
-                key = tag.replace("_eq", "")
-                recs.append(load(SIZES, f"{key}_{dist}_z{z}.json"))
+                name = f"{tag}_z{z}.json" if not dist else f"{tag.replace('_eq','')}_{dist}_z{z}.json"
+                recs.append(load(d, name))
                 labels.append(label)
                 xs.append(gi * (len(mods) + 0.8) + mi)
         _stack(ax, np.array(xs, dtype=float), recs)
@@ -322,16 +324,15 @@ def fig_breakdown_sizes_policies():
             ax.annotate(r"$\alpha$=" + z, (gi * (len(mods) + 0.8) + (len(mods) - 1) / 2, 0),
                         xytext=(0, -62), textcoords="offset points", ha="center", fontsize=17)
     axes[0].set_ylabel("NAND writes per host page")
-    h, l = axes[0].get_legend_handles_labels()
-    h2, l2 = axes[1].get_legend_handles_labels()
-    for hh, ll in zip(h2, l2):
-        if ll not in l:
-            h.append(hh)
-            l.append(ll)
+    h, l = [], []
+    for ax in axes:
+        for hh, ll in zip(*ax.get_legend_handles_labels()):
+            if ll not in l:
+                h.append(hh)
+                l.append(ll)
     fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, 0.97), ncol=4, frameon=False,
                handlelength=1.6, columnspacing=1.4, handletextpad=0.5)
     save(fig, "fig5b_breakdown_sizes_policies")
-
 
 def fig_seq():
     mods = POLICIES[:4]
