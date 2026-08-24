@@ -324,15 +324,31 @@ python3 tools/plot.py [outdir]   # 기본 results/fig
 - matplotlib은 시스템에 없어 `~/tools/pyenv`(Debian 패키지 추출본)에 두고, 스크립트가 PYTHONPATH/LD_LIBRARY_PATH/MATPLOTLIBRC를 세팅해 자기 자신을 re-exec.
 - 그림 목록: fig1 WAF vs zipf(6정책, 로그; LAST는 스케일 압축 때문에 그림에서 제외, 표에는 유지), fig1b 동일 데이터 주요 4정책(선형, headline), fig2 요청 크기 분포별, fig3 매핑 DRAM, fig4 proposed 쓰기 분해, fig5 정책별 쓰기 분해(host/RMW/GC/map), fig6 순차 4K(버퍼 유무), fig7 DFTL 동기 map read.
 
-## 선행연구 비교표 (fig8)
-열 4개: (1) coarse 매핑 단위가 erase block보다 작은가(IU/extent), (2) 4K 영역 회수 vs coarse로 merge를 비용으로 고르는가, (3) merge가 fine 매핑 테이블 크기를 줄이는가, (4) coarse 영역 자체에 GC가 있는가.
-| | (1) | (2) | (3) | (4) |
-|---|---|---|---|---|
-| FAST / LAST | X | X | O | X |
-| Superblock | X | X | O | X |
-| Janus-FTL | X | O | O | X |
-| DFTL / CFTL | X | X | X | O |
-| μ-FTL | O | X | X | O |
-| IU + RMW | O | X | X | O |
-| **Proposed** | **O** | **O** | **O** | **O** |
-주의(리뷰 대비): μ-FTL은 extent 삽입 시 논리·물리 연속이면 기회적으로 extent를 합치지만, 회수 시점에 매핑을 줄이려고 수행하는 merge 연산은 없으므로 (2)(3) = X. DFTL/CFTL은 매핑 자체가 4K 단일 granularity라 (1)(3) = X이고 (4)는 일반 page-level GC. `tools/plot.py`의 `RW_ROWS`/`RW_ROWS_EXT`에서 수정.
+## 선행연구 조사 및 비교표 (fig8, v2.5)
+Proposed가 전부 만족하는 6개 feature로 분해. 각 행은 최소 하나씩 X.
+
+| feature | 정의 (왜 필요한가) |
+|---|---|
+| **Sub-block coarse unit** | coarse 매핑 엔트리가 erase block보다 작다(IU 64 KB = 16페이지) → merge 1회 비용이 블록 크기가 아니라 16페이지. 192 MiB 슈퍼블록에서 블록 단위 hybrid가 붕괴하는 원인 |
+| **Coexisting 4 KB map** | 같은 논리 공간을 4 KB로도 매핑해 sub-IU 쓰기를 RMW 없이 흡수 |
+| **No special media/host** | page re-programming(NOP≥2), SLC 티어, 호스트 힌트/인터페이스 변경 없이 QLC에 그대로 적용 |
+| **Cost-based GC vs. merge** | "4 K 영역을 그대로 회수" vs "coarse로 merge"를 쓰기 비용으로 결정(고정 규칙·핫니스 분류가 아님) |
+| **Merge in coarse GC** | coarse 영역에 GC가 있고, 그 재배치에 merge를 얹어 추가 program 0으로 처리(refold) |
+| **In-DRAM map** | 매핑 전체가 DRAM 상주 → I/O 경로에 동기 map read 없음 |
+
+| 연구 | sub | dual | plain | cost | gc-merge | dram | 근거 / 주된 차이 |
+|---|---|---|---|---|---|---|---|
+| BAST(2002) / FAST(TECS'07) / LAST(OSR'08) | X | O | O | X | X | O | 로그 블록 = 페이지 매핑, 데이터 블록 = 블록 매핑. 회수는 merge뿐(로그 내 GC 없음), 데이터 블록 GC 없음 |
+| Superblock FTL (EMSOFT'06, TECS'10) | X | O | O | X | X | O | coarse 단위가 superblock(블록 여러 개 = 더 큼), superblock 내부만 페이지 매핑 |
+| Janus-FTL (EMSOFT'10) | X | O | O | **O** | X | O | PMA GC vs defusion을 사용률 u* 임계로 선택(가장 가까운 선행). coarse = 블록, BMA에 GC 없음, 결정이 전역·블록 단위 |
+| CFTL (SIGMETRICS'10) | X | O | O | X | X | X | 접근 패턴으로 블록별 page↔block 매핑 전환, tier-2 페이지맵은 플래시 상주 |
+| DFTL (ASPLOS'09) / LeaFTL / LearnedFTL | X | X | O | X | X | X | 단일 4 K granularity + 캐시/학습으로 DRAM 절감 → 동기 map read 발생 |
+| μ-FTL (EMSOFT'08) | O | O | O | X | X | X | 가변 extent(1–128페이지) μ-tree. 회수 시점 merge 정책 없음(삽입 시 기회적 extent 병합만), μ-tree 플래시 상주 |
+| Subpage-aware SSD (TC'18, ICS'20) / Minipage-FTL (NAS'18) | O | O | O | X | X | O | 큰 물리 페이지 내 4 K 서브페이지 매핑, 병합 기준은 갱신 빈도(핫니스) 클러스터링 |
+| MGA-FTL (**DATE'17**) | O | O | X | X | X | O | 2-level(page 16 K + subpage 4 K) 매핑으로 DRAM 제어. **page re-programming(NOP) 필요** → MLC/TLC/QLC는 LLH 등 별도 기법. subpage merging 기준은 조각 수·**read count**(읽기 성능)로 쓰기 비용이 아님 |
+| SLC cache (ComboFTL'10, warm-block'18) / CSAL (EuroSys'24) | X | X | X | X | X | O | 매체 티어링(SLC 영역/별도 디바이스 필요). CSAL은 호스트측 계층 + 2-level L2P |
+| Mixed-IU + FDP (Silicon Motion OCP'24; US 10409500, US 10222984) | O | O | X | X | X | O | 4 K IU 영역과 16 K IU 영역을 **정적으로** 두고 호스트가 배치 결정, granularity 간 데이터 이동 없음 |
+| IU + RMW (현행 QLC) | O | X | O | X | X | O | coarse 매핑만, sub-IU 쓰기는 RMW |
+| **Proposed** | **O** | **O** | **O** | **O** | **O** | **O** | |
+
+주의: μ-FTL의 extent 병합은 삽입 시 논리·물리 연속일 때만 일어나는 기회적 연산이라 cost/gc-merge = X. Subpage-aware·Minipage·MGA-FTL은 *물리* 페이지 크기(16 K) 문제이고 우리는 *매핑* granularity(IU) 문제 — 동기는 다르지만 구조가 가까워 반드시 인용. 표 수정은 `tools/plot.py`의 `FEATS`/`RW`. fig8b는 4행 압축판(FAST/Janus/μ-FTL/Proposed, 5열).
