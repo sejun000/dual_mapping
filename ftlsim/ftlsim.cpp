@@ -62,6 +62,9 @@ struct Cfg {
     std::string unfold = "off";   // coarse GC: off | hot (unfold hot IUs: move remaining chunk pages to fine, kill chunk)
     double unfold_tau = 0.5;      // hot if last fragment write within unfold_tau x (fine tier capacity) of fine host writes
     int unfold_k = 2;             // ... and at least unfold_k host fragment writes within that window (frequency; 1 = recency only)
+    int eager_u = -1;             // proposed: -1 = cost-based (default) (see eager_worth); >0 = fixed threshold: if the IU would end up with > eager_u
+                                  // of its 16 pages present (new pages + existing fragments), complete it to a full
+                                  // chunk right away (selective RMW) instead of appending fragments. 0 = off.
     int fold_d = 8;               // greedy/cold: fold an IU only when it has >= fold_d fragments (half a chunk)
     double fold_tau = 0.5;        // cold policy: IU is cold if its last fragment write is older than fold_tau x (fine tier capacity)
     double fold_gate = 0.0;       // cold policy: fold only when fine victim valid ratio v/P >= fold_gate (fine-pressure gate; 0 = always)
@@ -95,6 +98,8 @@ struct Stats {
     std::vector<u64> d_fold, d_refold;  // histogram over d
     u64 fine_pages_valid_peak = 0, wasted_slots = 0;
     u64 n_greedy = 0, greedy_fold_pages = 0, greedy_copy_pages = 0, n_forced_fold = 0;
+    u64 n_eager = 0, eager_fill = 0;
+    u64 frag_folded = 0, frag_freed = 0;   // fine pages retired by an explicit fold vs. for free (refold / overwrite)
     u64 host_fine = 0, host_coarse = 0;  // host pages by tier
     u64 n_unfold = 0, unfold_pages = 0; std::vector<u64> d_unfold;
     u64 n_budget_fold = 0, n_gcfold = 0;
@@ -140,6 +145,7 @@ struct Sim {
     Frontier fgf, cgf;             // fine / coarse GC frontiers (used when gc_frontier)
     bool in_cgc = false, in_fine_reclaim = false;
     bool fold_allowed = true;      // cold policy: set per victim by the pressure gate
+    double last_fine_v = 0;        // EWMA of the fine victim's valid pages (fine-tier pressure signal)
     // ---- mixed mode: one pool (no fine/coarse block tags), fine map capped by RAM budget, single greedy GC
     bool mixed = false;
     bool ram_cap = false;          // proposed + fine_cap=ram
@@ -345,6 +351,7 @@ struct Sim {
         if (fbitmap[fi] & bit) {
             u32 old = fslot[(u64)fi * U + off];
             bvalid[blk_of(old)]--;
+            if (src == S_HOST) st.frag_freed++;
         } else {
             if (coarse_map[iu] != NONE) bvalid[blk_of(coarse_map[iu])]--;  // superseded in extent
             int od = popc(fbitmap[fi]);
@@ -354,6 +361,37 @@ struct Sim {
         }
         fslot[(u64)fi * U + off] = ppn;
         if ((mixed || ram_cap) && src == S_HOST) mixed_enforce_budget();
+    }
+
+
+    // ---- eager merge (selective RMW): complete a nearly-full IU into one chunk instead of appending fragments
+    int eager_union(u64 iu, u64 start, int n) const {
+        u32 mask = 0;
+        for (int i = 0; i < n; ++i) mask |= 1u << ((start + i) % U);
+        int32_t fi = fine_idx[iu];
+        if (fi >= 0) mask |= fbitmap[fi];
+        return __builtin_popcount(mask);
+    }
+    bool eager_worth(u64 iu, u64 start, int n) {
+        if (c.eager_u <= -10) return n > -c.eager_u - 10;   // -1x: threshold on this request's pages only
+        int u = eager_union(iu, start, n);
+        if (c.eager_u > 0) return u > c.eager_u;
+        // Cost per host page. Completing the IU now writes U pages for n host pages -> U/n.
+        // Writing fragments costs 1 page now, plus a later fold (U pages shared by u fragments)
+        // but only for the fraction p of fragments that actually end up folded; the rest are
+        // retired for free by a coarse-GC merge or by a host overwrite.  p is measured at runtime.
+        double p = (st.frag_folded + st.frag_freed) ? (double)st.frag_folded / (st.frag_folded + st.frag_freed) : 0.5;
+        return (double)U / n < 1.0 + p * (double)U / std::max(1, u);
+    }
+    void eager_write(u64 iu, u64 start, int n) {
+        int u = eager_union(iu, start, n);
+        int32_t fi = fine_idx[iu];
+        int d = fi >= 0 ? popc(fbitmap[fi]) : 0;
+        u32 old = coarse_map[iu];
+        st.n_eager++; st.eager_fill += U - n;
+        st.read_fold_fine += d;                       // fragments folded in
+        if (old != NONE) st.read_rmw += U - u;        // the rest still comes from the old chunk
+        coarse_write(iu, S_HOST, n, S_RMW);           // n host pages + (U-n) filler counted as RMW
     }
 
     // full IU write into coarse tier; invalidates old extent and fine fragments
@@ -400,7 +438,7 @@ struct Sim {
         if (old != NONE) { st.read_fold_coarse += U - d; src = refold ? S_CGC_REFOLD : S_FOLD; }
         else if (d == U) src = refold ? S_CGC_REFOLD : S_FOLD;  // whole IU lives in fine
         else src = S_ZEROFILL;  // IU never had an extent: remaining pages are zero-fill
-        if (refold) { st.n_refold++; st.d_refold[d]++; } else { st.n_fold++; st.d_fold[d]++; }
+        if (refold) { st.n_refold++; st.d_refold[d]++; st.frag_freed += d; } else { st.n_fold++; st.d_fold[d]++; st.frag_folded += d; }
         install_extent(iu, ppn, src);
     }
 
@@ -545,6 +583,7 @@ struct Sim {
         int b = pick_victim(B_FINE);
         if (b < 0) DIE("no fine victim");
         int v = bvalid[b];
+        last_fine_v = last_fine_v ? 0.7 * last_fine_v + 0.3 * v : v;
         if (v == 0) { erase_block(b); in_fine_reclaim = false; return; }
         // distinct IUs among valid pages, and the fragments of those IUs that live in OTHER fine blocks
         // (a fold retires them too, so they count as extra freed fine slots)
@@ -693,7 +732,13 @@ struct Sim {
             u64 cur = lpn;
             while (cur < end) {
                 if (cur % U == 0 && cur + U <= end) { coarse_write(cur / U, S_HOST); cur += U; }
-                else { fine_write(cur, S_HOST); cur++; }
+                else {
+                    u64 iu = cur / U;
+                    u64 e = std::min(end, (iu + 1) * U);          // this request's part of the IU
+                    int n = (int)(e - cur);
+                    if (c.eager_u != 0 && eager_worth(iu, cur, n)) { eager_write(iu, cur, n); cur = e; }
+                    else { while (cur < e) { fine_write(cur, S_HOST); cur++; } }
+                }
             }
         } else if (c.mode == "iu_rmw") {
             u64 cur = lpn;
@@ -758,9 +803,9 @@ struct Sim {
         printf("  \"RAF\": %.4f, \"map_miss\": %llu, \"map_flush\": %llu,\n", st.host_pages ? (double)(st.read_rmw + st.read_fold_fine + st.read_fold_coarse + st.read_gc_copy + st.read_map) / st.host_pages : 0.0,
                (unsigned long long)st.map_miss, (unsigned long long)st.map_flush);
         printf("  \"erases\": %llu, \"erase_fine\": %llu, \"erase_coarse\": %llu,\n", (unsigned long long)st.erases, (unsigned long long)st.erase_fine, (unsigned long long)st.erase_coarse);
-        printf("  \"events\": {\"finegc\": %llu, \"blockfold\": %llu, \"fold\": %llu, \"refold\": %llu, \"cgc\": %llu, \"pgc\": %llu, \"cgc_dead_ext\": %llu, \"cgc_clean_ext\": %llu, \"extent_drop\": %llu, \"wasted_slots\": %llu, \"greedy\": %llu, \"greedy_fold_pages\": %llu, \"greedy_copy_pages\": %llu, \"forced_fold\": %llu, \"unfold\": %llu, \"unfold_pages\": %llu, \"budget_fold\": %llu, \"gc_fold\": %llu},\n",
+        printf("  \"events\": {\"finegc\": %llu, \"blockfold\": %llu, \"fold\": %llu, \"refold\": %llu, \"cgc\": %llu, \"pgc\": %llu, \"cgc_dead_ext\": %llu, \"cgc_clean_ext\": %llu, \"extent_drop\": %llu, \"wasted_slots\": %llu, \"greedy\": %llu, \"greedy_fold_pages\": %llu, \"greedy_copy_pages\": %llu, \"forced_fold\": %llu, \"eager\": %llu, \"eager_fill\": %llu, \"unfold\": %llu, \"unfold_pages\": %llu, \"budget_fold\": %llu, \"gc_fold\": %llu},\n",
                (unsigned long long)st.n_finegc, (unsigned long long)st.n_blockfold, (unsigned long long)st.n_fold, (unsigned long long)st.n_refold,
-               (unsigned long long)st.n_cgc, (unsigned long long)st.n_pgc, (unsigned long long)st.cgc_dead_extents, (unsigned long long)st.cgc_clean_extents, (unsigned long long)st.n_extent_drop, (unsigned long long)st.wasted_slots, (unsigned long long)st.n_greedy, (unsigned long long)st.greedy_fold_pages, (unsigned long long)st.greedy_copy_pages, (unsigned long long)st.n_forced_fold, (unsigned long long)st.n_unfold, (unsigned long long)st.unfold_pages, (unsigned long long)st.n_budget_fold, (unsigned long long)st.n_gcfold);
+               (unsigned long long)st.n_cgc, (unsigned long long)st.n_pgc, (unsigned long long)st.cgc_dead_extents, (unsigned long long)st.cgc_clean_extents, (unsigned long long)st.n_extent_drop, (unsigned long long)st.wasted_slots, (unsigned long long)st.n_greedy, (unsigned long long)st.greedy_fold_pages, (unsigned long long)st.greedy_copy_pages, (unsigned long long)st.n_forced_fold, (unsigned long long)st.n_eager, (unsigned long long)st.eager_fill, (unsigned long long)st.n_unfold, (unsigned long long)st.unfold_pages, (unsigned long long)st.n_budget_fold, (unsigned long long)st.n_gcfold);
         printf("  \"avg_victim_valid\": {\"finegc\": %.1f, \"cgc\": %.1f, \"pgc\": %.1f},\n",
                st.n_finegc ? (double)st.finegc_valid_sum / st.n_finegc : 0.0, st.n_cgc ? (double)st.cgc_valid_sum / st.n_cgc : 0.0,
                st.n_pgc ? (double)st.pgc_valid_sum / st.n_pgc : 0.0);
@@ -1549,6 +1594,7 @@ int main(int argc, char** argv) {
         else if (k == "unfold") c.unfold = v;
         else if (k == "unfold_tau") c.unfold_tau = atof(v.c_str());
         else if (k == "unfold_k") c.unfold_k = atoi(v.c_str());
+        else if (k == "eager_u") c.eager_u = atoi(v.c_str());
         else if (k == "fold_d") c.fold_d = atoi(v.c_str());
         else if (k == "fold_tau") c.fold_tau = atof(v.c_str());
         else if (k == "fold_gate") c.fold_gate = atof(v.c_str());

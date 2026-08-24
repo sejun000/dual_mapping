@@ -376,3 +376,13 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - **Switch merge**: 로그 블록이 P페이지를 순서대로 다 채운 경우 매핑만 교체(복사 0). 우리 실험에서는 거의 발생하지 않음.
 - μ-FTL은 merge 개념이 없고 전부 **GC relocation**(`pgc`) + μ-tree **map write**. small-heavy에서 extent 수가 폭증해 map write가 3.2–8.0까지 커짐(기본 mix에서는 0.03–0.72).
 - LAST는 full merge 197–2203이라 그림에서 제외.
+
+## v2.6: 쓰기 시점 선택적 RMW (eager merge, `eager_u`)
+부분 IU 호스트 쓰기(예: 48 KB = 12페이지)를 조각으로 흘리는 대신, **기존 fine 조각과 합쳐 그 자리에서 64 KB chunk 하나로 완성**하는 선택지. 즉 "쌀 때만 하는 RMW"이고, 그 RMW가 동시에 merge 역할을 해서 fine 엔트리를 비운다.
+- **비용 모델(v2, 기본 `eager_u=-1`, 상수 없음)** — 호스트 페이지당으로 비교:
+  - eager: chunk 16페이지를 n개의 호스트 페이지를 위해 씀 → **U/n**
+  - fine: 조각 1페이지 + 나중에 fold될 확률 p × (fold 16페이지 ÷ 조각 u개) → **1 + p·U/u**
+  - p(조각이 실제로 fold로 은퇴하는 비율)는 런타임 측정: `frag_folded / (frag_folded + frag_freed)`. 조각 대부분은 coarse GC의 refold나 호스트 덮어쓰기로 **공짜로** 사라지므로 p ≈ 0.15–0.23으로 낮게 나오고, 그 결과 문턱이 n ≳ 9로 자동 형성된다.
+- **기각한 v1 모델**: "eager 추가 비용 (U−n) vs fine 슬롯 점유 비용 u·v/(P−v)". fine 티어가 포화되면 v/(P−v)가 커져 **모든 4 K 쓰기를 RMW로 돌려** small-heavy에서 WAF 13.4 → **45.9**(IU+RMW 34.3보다 나쁨). 교훈: 순간 압박 신호는 쓰기 시점 결정에 부적합하고, fine 티어의 출구 비용(fold 16/d, 그나마 대부분 공짜)을 반영해야 한다.
+- 결과(WAF, off → cost-v2): 기본 mix 8.53→**7.96**(z0), 7.65→7.56(0.8), 5.40→**5.37**(0.99), 3.14→3.15(1.2); small-heavy 13.36→**12.81**(z0), 7.15→7.49(0.99, +5% 손해); large-heavy 7.59→7.47. 고정 문턱(u>10 또는 n>8)은 z0에서 7.91–7.92로 살짝 더 좋지만 skew에서 +3~11% 손해.
+- 채워 넣는 (U−n) 페이지는 `prog.rmw`로 계상되므로 쓰기 분해 그림에 RMW 성분으로 나타난다(호스트 페이지당 0.01–0.05).
