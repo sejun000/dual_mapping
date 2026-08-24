@@ -352,3 +352,14 @@ Proposed가 전부 만족하는 6개 feature로 분해. 각 행은 최소 하나
 | **Proposed** | **O** | **O** | **O** | **O** | **O** | **O** | |
 
 주의: μ-FTL의 extent 병합은 삽입 시 논리·물리 연속일 때만 일어나는 기회적 연산이라 cost/gc-merge = X. Subpage-aware·Minipage·MGA-FTL은 *물리* 페이지 크기(16 K) 문제이고 우리는 *매핑* granularity(IU) 문제 — 동기는 다르지만 구조가 가까워 반드시 인용. 표 수정은 `tools/plot.py`의 `FEATS`/`RW`. fig8b는 4행 압축판(FAST/Janus/μ-FTL/Proposed, 5열).
+
+## MGA-FTL (DATE'17) 원문 상세 — 가장 가까운 선행이므로 별도 정리
+Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programming", DATE 2017 (HUST).
+- **구조**: 1st = PMT(물리 페이지 단위 8/16 KB), 2nd = SPMT(4 KB 서브페이지). SPMT는 페이지보다 작은 요청이 올 때만 할당 → DRAM 절감.
+- **서브페이지 쓰기 방법**: 같은 물리 페이지의 **빈 서브페이지에 부분 프로그램**하고 나머지는 0xFF 마스크로 채움(page_padding). 즉 한 물리 페이지를 여러 번 프로그램.
+  → **NOP(Number Of Partial programs) ≥ 2 필요.** 데이터시트상 SLC 4–8, **MLC는 1**. 논문도 MLC/TLC는 LLH 기법이 필요하다고 명시하고, 검증은 Samsung **SLC** 칩으로 수행. QLC(NOP=1 + 다단계 프로그램 순서 제약)에는 사실상 적용 불가. **매체 티어링(SLC+QLC)이 아니라 단일 매체의 부분 프로그램 능력 의존.**
+- **할당 정책**: Exclusive/Shared Allocation을 free page 비율 임계 AT(0.25–0.35)로 전환.
+- **merge 트리거**: 논리 페이지가 흩어진 물리 페이지 수(PPN Count) 상한을 **Read Count**로 계단식 조절(0→4, ≤2→3, ≤5→2, >5→1). 목적은 **읽기 성능/조각 감소**이고 쓰기 비용 모델이 아니며, 논문도 "merging은 필수 연산이 아니다"라고 기술. GC는 일반 페이지 단위(PV 상태 추가).
+- **결과**: 16 KB 페이지에서 WAF −30.8%, erase −40%, 평균 응답시간 −53~72%(Synth-A). DRAM은 page-level 대비 **+16.5%**, 순수 subpage 매핑 대비 1/3. baseline = page-level(PM), sector-log hybrid. 규모는 블록 128페이지.
+- **우리와의 차이**: coarse 단위가 물리 페이지 vs **IU(매핑 단위, 물리 페이지와 독립)**; fine 배치가 같은 페이지 부분 프로그램 vs **별도 fine 블록 log-append**; 매체 요구 NOP≥2 vs **없음**; merge 기준 read count vs **쓰기 비용식**; GC 통합 없음 vs **refold(추가 쓰기 0)**; DRAM이 결과 보고(+16.5%) vs **예산을 입력으로 고정(page4k의 10%)**; 블록 128페이지 vs **49,152페이지(192 MiB)**.
+- 절대 DRAM 비교(1 TB): MGA-FTL의 coarse는 16 KB → 64 M 엔트리 × 4 B = 256 MB(+16.5%). 우리 coarse는 64 KB IU → 16 M × 4 B = 64 MB + fine ≈ 40 MB ≈ **104 MB**.
