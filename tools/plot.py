@@ -186,20 +186,21 @@ def fig_ram():
 
 
 def fig_breakdown_proposed():
-    parts = [("host", "Host", "#2a78d6"),
-             ("cgc_clean", "Coarse-tier GC", "#eb6834"),
-             ("cgc_refold", "Merge with coarse-tier GC", "#1baf7a"),
-             ("fold", "Merge with fine-tier GC", "#eda100"),
-             ("finegc", "Fine-tier GC", "#e87ba4")]
+    parts = [("host", "Host", "#2a78d6", None),
+             ("cgc_clean", "Coarse-tier GC", "#eb6834", None),
+             ("cgc_refold", "Merge with coarse-tier GC", "#eb6834", "///"),
+             ("fold", "Merge with fine-tier GC", "#1baf7a", "///"),
+             ("finegc", "Fine-tier GC", "#1baf7a", None)]
     fig, ax = plt.subplots(figsize=(9, 6))
     x = np.arange(len(ZS))
     bottom = np.zeros(len(ZS))
-    for key, label, color in parts:
+    for key, label, color, hatch in parts:
         vals = []
         for z in ZS:
             r = load(CANON, f"proposed_z{z}.json")
             vals.append(r["prog"].get(key, 0) / r["host_pages"])
-        ax.bar(x, vals, 0.55, bottom=bottom, label=label, color=color)
+        ax.bar(x, vals, 0.55, bottom=bottom, label=label, color=color, hatch=hatch,
+               edgecolor="white" if hatch else "none", linewidth=0)
         bottom += np.array(vals)
     for xi, tot in zip(x, bottom):
         ax.annotate(f"{tot:.2f}", (xi, tot), ha="center", va="bottom", fontsize=16,
@@ -216,11 +217,11 @@ def fig_breakdown_proposed():
 
 def fig_breakdown_sizes():
     """Same write breakdown as fig4, for the small-heavy / large-heavy size mixes."""
-    parts = [("host", "Host", "#2a78d6"),
-             ("cgc_clean", "Coarse-tier GC", "#eb6834"),
-             ("cgc_refold", "Merge with coarse-tier GC", "#1baf7a"),
-             ("fold", "Merge with fine-tier GC", "#eda100"),
-             ("finegc", "Fine-tier GC", "#e87ba4")]
+    parts = [("host", "Host", "#2a78d6", None),
+             ("cgc_clean", "Coarse-tier GC", "#eb6834", None),
+             ("cgc_refold", "Merge with coarse-tier GC", "#eb6834", "///"),
+             ("fold", "Merge with fine-tier GC", "#1baf7a", "///"),
+             ("finegc", "Fine-tier GC", "#1baf7a", None)]
     groups = [("small-heavy\n" + r"$\alpha$=0", "small", "0"),
               ("small-heavy\n" + r"$\alpha$=0.99", "small", "0.99"),
               ("large-heavy\n" + r"$\alpha$=0", "large", "0"),
@@ -228,12 +229,13 @@ def fig_breakdown_sizes():
     fig, ax = plt.subplots(figsize=(9.5, 6))
     x = np.arange(len(groups))
     bottom = np.zeros(len(groups))
-    for key, label, color in parts:
+    for key, label, color, hatch in parts:
         vals = []
         for _, d, z in groups:
             r = load(SIZES, f"proposed_{d}_z{z}.json")
             vals.append(r["prog"].get(key, 0) / r["host_pages"])
-        ax.bar(x, vals, 0.55, bottom=bottom, label=label, color=color)
+        ax.bar(x, vals, 0.55, bottom=bottom, label=label, color=color, hatch=hatch,
+               edgecolor="white" if hatch else "none", linewidth=0)
         bottom += np.array(vals)
     for xi, tot in zip(x, bottom):
         ax.annotate(f"{tot:.2f}", (xi, tot), ha="center", va="bottom", fontsize=16,
@@ -275,21 +277,23 @@ def fig_breakdown_policies():
 
 # Unified write-source stack used by the policy-comparison figures.
 # page4k / DFTL map everything at 4 KB, so their GC is counted as fine-tier GC.
-STACK = [("host",       ["host"],               "Host",                      "#2a78d6"),
-         ("rmw",        ["rmw"],                "RMW",                       "#7a5195"),
-         ("coarse",     ["cgc_clean"],          "Coarse-tier GC",            "#eb6834"),
-         ("refold",     ["cgc_refold"],         "Merge with coarse-tier GC", "#1baf7a"),
-         ("fold",       ["fold", "unfold"],     "Merge with fine-tier GC",   "#eda100"),
-         ("fine",       ["finegc", "pgc"],      "Fine-tier GC",              "#e87ba4"),
-         ("map",        ["map"],                "Map write",                 "#4a3aa7")]
+STACK = [("host",   ["host"],           "Host",                      "#2a78d6", None),
+         ("rmw",    ["rmw"],            "RMW",                       "#4a3aa7", None),
+         ("coarse", ["cgc_clean"],      "Coarse-tier GC",            "#eb6834", None),
+         ("refold", ["cgc_refold"],     "Merge with coarse-tier GC", "#eb6834", "///"),
+         ("fold",   ["fold", "unfold"], "Merge with fine-tier GC",   "#1baf7a", "///"),
+         ("fine",   ["finegc", "pgc"],  "Fine-tier GC",              "#1baf7a", None),
+         ("map",    ["map"],            "Map write",                 "#8a5a00", None)]
 
 
 def _stack(ax, xs, recs, width=0.6, annotate=True, stack=None, legend=True):
     bottom = np.zeros(len(recs))
-    for _, keys, label, color in (stack or STACK):
+    for _, keys, label, color, hatch in (stack or STACK):
         vals = np.array([sum(r["prog"].get(k, 0) for k in keys) / r["host_pages"] for r in recs])
         if vals.max() > 0:
-            ax.bar(xs, vals, width, bottom=bottom, color=color, label=label if legend else None)
+            ax.bar(xs, vals, width, bottom=bottom, color=color, hatch=hatch,
+                   edgecolor="white" if hatch else "none", linewidth=0,
+                   label=label if legend else None)
         bottom += vals
     if annotate:
         for x, t in zip(xs, bottom):
@@ -335,11 +339,11 @@ def fig_breakdown_sizes_policies():
     save(fig, "fig5b_breakdown_sizes_policies")
 
 # Write sources of the legacy hybrid / extent baselines (merge-based, no fine/coarse tiers).
-STACK_LEGACY = [("host",    ["host"],         "Host",           "#2a78d6"),
-                ("full",    ["fullmerge"],    "Full merge",     "#eb6834"),
-                ("partial", ["partialmerge"], "Partial merge",  "#eda100"),
-                ("gc",      ["pgc"],          "GC relocation",  "#e87ba4"),
-                ("map",     ["map"],          "Map write",      "#4a3aa7")]
+STACK_LEGACY = [("host",    ["host"],         "Host",           "#2a78d6", None),
+                ("full",    ["fullmerge"],    "Full merge",     "#eb6834", None),
+                ("partial", ["partialmerge"], "Partial merge",  "#eb6834", "///"),
+                ("gc",      ["pgc"],          "GC relocation",  "#1baf7a", None),
+                ("map",     ["map"],          "Map write",      "#8a5a00", None)]
 
 
 def fig_breakdown_legacy():

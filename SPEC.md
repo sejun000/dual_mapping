@@ -401,3 +401,9 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - 두 기법은 **상보적**이며 겹치지 않는다: 둘 다 켜면 항상 각각보다 좋거나 같다(α=1.2만 +0.3% 예외).
 - fold 쪽이 기여가 크고(특히 조각이 많은 workload), 쓰기 시점 규칙은 그 위에 −1~7%를 더한다.
 - 둘 다 끄면(= 조각을 fine에 넣고 coarse GC의 refold로만 정리) WAF가 6~32% 나빠진다 → refold만으로는 부족하다는 근거.
+
+## 그림 색 인코딩 (v2.7)
+쓰기 분해 그림에서 **색 = 어느 티어의 작업인가, 해칭(`///`) = merge 여부**로 이중 인코딩한다.
+- Host `#2a78d6`(파랑), RMW `#4a3aa7`(보라), **coarse 티어 `#eb6834`(주황)** — Coarse-tier GC(단색) / Merge with coarse-tier GC(해칭), **fine 티어 `#1baf7a`(청록)** — Fine-tier GC(단색) / Merge with fine-tier GC(해칭), Map write `#8a5a00`(갈색).
+- fig5c(legacy)도 동일 규칙: Full merge(주황 단색) / Partial merge(주황 해칭) / GC relocation(청록) / Map write(갈색).
+- 이전에는 7개 색을 다 다르게 썼는데 주황과 노랑, 두 보라가 구분이 안 됐다. 색 5개로 줄이고 dataviz 검증 스크립트(`validate_palette.py`)로 통과 확인: lightness band / chroma floor / CVD 분리 / normal-vision floor 전부 PASS(청록의 대비 2.74로 WARN 하나 — 막대 위 값 라벨과 표가 보조 인코딩 역할).
