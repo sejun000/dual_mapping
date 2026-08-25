@@ -472,8 +472,6 @@ ROW_BG = ("#ccd1d5", "#e3e8eb")
 #  dual  : the SAME logical range is mapped at 4 KB and at coarse granularity at once,
 #          the 4 KB copy superseding part of the coarse unit (not a mode switch, not disjoint
 #          regions, not medium tiering)
-#  plain : needs no special media or host support (no page re-programming, no SLC tier,
-#          no host hints, no interface change)
 #  cost  : an explicit write-cost comparison decides "reclaim the 4 KB area" vs. "merge into coarse"
 #  gcmrg : the coarse area is garbage collected, and the cross-tier merge rides on that
 #          relocation for free (no extra program)
@@ -481,26 +479,24 @@ ROW_BG = ("#ccd1d5", "#e3e8eb")
 FEATS = {
     "sub":   "Sub-block\ncoarse unit",
     "dual":  "Coexisting\n4 KB map",
-    "plain": "No special\nmedia/host",
     "cost":  "Cost-based\nGC vs. merge",
     "gcmrg": "Merge in\ncoarse GC",
     "dram":  "In-DRAM\nmap",
 }
 # 1 = has it, 0 = does not
 RW = [
-    ("BAST / FAST / LAST",  dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
-    ("Superblock FTL",      dict(sub=0, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
-    ("Janus-FTL",           dict(sub=0, dual=1, plain=1, cost=1, gcmrg=0, dram=1)),
-    ("CFTL",                dict(sub=0, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
-    ("DFTL / LeaFTL",       dict(sub=0, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
-    (r"$\mu$-FTL",          dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=0)),
-    ("Subpage-aware SSD",   dict(sub=1, dual=1, plain=1, cost=0, gcmrg=0, dram=1)),
-    ("MGA-FTL",             dict(sub=1, dual=1, plain=0, cost=0, gcmrg=0, dram=1)),
-    ("SLC cache (device)",  dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
-    ("CSAL (host-side)",    dict(sub=0, dual=0, plain=0, cost=0, gcmrg=0, dram=0)),
-    ("Mixed-IU + FDP",      dict(sub=1, dual=0, plain=0, cost=0, gcmrg=0, dram=1)),
-    ("IU + RMW (QLC)",      dict(sub=1, dual=0, plain=1, cost=0, gcmrg=0, dram=1)),
-    ("Proposed",            dict(sub=1, dual=1, plain=1, cost=1, gcmrg=1, dram=1)),
+    ("BAST / FAST / LAST",  dict(sub=0, dual=1, cost=0, gcmrg=0, dram=1)),
+    ("Superblock FTL",      dict(sub=0, dual=1, cost=0, gcmrg=0, dram=1)),
+    ("Janus-FTL",           dict(sub=0, dual=1, cost=1, gcmrg=0, dram=1)),
+    ("CFTL",                dict(sub=0, dual=0, cost=0, gcmrg=0, dram=0)),
+    ("DFTL / LeaFTL",       dict(sub=0, dual=0, cost=0, gcmrg=0, dram=0)),
+    (r"$\mu$-FTL",          dict(sub=1, dual=0, cost=0, gcmrg=0, dram=0)),
+    ("Subpage-aware SSD",   dict(sub=1, dual=1, cost=0, gcmrg=0, dram=1)),
+    ("MGA-FTL",             dict(sub=1, dual=1, cost=0, gcmrg=0, dram=1)),
+    ("SLC cache (device)",  dict(sub=0, dual=0, cost=0, gcmrg=0, dram=1)),
+    ("CSAL (host-side)",    dict(sub=0, dual=0, cost=0, gcmrg=0, dram=0)),
+    ("IU + RMW (QLC)",      dict(sub=1, dual=0, cost=0, gcmrg=0, dram=1)),
+    ("Proposed",            dict(sub=1, dual=1, cost=1, gcmrg=1, dram=1)),
 ]
 COMPACT_KEYS = ["sub", "dual", "cost", "gcmrg", "dram"]
 COMPACT_ROWS = ["FAST", "Janus-FTL", r"$\mu$-FTL", "Proposed"]
@@ -547,8 +543,8 @@ ABL = os.path.join(ROOT, "results", "ablation")
 def fig_ablation():
     """2x2 ablation: write-time selective RMW and fine-tier fold."""
     cfg = [("neither", "neither", "#b9bcc0"),
-           ("nofold",  "write-time only", "#eda100"),
-           ("nowrite", "fold only", "#1baf7a"),
+           ("nofold",  "write-time selective RMW only", "#eda100"),
+           ("nowrite", "merge with fine-tier GC only", "#1baf7a"),
            ("full",    "both (proposed)", "#2a78d6")]
     wl = [("def_z0", "default\n" + r"$\alpha$=0"), ("def_z0.8", "default\n" + r"$\alpha$=0.8"),
           ("def_z0.99", "default\n" + r"$\alpha$=0.99"), ("def_z1.2", "default\n" + r"$\alpha$=1.2"),
@@ -569,7 +565,7 @@ def fig_ablation():
     ax.set_ylim(0, 21)
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    outside_legend(ax, 4)
+    outside_legend(ax, 2)
     save(fig, "fig9_ablation")
 
 

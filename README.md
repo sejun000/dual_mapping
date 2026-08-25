@@ -95,17 +95,18 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 | 1.2 | 140 | 66.5 | 13.5 | 3.99 | 3.02 | 2.76 |
 거대 블록에선 defusion(블록 단위 demote)이 항상 손해 → Janus는 page-mapping 끝점에서만 성립(DRAM 64 MiB). 상세 SPEC 참조.
 
-## v2.3 (canonical): + 1 MiB 디바이스 쓰기 버퍼(IU 단위 coalescing, 전 정책 공통) — `results/final_ram10_wb`
-설정은 v2.2와 동일(RAM≈10%, 동일 공간 373블록, aging 8×, cost 정책) + `wbuf=1M`. 버퍼는 데이터 캐시라 매핑 RAM 산정에 미포함.
+## v2.6 (canonical): 두 정책 모두 적용 — RAM ≈ page4k의 10%, 동일 물리 공간(373블록, coarse OP 7% + fine 8블록 = 총 OP 9.28%), aging 8×, 1 MiB 쓰기 버퍼
+정책: fine 회수 = 비용 기반 fold(`U/d < v/(P−v)`), 쓰기 시점 = 선택적 RMW(`U/n < 1 + p·U/u`), 둘 다 튜닝 상수 없음. DFTL/μ-FTL 캐시 = proposed 실측 RAM(6.17 MiB).
 | WAF | zipf 0 | 0.8 | 0.99 | 1.2 | RAM MiB |
 |---|---|---|---|---|---|
-| **proposed** | 8.53 | 7.65 | 5.40 | 3.14 | 6.11 |
+| **proposed** | 7.96 | 7.56 | 5.37 | 3.15 | 6.17 |
 | page4k | 6.55 | 6.73 | 5.03 | 3.23 | 64 |
-| DFTL | 6.99 | 7.03 | 5.18 | 3.29 | 6.18 (+동기 map read/page 0.97/0.66/0.35/0.10) |
+| DFTL | 6.99 | 7.03 | 5.18 | 3.29 | 6.24 (+동기 map read/page 0.97/0.66/0.35/0.10) |
 | IU+RMW | 11.93 | 12.25 | 9.03 | 5.20 | 4 |
-| μ-FTL | 13.23 | 30.10 | 12.01 | 5.96 | 6.15 |
+| μ-FTL | 13.23 | 30.10 | 12.01 | 5.95 | 6.20 |
 | FAST | 13.69 | 15.91 | 24.44 | 48.50 | 7.26 |
 | LAST | 2204.77 | 1585.89 | 847.92 | 197.82 | — |
-- proposed vs IU+RMW: -28 / -38 / -40 / -40 %. vs DFTL: +22 / +9 / +4 / -4 %. vs page4k(10× DRAM): +30 / +14 / +7 / -3 %.
-- 순차 4K 쓰기(`seq_pattern=1`): 버퍼 없이 proposed 1.99(IU가 조각으로 차면 fold 16 필요), IU+RMW 17.0; 버퍼 1 MiB로 둘 다 1.00 (page4k/DFTL 1.00). 랜덤 mix에선 버퍼 효과 ±3%.
-- Janus-FTL 결과는 위 절(버퍼 없음) 참조.
+- proposed vs IU+RMW: -33 / -38 / -41 / -39 %. vs DFTL: +14 / +7 / +4 / -4 %. vs page4k(10× DRAM): +22 / +12 / +7 / -2 %.
+- 크기 분포: small-heavy 12.81 / 7.49, large-heavy 7.47 / 5.21 (zipf 0 / 0.99).
+- ablation(fig9): 두 정책 다 끄면 6~32% 나빠짐. 상세는 SPEC.
+- 그림: `results/fig/fig1..fig9` (PDF+PNG), 생성은 `python3 tools/plot.py`.
