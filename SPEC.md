@@ -386,3 +386,18 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - **기각한 v1 모델**: "eager 추가 비용 (U−n) vs fine 슬롯 점유 비용 u·v/(P−v)". fine 티어가 포화되면 v/(P−v)가 커져 **모든 4 K 쓰기를 RMW로 돌려** small-heavy에서 WAF 13.4 → **45.9**(IU+RMW 34.3보다 나쁨). 교훈: 순간 압박 신호는 쓰기 시점 결정에 부적합하고, fine 티어의 출구 비용(fold 16/d, 그나마 대부분 공짜)을 반영해야 한다.
 - 결과(WAF, off → cost-v2): 기본 mix 8.53→**7.96**(z0), 7.65→7.56(0.8), 5.40→**5.37**(0.99), 3.14→3.15(1.2); small-heavy 13.36→**12.81**(z0), 7.15→7.49(0.99, +5% 손해); large-heavy 7.59→7.47. 고정 문턱(u>10 또는 n>8)은 z0에서 7.91–7.92로 살짝 더 좋지만 skew에서 +3~11% 손해.
 - 채워 넣는 (U−n) 페이지는 `prog.rmw`로 계상되므로 쓰기 분해 그림에 RMW 성분으로 나타난다(호스트 페이지당 0.01–0.05).
+
+## fig9: 2×2 ablation (쓰기 시점 선택적 RMW × fine 회수 fold)
+`results/ablation`. neither = `eager_u=0 fold_d=99 fine_policy=greedy`, nofold = 쓰기시점만, nowrite = fold만, full = 기본 설정.
+| 워크로드 | neither | write-time only | fold only | both | both vs neither |
+|---|---|---|---|---|---|
+| default α=0 | 10.41 | 8.80 | 8.53 | **7.96** | −23.6% |
+| default α=0.8 | 8.84 | 8.03 | 7.65 | **7.56** | −14.5% |
+| default α=0.99 | 6.06 | 5.76 | 5.40 | **5.37** | −11.4% |
+| default α=1.2 | 3.35 | 3.31 | **3.14** | 3.15 | −5.9% |
+| small-heavy α=0 | 18.94 | 16.76 | 13.39 | **12.81** | −32.4% |
+| small-heavy α=0.99 | 9.61 | 8.85 | 7.63 | **7.49** | −22.0% |
+| large-heavy α=0 | 8.24 | 7.73 | 7.58 | **7.47** | −9.4% |
+- 두 기법은 **상보적**이며 겹치지 않는다: 둘 다 켜면 항상 각각보다 좋거나 같다(α=1.2만 +0.3% 예외).
+- fold 쪽이 기여가 크고(특히 조각이 많은 workload), 쓰기 시점 규칙은 그 위에 −1~7%를 더한다.
+- 둘 다 끄면(= 조각을 fine에 넣고 coarse GC의 refold로만 정리) WAF가 6~32% 나빠진다 → refold만으로는 부족하다는 근거.

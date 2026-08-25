@@ -541,6 +541,38 @@ def fig_related_work():
            row_h=0.13, hdr_h=0.20, figsize=(12, 4.4))
 
 
+ABL = os.path.join(ROOT, "results", "ablation")
+
+
+def fig_ablation():
+    """2x2 ablation: write-time selective RMW and fine-tier fold."""
+    cfg = [("neither", "neither", "#b9bcc0"),
+           ("nofold",  "write-time only", "#eda100"),
+           ("nowrite", "fold only", "#1baf7a"),
+           ("full",    "both (proposed)", "#2a78d6")]
+    wl = [("def_z0", "default\n" + r"$\alpha$=0"), ("def_z0.8", "default\n" + r"$\alpha$=0.8"),
+          ("def_z0.99", "default\n" + r"$\alpha$=0.99"), ("def_z1.2", "default\n" + r"$\alpha$=1.2"),
+          ("small_z0", "small\n" + r"$\alpha$=0"), ("small_z0.99", "small\n" + r"$\alpha$=0.99"),
+          ("large_z0", "large\n" + r"$\alpha$=0")]
+    fig, ax = plt.subplots(figsize=(13, 6))
+    x = np.arange(len(wl), dtype=float)
+    w = 0.2
+    for i, (key, label, color) in enumerate(cfg):
+        vals = [load(ABL, f"{key}_{k}.json")["WAF"] for k, _ in wl]
+        bars = ax.bar(x + (i - 1.5) * w, vals, w * 0.9, label=label, color=color)
+        for b, v in zip(bars, vals):
+            ax.annotate(f"{v:.1f}", (b.get_x() + b.get_width() / 2, v), ha="center",
+                        va="bottom", fontsize=13, xytext=(0, 2), textcoords="offset points")
+    ax.set_xticks(x)
+    ax.set_xticklabels([n for _, n in wl], fontsize=16)
+    ax.set_ylabel("WAF")
+    ax.set_ylim(0, 21)
+    ax.grid(axis="y", color="#dddddd", linewidth=0.8)
+    ax.set_axisbelow(True)
+    outside_legend(ax, 4)
+    save(fig, "fig9_ablation")
+
+
 if __name__ == "__main__":
     fig_waf_zipf()
     fig_waf_zipf_main()
@@ -554,3 +586,4 @@ if __name__ == "__main__":
     fig_seq()
     fig_map_read()
     fig_related_work()
+    fig_ablation()
