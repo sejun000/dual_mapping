@@ -407,3 +407,19 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - Host `#2a78d6`(파랑), RMW `#4a3aa7`(보라), **coarse 티어 `#eb6834`(주황)** — Coarse-tier GC(단색) / Merge with coarse-tier GC(해칭), **fine 티어 `#1baf7a`(청록)** — Fine-tier GC(단색) / Merge with fine-tier GC(해칭), Map write `#8a5a00`(갈색).
 - fig5c(legacy)도 동일 규칙: Full merge(주황 단색) / Partial merge(주황 해칭) / GC relocation(청록) / Map write(갈색).
 - 이전에는 7개 색을 다 다르게 썼는데 주황과 노랑, 두 보라가 구분이 안 됐다. 색 5개로 줄이고 dataviz 검증 스크립트(`validate_palette.py`)로 통과 확인: lightness band / chroma floor / CVD 분리 / normal-vision floor 전부 PASS(청록의 대비 2.74로 WARN 하나 — 막대 위 값 라벨과 표가 보조 인코딩 역할).
+
+## v2.7 — WAF 분모 정의 변경 (총 host write 기준)
+
+**변경 전:** `WAF = 총 NAND program / FTL에 도달한 host 페이지`. 1 MiB IU-coalescing 쓰기 버퍼가 덮어쓰기로 흡수한 페이지는 분모에서 빠져 있었다.
+
+**문제:** 버퍼가 흡수하는 쓰기는 (만약 내려갔다면) WAF≈1로 처리됐을 쓰기다. 이걸 분모에서만 제거하면 남은 쓰기들의 평균 증폭이 올라가서, **버퍼를 키울수록 NAND 총 쓰기는 줄어드는데 WAF는 커지는** 역설이 생긴다. proposed z=0.99 실측: 버퍼 1 MiB에서 흡수 5.3%, NAND 총 쓰기 86.5 M → 79.4 M(-8%)인데 구 지표 WAF는 5.15 → 5.93으로 상승.
+
+**변경 후:** `WAF = 총 NAND program / 워크로드가 발행한 총 host 페이지`(버퍼 흡수분 포함). aging의 순차 채우기도 동일하게 버퍼를 통과시켜 분모에 들어간다.
+
+구현 (`ftlsim/ftlsim.cpp`):
+- `Stats::host_submitted` 추가 — `Runner::wb_write()` 진입 시 무조건 누적. `host_pages`는 기존대로 FTL 도달분.
+- `seq_fill()`도 `wb_write()`를 경유(이전에는 `host_write()` 직접 호출).
+- 세 곳의 `report()`가 함께 출력: `host_pages`(=발행분, 분모), `host_pages_ftl`, `buffer_absorbed = 1 − ftl/발행`, `WAF`(신규), `WAF_ftl`(구 정의, 회귀 비교용).
+- `wbuf=0`이면 두 값이 동일하므로 버퍼 없는 결과는 영향 없음.
+
+**영향:** 모든 정책에 동일하게 적용되므로 순서·상대 비교는 불변. 흡수율이 큰 skew 구간에서 절대값이 내려간다(proposed z=1.2: 흡수 18.4%, WAF 3.15 → 2.57). `results/final_ram10_wb`, `final_sizes`, `seq`, `ablation` 전부 이 정의로 재생성했고 fig1~fig9도 재생성했다(plot.py는 `host_pages`로 나누므로 코드 변경 불필요).

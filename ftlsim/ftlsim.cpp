@@ -87,7 +87,8 @@ enum Src { S_HOST = 0, S_FINEGC, S_FOLD, S_CGC_CLEAN, S_CGC_REFOLD, S_RMW, S_PGC
 static const char* SRC_NAME[S_N] = {"host", "finegc", "fold", "cgc_clean", "cgc_refold", "rmw", "pgc", "zerofill", "fullmerge", "partialmerge", "map", "unfold"};
 
 struct Stats {
-    u64 host_pages = 0;
+    u64 host_pages = 0;        // host pages that reached the FTL (after write-buffer absorption)
+    u64 host_submitted = 0;   // host pages the workload issued (WAF denominator)
     u64 prog[S_N] = {};
     u64 read_rmw = 0, read_fold_fine = 0, read_fold_coarse = 0, read_gc_copy = 0, read_map = 0;
     u64 map_flush = 0, map_miss = 0;
@@ -790,8 +791,10 @@ struct Sim {
         printf("  \"tag\": \"%s\", \"mode\": \"%s\", \"zipf\": %.3f, \"seed\": %llu,\n", c.tag.c_str(), c.mode.c_str(), c.zipf, (unsigned long long)c.seed);
         printf("  \"capacity_gb\": %.2f, \"P\": %d, \"U\": %d, \"op\": %.3f, \"fine_quota\": %.3f, \"fine_quota_blocks\": %d, \"NB\": %d,\n",
                L * 4096.0 / (1 << 30), P, U, c.op, c.fine_quota, fine_quota_blocks, NB);
-        printf("  \"host_pages\": %llu, \"total_prog\": %llu, \"WAF\": %.4f,\n", (unsigned long long)st.host_pages, (unsigned long long)tp,
-               st.host_pages ? (double)tp / st.host_pages : 0.0);
+        { u64 hs = st.host_submitted ? st.host_submitted : st.host_pages;
+          printf("  \"host_pages\": %llu, \"host_pages_ftl\": %llu, \"buffer_absorbed\": %.4f, \"total_prog\": %llu, \"WAF\": %.4f, \"WAF_ftl\": %.4f,\n",
+                 (unsigned long long)hs, (unsigned long long)st.host_pages, hs ? 1.0 - (double)st.host_pages / hs : 0.0,
+                 (unsigned long long)tp, hs ? (double)tp / hs : 0.0, st.host_pages ? (double)tp / st.host_pages : 0.0); }
         printf("  \"prog\": {");
         for (int i = 0; i < S_N; ++i) printf("%s\"%s\": %llu", i ? ", " : "", SRC_NAME[i], (unsigned long long)st.prog[i]);
         printf("},\n");
@@ -1195,7 +1198,10 @@ struct HybridSim {
         printf("{\n");
         printf("  \"tag\": \"%s\", \"mode\": \"%s\", \"zipf\": %.3f, \"seed\": %llu,\n", c.tag.c_str(), c.mode.c_str(), c.zipf, (unsigned long long)c.seed);
         printf("  \"capacity_gb\": %.2f, \"P\": %d, \"U\": %d, \"op\": %.3f, \"NB\": %d, \"NLB\": %u, \"nlog\": %d, \"nseq\": %d,\n", L * 4096.0 / (1 << 30), P, U, c.op, NB, NLB, nlog, nseq);
-        printf("  \"host_pages\": %llu, \"total_prog\": %llu, \"WAF\": %.4f,\n", (unsigned long long)st.host_pages, (unsigned long long)tp, st.host_pages ? (double)tp / st.host_pages : 0.0);
+        { u64 hs = st.host_submitted ? st.host_submitted : st.host_pages;
+          printf("  \"host_pages\": %llu, \"host_pages_ftl\": %llu, \"buffer_absorbed\": %.4f, \"total_prog\": %llu, \"WAF\": %.4f, \"WAF_ftl\": %.4f,\n",
+                 (unsigned long long)hs, (unsigned long long)st.host_pages, hs ? 1.0 - (double)st.host_pages / hs : 0.0,
+                 (unsigned long long)tp, hs ? (double)tp / hs : 0.0, st.host_pages ? (double)tp / st.host_pages : 0.0); }
         printf("  \"prog\": {"); for (int i = 0; i < S_N; ++i) printf("%s\"%s\": %llu", i ? ", " : "", SRC_NAME[i], (unsigned long long)st.prog[i]); printf("},\n");
         printf("  \"prog_frac\": {"); for (int i = 0; i < S_N; ++i) printf("%s\"%s\": %.4f", i ? ", " : "", SRC_NAME[i], tp ? (double)st.prog[i] / tp : 0.0); printf("},\n");
         printf("  \"reads\": {\"rmw\": 0, \"fold_fine\": 0, \"fold_coarse\": 0, \"gc_copy\": %llu},\n", (unsigned long long)st.read_gc_copy);
@@ -1420,7 +1426,10 @@ struct MuSim {
         printf("{\n");
         printf("  \"tag\": \"%s\", \"mode\": \"mu\", \"zipf\": %.3f, \"seed\": %llu,\n", c.tag.c_str(), c.zipf, (unsigned long long)c.seed);
         printf("  \"capacity_gb\": %.2f, \"P\": %d, \"U\": %d, \"op\": %.3f, \"NB\": %d, \"parts\": %d, \"cache_bytes\": %llu, \"bitmap_cache_bytes\": %llu,\n", L * 4096.0 / (1 << 30), P, U, c.op, NB, c.mu_parts, (unsigned long long)c.cache_bytes, (unsigned long long)c.bitmap_cache_bytes);
-        printf("  \"host_pages\": %llu, \"total_prog\": %llu, \"WAF\": %.4f,\n", (unsigned long long)st.host_pages, (unsigned long long)tp, st.host_pages ? (double)tp / st.host_pages : 0.0);
+        { u64 hs = st.host_submitted ? st.host_submitted : st.host_pages;
+          printf("  \"host_pages\": %llu, \"host_pages_ftl\": %llu, \"buffer_absorbed\": %.4f, \"total_prog\": %llu, \"WAF\": %.4f, \"WAF_ftl\": %.4f,\n",
+                 (unsigned long long)hs, (unsigned long long)st.host_pages, hs ? 1.0 - (double)st.host_pages / hs : 0.0,
+                 (unsigned long long)tp, hs ? (double)tp / hs : 0.0, st.host_pages ? (double)tp / st.host_pages : 0.0); }
         printf("  \"prog\": {"); for (int i = 0; i < S_N; ++i) printf("%s\"%s\": %llu", i ? ", " : "", SRC_NAME[i], (unsigned long long)st.prog[i]); printf("},\n");
         printf("  \"prog_frac\": {"); for (int i = 0; i < S_N; ++i) printf("%s\"%s\": %.4f", i ? ", " : "", SRC_NAME[i], tp ? (double)st.prog[i] / tp : 0.0); printf("},\n");
         printf("  \"reads\": {\"rmw\": 0, \"fold_fine\": 0, \"fold_coarse\": 0, \"gc_copy\": %llu, \"map\": %llu},\n", (unsigned long long)st.read_gc_copy, (unsigned long long)st.read_map);
@@ -1489,6 +1498,7 @@ struct Runner {
         wb_pages -= __builtin_popcount(bm);
     }
     void wb_write(u64 lpn, u64 n) {
+        s.st.host_submitted += n;
         if (!c.wbuf_pages) { s.host_write(lpn, n); return; }
         u64 cur = lpn, end = lpn + n;
         while (cur < end) {
@@ -1526,7 +1536,7 @@ struct Runner {
     }
     void seq_fill() {
         const u64 chunk = 64;  // 256K sequential writes
-        for (u64 p = 0; p < L; p += chunk) s.host_write(p, std::min(chunk, L - p));
+        for (u64 p = 0; p < L; p += chunk) wb_write(p, std::min(chunk, L - p));
     }
 
     void run() {

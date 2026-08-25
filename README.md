@@ -95,18 +95,23 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 | 1.2 | 140 | 66.5 | 13.5 | 3.99 | 3.02 | 2.76 |
 거대 블록에선 defusion(블록 단위 demote)이 항상 손해 → Janus는 page-mapping 끝점에서만 성립(DRAM 64 MiB). 상세 SPEC 참조.
 
-## v2.6 (canonical): 두 정책 모두 적용 — RAM ≈ page4k의 10%, 동일 물리 공간(373블록, coarse OP 7% + fine 8블록 = 총 OP 9.28%), aging 8×, 1 MiB 쓰기 버퍼
+## v2.7 (canonical): WAF 분모 = 워크로드가 발행한 총 host write — RAM ≈ page4k의 10%, 동일 물리 공간(373블록, coarse OP 7% + fine 8블록 = 총 OP 9.28%), aging 8×, 1 MiB 쓰기 버퍼 (`results/final_ram10_wb`)
 정책: fine 회수 = 비용 기반 fold(`U/d < v/(P−v)`), 쓰기 시점 = 선택적 RMW(`U/n < 1 + p·U/u`), 둘 다 튜닝 상수 없음. DFTL/μ-FTL 캐시 = proposed 실측 RAM(6.17 MiB).
+
+**지표 정의(v2.7에서 변경).** `WAF = 총 NAND program / 워크로드가 발행한 총 host 페이지` — 쓰기 버퍼가 덮어쓰기로 흡수해 FTL까지 내려가지 않은 페이지도 분모에 포함한다. 버퍼에 도달한 페이지만 분모로 쓰면(구 정의) 버퍼가 흡수하는 WAF=1짜리 쓰기가 분모에서만 빠져 나가 **버퍼를 키울수록 WAF가 올라가는** 역설이 생긴다(NAND 총 쓰기는 줄어드는데도). JSON은 세 값을 함께 낸다: `WAF`(신규, 분모=발행), `WAF_ftl`(구, 분모=FTL 도달), `buffer_absorbed`(흡수 비율, proposed 기준 0.0~0.18).
+
 | WAF | zipf 0 | 0.8 | 0.99 | 1.2 | RAM MiB |
 |---|---|---|---|---|---|
-| **proposed** | 7.96 | 7.56 | 5.37 | 3.15 | 6.17 |
-| page4k | 6.55 | 6.73 | 5.03 | 3.23 | 64 |
-| DFTL | 6.99 | 7.03 | 5.18 | 3.29 | 6.24 (+동기 map read/page 0.97/0.66/0.35/0.10) |
-| IU+RMW | 11.93 | 12.25 | 9.03 | 5.20 | 4 |
-| μ-FTL | 13.23 | 30.10 | 12.01 | 5.95 | 6.20 |
-| FAST | 13.69 | 15.91 | 24.44 | 48.50 | 7.26 |
-| LAST | 2204.77 | 1585.89 | 847.92 | 197.82 | — |
+| **proposed** | 7.96 | 7.52 | 5.08 | 2.57 | 6.17 |
+| page4k | 6.55 | 6.70 | 4.76 | 2.63 | 64 |
+| DFTL | 6.99 | 7.00 | 4.91 | 2.68 | 6.24 (+동기 map read/page 0.97/0.66/0.35/0.10) |
+| IU+RMW | 11.93 | 12.19 | 8.55 | 4.24 | 4 |
+| μ-FTL | 13.23 | 29.96 | 11.37 | 4.86 | 6.20 |
+| FAST | 13.69 | 15.83 | 23.14 | 39.58 | 7.26 |
+| LAST | 2204.74 | 1578.69 | 802.98 | 161.42 | — |
 - proposed vs IU+RMW: -33 / -38 / -41 / -39 %. vs DFTL: +14 / +7 / +4 / -4 %. vs page4k(10× DRAM): +22 / +12 / +7 / -2 %.
-- 크기 분포: small-heavy 12.81 / 7.49, large-heavy 7.47 / 5.21 (zipf 0 / 0.99).
-- ablation(fig9): 두 정책 다 끄면 6~32% 나빠짐. 상세는 SPEC.
+- 버퍼 흡수율이 큰 skew 구간(z=1.2, 18.4%)에서 값이 가장 많이 내려간다(구 3.15 → 신 2.57). 정책 간 순서·상대차는 그대로.
+- 크기 분포(`results/final_sizes`): proposed small-heavy 12.81 / 6.85, large-heavy 7.47 / 4.99 (zipf 0 / 0.99). 같은 조건 IU+RMW는 34.32 / 24.14 (small), 8.78 / 6.37 (large) — small-heavy에서 격차가 가장 크다(-63%).
+- 4 KB 순차 쓰기(`results/seq`): 버퍼 없으면 proposed 13.47 / IU+RMW 17.04, 1 MiB 버퍼면 둘 다 1.00.
+- ablation(fig9): 두 정책 다 끄면 6~48% 나빠짐(z=1.2 +6.3%, 균등 +30.9%, small-heavy z0 +47.9%). 상세는 SPEC.
 - 그림: `results/fig/fig1..fig9` (PDF+PNG), 생성은 `python3 tools/plot.py`.
