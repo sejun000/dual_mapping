@@ -1,4 +1,8 @@
 [cfg] mode=proposed L=16777216 pages (64.0 GB) NP=18333696 NB=373 P=49152 U=8 OP=0.093 fine_quota=32 blocks (extra=0) T=2 zipf=0.99
 [phase] seq fill
 [phase] aging 8.00x
-FATAL: GC makes no progress: coarse tier over-committed (free=2 fine=28 coarse=343 quota=32 NB=373). Try fine_extra=1 or smaller fine_quota.
+[verify] ok. fine_valid_pages=159206 fine_blocks=22 coarse_blocks=349 free=2
+[verify] block valid histogram (deciles 0..100%): 11 6 2 2 2 1 0 0 0 347 0
+[phase] reset stats, measure 1.00x
+[verify] ok. fine_valid_pages=159119 fine_blocks=22 coarse_blocks=349 free=2
+[verify] block valid histogram (deciles 0..100%): 11 5 3 2 2 1 0 0 0 347 0

@@ -1,0 +1,8 @@
+[cfg] mode=proposed L=262144 pages (1.0 GB) NP=286208 NB=559 P=512 U=8 OP=0.093 fine_quota=50 blocks (extra=0) T=2 zipf=0.99
+[phase] seq fill
+[phase] aging 8.00x
+[verify] ok. fine_valid_pages=285 fine_blocks=1 coarse_blocks=556 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 2 0 0 206 309 40
+[phase] reset stats, measure 1.00x
+[verify] ok. fine_valid_pages=145 fine_blocks=1 coarse_blocks=556 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 1 0 0 0 0 2 206 305 43

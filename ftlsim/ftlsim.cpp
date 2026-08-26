@@ -104,6 +104,7 @@ struct Stats {
     u64 host_fine = 0, host_coarse = 0;  // host pages by tier
     u64 n_unfold = 0, unfold_pages = 0; std::vector<u64> d_unfold;
     u64 n_budget_fold = 0, n_gcfold = 0;
+    u64 n_shrink_fold = 0, n_space_capped = 0;
     u64 n_switch = 0, n_partial = 0, n_full = 0, n_dead_reclaim = 0, n_merge_reclaim = 0, full_assoc_sum = 0, n_seq_req = 0, n_rand_req = 0, n_hot_pages = 0, n_cold_pages = 0;
     u64 total_prog() const { u64 s = 0; for (auto p : prog) s += p; return s; }
     void reset(int U) { *this = Stats(); d_fold.assign(U + 1, 0); d_refold.assign(U + 1, 0); d_unfold.assign(U + 1, 0); }
@@ -149,7 +150,9 @@ struct Sim {
     double last_fine_v = 0;        // EWMA of the fine victim's valid pages (fine-tier pressure signal)
     // ---- mixed mode: one pool (no fine/coarse block tags), fine map capped by RAM budget, single greedy GC
     bool mixed = false;
-    bool ram_cap = false;          // proposed + fine_cap=ram
+    bool ram_cap = false;
+    bool in_shrink = false;
+    int reclaim_victim = -1;          // proposed + fine_cap=ram
     double fine_budget = 0;                       // bytes
     std::vector<std::unordered_set<u32>> by_d;    // d -> IUs with that many fragments (for budget eviction)
     u64 fine_ius_n = 0, fine_frags_n = 0;
@@ -288,8 +291,17 @@ struct Sim {
     // allocate a new block for a frontier, applying triggers
     int alloc_block(Tag t) {
         if (t == B_FINE && !in_fine_reclaim && c.mode == "proposed") {
+            // Space guard: growing the fine pool must leave the coarse tier room for its resident
+            // chunks plus the GC reserve; otherwise reclaim fine space first (quota is only a cap).
+            auto coarse_starved = [&] {
+                u64 fv = 0; for (int b = 0; b < NB; ++b) if (btag[b] == B_FINE) fv += bvalid[b];
+                u64 resident = L - fv;
+                u64 slack = std::max((u64)P, resident / 32);   // min coarse OP ~3%: below this GC degenerates to full-block copies
+                return (u64)(NB - fine_blocks - 1 - c.T) * (u64)P < resident + slack;
+            };
             int stall = 0;
-            while (fine_blocks >= fine_quota_blocks) {
+            while (fine_blocks >= fine_quota_blocks || coarse_starved()) {
+                if (fine_blocks < fine_quota_blocks) st.n_space_capped++;
                 int before = fine_blocks;
                 fine_reclaim(stall >= 4);        // after 4 reclaims without net progress, force fold (copying cannot free space)
                 if (fine_blocks >= before) stall++; else stall = 0;
@@ -300,15 +312,45 @@ struct Sim {
             int stall = 0;
             while ((int)freelist.size() <= c.T) {
                 size_t before = freelist.size();
-                if (is_pg()) page_gc();
-                else if (mixed) mixed_gc();
-                else if (ram_cap) {
-                    int vf = pick_victim(B_FINE), vc = pick_victim(B_COARSE);
-                    bool use_fine = vf >= 0 && (vc < 0 || bvalid[vf] <= bvalid[vc]);
-                    if (use_fine) { in_cgc = true; fine_reclaim(); in_cgc = false; } else coarse_gc();
+                // A fully valid best victim is direct evidence of over-commitment: coarse GC would
+                // copy a whole block (P pages) for zero gain. Skip the copy and go shrink instead.
+                bool useless = false;
+                if (!is_pg() && !mixed && !ram_cap) {
+                    int cv = pick_victim(B_COARSE);
+                    useless = cv >= 0 && bvalid[cv] >= P;
                 }
-                else coarse_gc();
-                if (freelist.size() <= before) { if (++stall > 64) DIE("GC makes no progress: coarse tier over-committed (free=%zu fine=%d coarse=%d quota=%d NB=%d). Try fine_extra=1 or smaller fine_quota.", freelist.size(), fine_blocks, coarse_blocks, fine_quota_blocks, NB); }
+                if (!useless) {
+                    if (is_pg()) page_gc();
+                    else if (mixed) mixed_gc();
+                    else if (ram_cap) {
+                        int vf = pick_victim(B_FINE), vc = pick_victim(B_COARSE);
+                        bool use_fine = vf >= 0 && (vc < 0 || bvalid[vf] <= bvalid[vc]);
+                        if (use_fine) { in_cgc = true; fine_reclaim(); in_cgc = false; } else coarse_gc();
+                    }
+                    else coarse_gc();
+                }
+                if (useless || freelist.size() <= before) {
+                    ++stall;
+                    {   // cheapest escape: a dead fine block frees space with zero copies and no recursion
+                        int dead = -1;
+                        for (int b2 = 0; b2 < NB; ++b2)
+                            if (btag[b2] == B_FINE && !is_frontier(b2) && b2 != reclaim_victim && bvalid[b2] == 0) { dead = b2; break; }
+                        if (dead >= 0) { erase_block(dead); stall = 0; continue; }
+                    }
+                    // Coarse tier over-committed: force-fold a fine victim block back into coarse and
+                    // release the block, instead of dying. stall > 56 is the backstop for the ambiguous
+                    // case (net-0 rounds without a fully valid victim).
+                    // Not under in_cgc: the fold's coarse writes may legitimately run nested GC.
+                    if ((useless || stall > 56) && !is_pg() && !mixed && !ram_cap && !in_shrink && !in_fine_reclaim && pick_victim(B_FINE) >= 0) {
+                        in_shrink = true; fine_reclaim(true); in_shrink = false;
+                        st.n_shrink_fold++;
+                        if (freelist.size() > before) { stall = 0; continue; }
+                    }
+                    // A fine reclaim/shrink is in flight and will return a block when it completes:
+                    // draw on the reserve instead of waiting for GC that cannot progress.
+                    if ((useless || stall > 56) && (in_shrink || in_fine_reclaim) && !freelist.empty()) break;
+                    if (stall > 64) DIE("GC makes no progress: coarse tier over-committed (free=%zu fine=%d coarse=%d quota=%d NB=%d). Try fine_extra=1 or smaller fine_quota.", freelist.size(), fine_blocks, coarse_blocks, fine_quota_blocks, NB);
+                }
                 else stall = 0;
             }
         }
@@ -483,6 +525,7 @@ struct Sim {
     // ------------------------------------------------------------------ reclaim
     // FineGC(block): copy valid 4K pages to fine frontier, erase
     void fine_gc_block(int b) {
+        int rv_save = reclaim_victim; reclaim_victim = b;
         int v0 = bvalid[b];
         st.n_finegc++; st.finegc_valid_sum += v0;
         u32 base = (u32)b * P;
@@ -505,10 +548,12 @@ struct Sim {
             bvalid[b]--;
         }
         erase_block(b);
+        reclaim_victim = rv_save;
     }
 
     // fold every IU that has valid pages in block b (block-wise fold), then erase
     void fold_block(int b) {
+        int rv_save = reclaim_victim; reclaim_victim = b;
         st.n_blockfold++;
         u32 base = (u32)b * P;
         for (int s = 0; s < P && bvalid[b] > 0; ++s) {
@@ -522,12 +567,14 @@ struct Sim {
         }
         if (bvalid[b] != 0) DIE("fold_block left valid=%d", bvalid[b]);
         erase_block(b);
+        reclaim_victim = rv_save;
     }
 
 
     // greedy: per valid page in victim, fold its IU if the IU has >= fold_d fragments (fold retires all of them,
     // in this and other fine blocks), otherwise copy the page within the fine tier. Then erase.
     void greedy_reclaim_block(int b) {
+        int rv_save = reclaim_victim; reclaim_victim = b;
         st.n_greedy++;
         u32 base = (u32)b * P;
         for (int s0 = 0; s0 < P && bvalid[b] > 0; ++s0) {
@@ -556,6 +603,7 @@ struct Sim {
         }
         if (bvalid[b] != 0) DIE("greedy_reclaim left valid=%d", bvalid[b]);
         erase_block(b);
+        reclaim_victim = rv_save;
     }
 
     int pick_oldest(Tag t) {
@@ -811,9 +859,9 @@ struct Sim {
         printf("  \"RAF\": %.4f, \"map_miss\": %llu, \"map_flush\": %llu,\n", st.host_pages ? (double)(st.read_rmw + st.read_fold_fine + st.read_fold_coarse + st.read_gc_copy + st.read_map) / st.host_pages : 0.0,
                (unsigned long long)st.map_miss, (unsigned long long)st.map_flush);
         printf("  \"erases\": %llu, \"erase_fine\": %llu, \"erase_coarse\": %llu,\n", (unsigned long long)st.erases, (unsigned long long)st.erase_fine, (unsigned long long)st.erase_coarse);
-        printf("  \"events\": {\"finegc\": %llu, \"blockfold\": %llu, \"fold\": %llu, \"refold\": %llu, \"cgc\": %llu, \"pgc\": %llu, \"cgc_dead_ext\": %llu, \"cgc_clean_ext\": %llu, \"extent_drop\": %llu, \"wasted_slots\": %llu, \"greedy\": %llu, \"greedy_fold_pages\": %llu, \"greedy_copy_pages\": %llu, \"forced_fold\": %llu, \"eager\": %llu, \"eager_fill\": %llu, \"unfold\": %llu, \"unfold_pages\": %llu, \"budget_fold\": %llu, \"gc_fold\": %llu},\n",
+        printf("  \"events\": {\"finegc\": %llu, \"blockfold\": %llu, \"fold\": %llu, \"refold\": %llu, \"cgc\": %llu, \"pgc\": %llu, \"cgc_dead_ext\": %llu, \"cgc_clean_ext\": %llu, \"extent_drop\": %llu, \"wasted_slots\": %llu, \"greedy\": %llu, \"greedy_fold_pages\": %llu, \"greedy_copy_pages\": %llu, \"forced_fold\": %llu, \"eager\": %llu, \"eager_fill\": %llu, \"unfold\": %llu, \"unfold_pages\": %llu, \"budget_fold\": %llu, \"gc_fold\": %llu, \"shrink_fold\": %llu, \"space_capped\": %llu},\n",
                (unsigned long long)st.n_finegc, (unsigned long long)st.n_blockfold, (unsigned long long)st.n_fold, (unsigned long long)st.n_refold,
-               (unsigned long long)st.n_cgc, (unsigned long long)st.n_pgc, (unsigned long long)st.cgc_dead_extents, (unsigned long long)st.cgc_clean_extents, (unsigned long long)st.n_extent_drop, (unsigned long long)st.wasted_slots, (unsigned long long)st.n_greedy, (unsigned long long)st.greedy_fold_pages, (unsigned long long)st.greedy_copy_pages, (unsigned long long)st.n_forced_fold, (unsigned long long)st.n_eager, (unsigned long long)st.eager_fill, (unsigned long long)st.n_unfold, (unsigned long long)st.unfold_pages, (unsigned long long)st.n_budget_fold, (unsigned long long)st.n_gcfold);
+               (unsigned long long)st.n_cgc, (unsigned long long)st.n_pgc, (unsigned long long)st.cgc_dead_extents, (unsigned long long)st.cgc_clean_extents, (unsigned long long)st.n_extent_drop, (unsigned long long)st.wasted_slots, (unsigned long long)st.n_greedy, (unsigned long long)st.greedy_fold_pages, (unsigned long long)st.greedy_copy_pages, (unsigned long long)st.n_forced_fold, (unsigned long long)st.n_eager, (unsigned long long)st.eager_fill, (unsigned long long)st.n_unfold, (unsigned long long)st.unfold_pages, (unsigned long long)st.n_budget_fold, (unsigned long long)st.n_gcfold, (unsigned long long)st.n_shrink_fold, (unsigned long long)st.n_space_capped);
         printf("  \"avg_victim_valid\": {\"finegc\": %.1f, \"cgc\": %.1f, \"pgc\": %.1f},\n",
                st.n_finegc ? (double)st.finegc_valid_sum / st.n_finegc : 0.0, st.n_cgc ? (double)st.cgc_valid_sum / st.n_cgc : 0.0,
                st.n_pgc ? (double)st.pgc_valid_sum / st.n_pgc : 0.0);
