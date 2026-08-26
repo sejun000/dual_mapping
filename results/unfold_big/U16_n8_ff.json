@@ -1,0 +1,19 @@
+{
+  "tag": "ff", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.093, "fine_quota": 0.023, "fine_quota_blocks": 8, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 85108994, "WAF": 5.0729, "WAF_ftl": 5.3567,
+  "prog": {"host": 15888222, "finegc": 4557956, "fold": 952240, "cgc_clean": 57280080, "cgc_refold": 6198864, "rmw": 231632, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.1867, "finegc": 0.0536, "fold": 0.0112, "cgc_clean": 0.6730, "cgc_refold": 0.0728, "rmw": 0.0027, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 208735, "fold_fine": 2807399, "fold_coarse": 4600140, "gc_copy": 61838036, "map": 0},
+  "RAF": 4.3714, "map_miss": 0, "map_flush": 0,
+  "erases": 1731, "erase_fine": 196, "erase_coarse": 1535,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 59515, "refold": 387429, "cgc": 1535, "pgc": 0, "cgc_dead_ext": 747375, "cgc_clean_ext": 3580005, "extent_drop": 27234, "wasted_slots": 2, "greedy": 196, "greedy_fold_pages": 653844, "greedy_copy_pages": 4557956, "forced_fold": 0, "eager": 120510, "eager_fill": 231632, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 40118.5, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,7004,8272,11497,11804,11772,1747,1492,1145,4782],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,67820,63051,28825,55267,25707,25300,25042,37187,14966,12554,12028,12380,2792,2518,1992,0],
+  "fine_ius_end": 60295, "fine_pages_end": 269009,
+  "mem": {"total_bytes": 6131697, "total_mib": 5.85, "primary_map": 4194304, "hash_index": 861357, "slots": 1076036},
+  "host_fine": 5078846, "host_coarse": 11041008,
+  "fine_blocks_end": 8, "coarse_blocks_end": 363, "free_end": 2, "f_end": 0.0214
+}

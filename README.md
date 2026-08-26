@@ -169,6 +169,8 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 - 하지만 **여전히 fine 8블록(4.79)을 못 이긴다.** DRAM은 1.8 MiB 더 쓰는데 WAF는 나빠진다. fine 티어도 자기 OP가 필요한 page-mapped 로그 구조라, coarse(192 MiB 블록 + greedy GC)에서 공간을 빼앗아 옮기는 것 자체가 이득이 아니다.
 - 32블록 이상은 unfold를 켜도 죽는다. unfold는 *이미 fragment가 있는* IU만 fine으로 옮길 수 있어서, fine 티어가 흡수할 수 있는 양은 결국 워크로드가 정한다. 예약만 키우면 coarse OP가 고갈된다(free=2, fine=28/32, coarse=343).
 
+**후속 3(v2.9): 개선 정책 — skew 시 page4k를 역전.** "쿼터를 키우면 좋아져야 한다"는 지적을 따라 세 가지 유출을 막았다: `fine_full=1`(상주 IU의 호스트 쓰기는 fine에 유지), `fine_policy=cost_cold`(hot은 fold하지 않음), `gc_select=cost`(coarse/fine victim을 v/(P−v)로 비교해 싼 쪽 회수). 32K IU + 쿼터 16에서 z0.8/0.99/1.2에 page4k를 −4.5/−5.4/−26%로 이기고(large-heavy −13%), DRAM은 page4k의 ~1/6(10–11 MB). 균등에서는 분리할 hot이 없어 page4k 열세(7.92 vs 6.55). 전부 기본 off 플래그로 기존 동작 보존. 상세는 SPEC v2.9.
+
 **후속 2: 과잉 쿼터 사망 제거.** fine 쿼터를 공간이 감당 못 하게 줘도 이제 죽지 않는다: fine 성장 가드에 최소 coarse OP 바닥(상주의 ~3%)을 두고, dead fine 블록 즉시 회수 + 강제 fold 백스톱 + 예약 인출을 추가했다. 과잉 쿼터는 가드가 정하는 평형(32K→22블록 9.57, 64K→26블록 8.77, 128K→31블록 8.48)으로 수렴하고, canonical과 가드 미발동 구성은 비트 동일. 상세는 SPEC v2.8 보론 3.
 
 **후속: 소유권 제약 자체를 제거한 실험(`unfold=any`).** coarse GC가 만난 fragment 없는 IU까지 통째로 fine으로 보낼 수 있게 구현해 coarse 풀이 전체 LBA를 소유할 필요를 없앴다(fine 상주 최대 156K IU ≈ 4.8 GiB 확인). 그러나 WAF는 모든 IU 크기·쿼터에서 plain 대비 단조 악화(예: 128K/24블록 5.27 → 5.92)였고 쿼터 48+에서는 여전히 사망. 원인: GC가 축출하는 데이터는 cold라서 page-mapped 풀에 두는 게 손해이고, cost-based fold가 그것부터 도로 접어 핑퐁이 생기며(최대 host 쓰기의 18.6%), fine 풀 평형 활용률이 ~65%라 자체 OP 요구를 넘는 순 OP 이득이 없다. 상세는 SPEC v2.8 보론 2.

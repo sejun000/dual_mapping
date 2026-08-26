@@ -1,0 +1,19 @@
+{
+  "tag": "ff2", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.093, "fine_quota": 0.087, "fine_quota_blocks": 32, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 142097202, "WAF": 8.4696, "WAF_ftl": 8.9436,
+  "prog": {"host": 15888222, "finegc": 2689780, "fold": 0, "cgc_clean": 115580368, "cgc_refold": 7938832, "rmw": 0, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.1118, "finegc": 0.0189, "fold": 0.0000, "cgc_clean": 0.8134, "cgc_refold": 0.0559, "rmw": 0.0000, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 0, "fold_fine": 3100206, "fold_coarse": 4838626, "gc_copy": 118270148, "map": 0},
+  "RAF": 7.9436, "map_miss": 0, "map_flush": 0,
+  "erases": 2891, "erase_fine": 235, "erase_coarse": 2656,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 0, "refold": 496177, "cgc": 2656, "pgc": 0, "cgc_dead_ext": 438944, "cgc_clean_ext": 7223773, "extent_drop": 56305, "wasted_slots": 4, "greedy": 235, "greedy_fold_pages": 0, "greedy_copy_pages": 2689780, "forced_fold": 0, "eager": 0, "eager_fill": 0, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 115},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 45338.5, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,73763,67885,29627,58786,25279,25188,25148,44216,20682,20497,20656,21018,20780,21099,21553,0],
+  "fine_ius_end": 60414, "fine_pages_end": 625562,
+  "mem": {"total_bytes": 7559609, "total_mib": 7.21, "primary_map": 4194304, "hash_index": 863057, "slots": 2502248},
+  "host_fine": 8835598, "host_coarse": 7052624,
+  "fine_blocks_end": 32, "coarse_blocks_end": 339, "free_end": 2, "f_end": 0.0858
+}

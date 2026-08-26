@@ -1,0 +1,19 @@
+{
+  "tag": "gs", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 32, "op": 0.093, "fine_quota": 0.065, "fine_quota_blocks": 24, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 16045115, "buffer_absorbed": 0.0436, "total_prog": 87297339, "WAF": 5.2033, "WAF_ftl": 5.4407,
+  "prog": {"host": 16045115, "finegc": 9480271, "fold": 230720, "cgc_clean": 49388960, "cgc_refold": 12151840, "rmw": 433, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.1838, "finegc": 0.1086, "fold": 0.0026, "cgc_clean": 0.5658, "cgc_refold": 0.1392, "rmw": 0.0000, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 339, "fold_fine": 4636316, "fold_coarse": 7750330, "gc_copy": 58869231, "map": 0},
+  "RAF": 4.4410, "map_miss": 0, "map_flush": 0,
+  "erases": 1776, "erase_fine": 423, "erase_coarse": 1353,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 7210, "refold": 379745, "cgc": 1353, "pgc": 0, "cgc_dead_ext": 154596, "cgc_clean_ext": 1543405, "extent_drop": 41499, "wasted_slots": 4, "greedy": 423, "greedy_fold_pages": 228491, "greedy_copy_pages": 9480271, "forced_fold": 0, "eager": 433, "eager_fill": 433, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 11, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 42229.9, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,31,97,221,273,477,6111],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,39870,38786,11584,35918,10743,10420,9508,31496,9350,9005,8219,9000,8272,8299,8308,23674,7392,7359,7086,7194,6939,7065,7064,7143,7015,7105,7326,7082,7202,7326,6995,0],
+  "fine_ius_end": 64180, "fine_pages_end": 771922,
+  "mem": {"total_bytes": 6101697, "total_mib": 5.82, "primary_map": 2097152, "hash_index": 916857, "slots": 3087688},
+  "host_fine": 11318316, "host_coarse": 4727232,
+  "fine_blocks_end": 24, "coarse_blocks_end": 346, "free_end": 3, "f_end": 0.0643
+}

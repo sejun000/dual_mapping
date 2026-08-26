@@ -67,6 +67,8 @@ struct Cfg {
                                   // chunk right away (selective RMW) instead of appending fragments. 0 = off.
     int fold_d = 8;               // greedy/cold: fold an IU only when it has >= fold_d fragments (half a chunk)
     double fold_tau = 0.5;        // cold policy: IU is cold if its last fragment write is older than fold_tau x (fine tier capacity)
+    bool fine_full = false;       // full-IU host writes to fine-RESIDENT IUs stay in the fine pool (keep hot IUs page-mapped)
+    std::string gc_select = "coarse"; // global free-block source: coarse (always coarse GC, default) | cost (pick coarse vs fine victim by v/(P-v))       // full-IU host writes to fine-RESIDENT IUs stay in the fine pool (keep hot IUs page-mapped)
     double fold_gate = 0.0;       // cold policy: fold only when fine victim valid ratio v/P >= fold_gate (fine-pressure gate; 0 = always)
     // FAST / LAST baselines
     double last_seq_frac = 0.25;  // fraction of log blocks used as sequential log buffer (LAST)
@@ -326,6 +328,14 @@ struct Sim {
                         int vf = pick_victim(B_FINE), vc = pick_victim(B_COARSE);
                         bool use_fine = vf >= 0 && (vc < 0 || bvalid[vf] <= bvalid[vc]);
                         if (use_fine) { in_cgc = true; fine_reclaim(); in_cgc = false; } else coarse_gc();
+                    }
+                    else if (c.gc_select == "cost" && !in_fine_reclaim && !in_shrink) {
+                        // pick the cheaper tier: copy cost per freed block = v/(P-v); the fine pool
+                        // gives back its slack whenever its victim is cheaper than the coarse one.
+                        int vc = pick_victim(B_COARSE), vf = pick_victim(B_FINE);
+                        bool use_fine = vf >= 0 && (vc < 0 || bvalid[vf] < bvalid[vc]);
+                        if (use_fine) { in_shrink = true; fine_reclaim(); in_shrink = false; st.n_shrink_fold++; }
+                        else coarse_gc();
                     }
                     else coarse_gc();
                 }
@@ -785,12 +795,20 @@ struct Sim {
         } else if (c.mode == "proposed" || c.mode == "mixed") {
             u64 cur = lpn;
             while (cur < end) {
-                if (cur % U == 0 && cur + U <= end) { coarse_write(cur / U, S_HOST); cur += U; }
+                if (cur % U == 0 && cur + U <= end) {
+                    u64 iu = cur / U;
+                    if (c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_quota_blocks) {
+                        // hot (fine-resident) IU fully overwritten: keep it page-mapped instead of re-chunking
+                        for (int i = 0; i < U; ++i) fine_write(cur + i, S_HOST);
+                    } else coarse_write(iu, S_HOST);
+                    cur += U;
+                }
                 else {
                     u64 iu = cur / U;
                     u64 e = std::min(end, (iu + 1) * U);          // this request's part of the IU
                     int n = (int)(e - cur);
-                    if (c.eager_u != 0 && eager_worth(iu, cur, n)) { eager_write(iu, cur, n); cur = e; }
+                    bool keep_fine = c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_quota_blocks;
+                    if (!keep_fine && c.eager_u != 0 && eager_worth(iu, cur, n)) { eager_write(iu, cur, n); cur = e; }
                     else { while (cur < e) { fine_write(cur, S_HOST); cur++; } }
                 }
             }
@@ -1661,6 +1679,8 @@ int main(int argc, char** argv) {
         else if (k == "fold_d") c.fold_d = atoi(v.c_str());
         else if (k == "fold_tau") c.fold_tau = atof(v.c_str());
         else if (k == "fold_gate") c.fold_gate = atof(v.c_str());
+        else if (k == "fine_full") c.fine_full = atoi(v.c_str()) != 0;
+        else if (k == "gc_select") c.gc_select = v;
         else if (k == "zipf_shuffle") c.zipf_shuffle = atoi(v.c_str()) != 0;
         else if (k == "last_seq_frac") c.last_seq_frac = atof(v.c_str());
         else if (k == "last_seq_thresh") c.last_seq_thresh = strtoull(v.c_str(), nullptr, 10);

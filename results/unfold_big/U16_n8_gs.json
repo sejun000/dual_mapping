@@ -1,0 +1,19 @@
+{
+  "tag": "gs", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.093, "fine_quota": 0.023, "fine_quota_blocks": 8, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 86096368, "WAF": 5.1317, "WAF_ftl": 5.4189,
+  "prog": {"host": 15888222, "finegc": 6584899, "fold": 1672016, "cgc_clean": 56094960, "cgc_refold": 5696960, "rmw": 159311, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.1845, "finegc": 0.0765, "fold": 0.0194, "cgc_clean": 0.6515, "cgc_refold": 0.0662, "rmw": 0.0019, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 141155, "fold_fine": 3010982, "fold_coarse": 4556061, "gc_copy": 62679859, "map": 0},
+  "RAF": 4.4302, "map_miss": 0, "map_flush": 0,
+  "erases": 1755, "erase_fine": 286, "erase_coarse": 1469,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 104501, "refold": 356060, "cgc": 1469, "pgc": 0, "cgc_dead_ext": 639808, "cgc_clean_ext": 3505935, "extent_drop": 60511, "wasted_slots": 1, "greedy": 286, "greedy_fold_pages": 1141940, "greedy_copy_pages": 6584899, "forced_fold": 0, "eager": 88245, "eager_fill": 159311, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 282, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 40926.4, "pgc": 0.0},
+  "d_hist_fold": [6,0,0,0,0,0,1324,7956,20049,10914,11966,12834,12958,5381,1625,1216,18272],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,67245,62516,28226,54728,24548,23126,17655,24783,11426,10786,9993,10129,5471,2884,2544,0],
+  "fine_ius_end": 55753, "fine_pages_end": 242285,
+  "mem": {"total_bytes": 5959915, "total_mib": 5.68, "primary_map": 4194304, "hash_index": 796471, "slots": 969140},
+  "host_fine": 7453725, "host_coarse": 8593808,
+  "fine_blocks_end": 7, "coarse_blocks_end": 364, "free_end": 2, "f_end": 0.0188
+}
