@@ -169,4 +169,6 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 - 하지만 **여전히 fine 8블록(4.79)을 못 이긴다.** DRAM은 1.8 MiB 더 쓰는데 WAF는 나빠진다. fine 티어도 자기 OP가 필요한 page-mapped 로그 구조라, coarse(192 MiB 블록 + greedy GC)에서 공간을 빼앗아 옮기는 것 자체가 이득이 아니다.
 - 32블록 이상은 unfold를 켜도 죽는다. unfold는 *이미 fragment가 있는* IU만 fine으로 옮길 수 있어서, fine 티어가 흡수할 수 있는 양은 결국 워크로드가 정한다. 예약만 키우면 coarse OP가 고갈된다(free=2, fine=28/32, coarse=343).
 
+**후속: 소유권 제약 자체를 제거한 실험(`unfold=any`).** coarse GC가 만난 fragment 없는 IU까지 통째로 fine으로 보낼 수 있게 구현해 coarse 풀이 전체 LBA를 소유할 필요를 없앴다(fine 상주 최대 156K IU ≈ 4.8 GiB 확인). 그러나 WAF는 모든 IU 크기·쿼터에서 plain 대비 단조 악화(예: 128K/24블록 5.27 → 5.92)였고 쿼터 48+에서는 여전히 사망. 원인: GC가 축출하는 데이터는 cold라서 page-mapped 풀에 두는 게 손해이고, cost-based fold가 그것부터 도로 접어 핑퐁이 생기며(최대 host 쓰기의 18.6%), fine 풀 평형 활용률이 ~65%라 자체 OP 요구를 넘는 순 OP 이득이 없다. 상세는 SPEC v2.8 보론 2.
+
 **결론.** 4K 맵 DRAM은 "중복 저장 때문에" 못 늘리는 게 아니라, **fine 티어의 유효 크기가 fragment 워킹셋으로 정해지기 때문**이다. 그 이상은 놀고 있는 공간이고, 제약(unfold)을 풀어 활용률을 되살려도 WAF 이득으로는 바뀌지 않는다. 이는 fine 티어를 고정 크기(≈2% 공간)로 두는 설계 근거이자, 앞서 기각한 RAM-CAP/mixed-pool 변형과 같은 결론이다.

@@ -1,0 +1,19 @@
+{
+  "tag": "any", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.093, "fine_quota": 0.087, "fine_quota_blocks": 32, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 97754425, "WAF": 5.8266, "WAF_ftl": 6.1526,
+  "prog": {"host": 15888222, "finegc": 4211172, "fold": 951344, "cgc_clean": 68244896, "cgc_refold": 6865088, "rmw": 237856, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 1355847},
+  "prog_frac": {"host": 0.1625, "finegc": 0.0431, "fold": 0.0097, "cgc_clean": 0.6981, "cgc_refold": 0.0702, "rmw": 0.0024, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0139},
+  "reads": {"rmw": 199234, "fold_fine": 3668081, "fold_coarse": 5831658, "gc_copy": 72456068, "map": 0},
+  "RAF": 5.1708, "map_miss": 0, "map_flush": 0,
+  "erases": 1988, "erase_fine": 218, "erase_coarse": 1770,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 59459, "refold": 429068, "cgc": 1770, "pgc": 0, "cgc_dead_ext": 653895, "cgc_clean_ext": 4265306, "extent_drop": 114214, "wasted_slots": 2, "greedy": 218, "greedy_fold_pages": 949852, "greedy_copy_pages": 4211172, "forced_fold": 0, "eager": 114957, "eager_fill": 237856, "unfold": 88446, "unfold_pages": 1355847, "budget_fold": 0, "gc_fold": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 41850.3, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,210,352,158,58739],
+  "d_hist_unfold": [78762,1300,1316,609,1094,554,548,524,961,526,492,549,420,291,276,224,0],
+  "d_hist_refold": [0,67435,62415,28077,54602,24982,24605,24297,42197,20830,21054,20906,17169,9124,7571,3804,0],
+  "fine_ius_end": 99223, "fine_pages_end": 1035755,
+  "mem": {"total_bytes": 10321784, "total_mib": 9.84, "primary_map": 4194304, "hash_index": 1984460, "slots": 4143020},
+  "host_fine": 5173918, "host_coarse": 10952160,
+  "fine_blocks_end": 32, "coarse_blocks_end": 339, "free_end": 2, "f_end": 0.0858
+}

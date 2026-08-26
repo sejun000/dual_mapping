@@ -625,6 +625,11 @@ def fig_iu_sensitivity():
             off = (0, 12) if mode == "proposed" else (0, -22)
             ax.annotate(f"{U * 4}K", (x, y), textcoords="offset points", xytext=off,
                         ha="center", fontsize=15, color=color)
+    grow = [load(os.path.join(ROOT, "results", "unfold_big"), f"U32_n{n}_off.json")
+            for n in (8, 16, 24)]
+    ax.plot([r["mem"]["total_mib"] for r in grow], [r["WAF"] for r in grow],
+            marker="o", color="#8a5a00", linestyle="--", linewidth=1.8, markersize=8,
+            markerfacecolor="white", label="128K IU, larger fine pool")
     ax.axhline(load(CANON, "page4k_eq_z0.99.json")["WAF"], color="#777777",
                linestyle=":", linewidth=1.8)
     ax.annotate("Page-4K (64 MiB)", (1.85, load(CANON, "page4k_eq_z0.99.json")["WAF"]),
@@ -641,31 +646,38 @@ def fig_iu_sensitivity():
     ax.set_ylabel(r"WAF ($\alpha$=0.99, uniform)")
     ax.grid(color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    outside_legend(ax, 2)
+    outside_legend(ax, 2, y=1.10)
 
-    # (c) growing the fine tier at FIXED total physical space: more 4K-map DRAM costs coarse OP.
+    # (c) growing the fine tier at FIXED total physical space: DRAM up, but the IU knob is better.
     ax = axes[2]
-    QS = ["0.011", "0.022", "0.043"]
-    xs3 = range(len(QS))
-    for U, label, color, marker in [(8, "Proposed, 32K IU", "#2a78d6", "o"),
-                                    (16, "Proposed, 64K IU", "#5aa9e6", "s")]:
-        recs = [load(IUSENS, f"propq_U{U}_q{q}_z0.99.json") for q in QS]
-        ax.plot(xs3, [r["WAF"] for r in recs], marker=marker, color=color, label=label,
-                linewidth=3.0, markersize=11)
-        for x, r in zip(xs3, recs):
-            ax.annotate(f"{r['mem']['total_mib']:.1f} MiB", (x, r["WAF"]),
-                        textcoords="offset points", xytext=(0, 12), ha="center",
+    BIG = os.path.join(ROOT, "results", "unfold_big")
+    NS = [8, 16, 24]
+    for U, label, color, marker in [(8, "32K IU", "#08306b", "^"),
+                                    (16, "64K IU", "#2a78d6", "o"),
+                                    (32, "128K IU", "#8a5a00", "s")]:
+        pts = []
+        for n in NS:
+            f = os.path.join(BIG, f"U{U}_n{n}_off.json")
+            if os.path.exists(f) and os.path.getsize(f):
+                pts.append((n, load(BIG, f"U{U}_n{n}_off.json")))
+        ax.plot([NS.index(n) for n, _ in pts], [r["WAF"] for _, r in pts], marker=marker,
+                color=color, label=label, linewidth=3.0 if U == 32 else 1.8,
+                markersize=11 if U == 32 else 8)
+        for n, r in pts:
+            ax.annotate(f"{r['mem']['total_mib']:.1f}", (NS.index(n), r["WAF"]),
+                        textcoords="offset points", xytext=(0, 11), ha="center",
                         fontsize=14, color=color)
-    ax.set_xticks(list(xs3))
-    ax.set_xticklabels([f"{int(float(q) * 373)}\n({int(float(q) * 373) * 192 / 1024:.1f} GiB)" for q in QS],
-                       fontsize=15)
-    ax.set_xlim(-0.3, len(QS) - 0.7)
-    ax.set_ylim(4.3, 6.6)
-    ax.set_xlabel("Fine-tier size (blocks), total space fixed")
+    ax.axhline(load(CANON, "page4k_eq_z0.99.json")["WAF"], color="#777777",
+               linestyle=":", linewidth=1.8)
+    ax.set_xticks(range(len(NS)))
+    ax.set_xticklabels([f"{n}\n({n * 192 / 1024:.1f} GiB)" for n in NS], fontsize=15)
+    ax.set_xlim(-0.3, len(NS) - 0.7)
+    ax.set_ylim(4.4, 7.8)
+    ax.set_xlabel("Fine-pool size (blocks), total space fixed")
     ax.set_ylabel(r"WAF ($\alpha$=0.99, uniform)")
     ax.grid(axis="y", color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
-    outside_legend(ax, 2)
+    outside_legend(ax, 3)
 
     fig.subplots_adjust(wspace=0.30)
     save(fig, "fig10_iu_sensitivity")

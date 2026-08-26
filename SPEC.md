@@ -463,3 +463,35 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 4. 32블록 이상은 unfold를 켜도 죽는다: unfold는 *이미 fragment가 있는* IU만 옮길 수 있으므로 fine이 흡수 가능한 총량은 워크로드가 정한다. 예약만 키우면 coarse가 굶는다(종료 상태 free=2, fine=28/32, coarse=343).
 
 **결론.** 4K 맵 DRAM을 늘려 WAF를 사는 경로는 이 구조에 존재하지 않는다. fine 티어의 유효 크기는 fragment 워킹셋이 정하고, 그 이상은 노는 공간이다. 이는 고정 크기 fine 티어(≈2% 공간, 슬롯 RAM ≤1 MiB) 설계의 근거이며 RAM-CAP·mixed-pool 기각과 같은 결론이다. 남은 미탐색 방향은 *fragment가 없는 IU까지* 통째로 fine(=page-mapped)으로 승격시키는 것인데, 이는 사실상 hybrid page/coarse 파티션(Janus-FTL 계열)이 되고 DRAM이 제한된 상황에서는 page4k로 수렴한다.
+
+### v2.8 보론 2 — coarse 풀이 전체 LBA를 소유할 필요를 실제로 제거 (`unfold=any`, `results/unfold_big/*_any.json`)
+
+**구현.** 이전 보론의 unfold는 *fragment가 이미 있는* IU만 fine으로 보낼 수 있어 coarse 풀은 여전히 사실상 전체 LBA의 잔여 페이지를 소유해야 했다(그래서 fine 쿼터 32블록 이상에서 over-commit으로 사망). 이번에 그 제약을 완전히 제거했다:
+- coarse GC가 만난 **fragment 없는(clean) IU도** `fine_get_or_create` 후 통째로 unfold 가능 (`unfold=any`). GC 시점 이동이므로 쓰기 비용은 refold와 동일한 U페이지 — 이동 자체는 공짜다.
+- `can_unfold`의 예약 검사 `free > T`를 `free >= T`로 완화. GC는 정확히 free==T에서 돌므로 기존 조건으로는 carved 쿼터에서 unfold가 한 번도 발동하지 못했다(victim erase가 블록 하나를 돌려주므로 안전).
+
+이로써 fine 풀이 IU를 온전히 소유할 수 있다(측정: 32K IU, 쿼터 32에서 fine 상주 156K IU ≈ 4.8 GiB). 중복 저장은 원래 없었고, 이제 잔여-페이지 소유 제약도 없다.
+
+**결과(64 GiB, z=0.99, 전체 공간 373블록 고정, 같은 쿼터의 plain(off)과 비교).**
+
+| IU | fine 블록 | off | unfold=hot | unfold=any |
+|---|---|---|---|---|
+| 128K | 8 | **5.751** | 5.888 | 6.547 |
+| 128K | 16 | **5.492** | 5.685 | 5.758 |
+| 128K | 24 | **5.274** | 5.615 | 5.922 |
+| 128K | 32 | 사망 | 사망 | 6.109 |
+| 64K | 16 | **5.053** | 5.030 | 5.211 |
+| 64K | 24 | 7.222(u35%) | **5.248** | 5.482 |
+| 64K | 32 | 사망 | 사망 | 5.827 |
+| 32K | 16 | 5.891(u35%) | **4.926** | 5.199 |
+| 32K | 24/32 | 사망 | 사망 | 5.544 / 5.974 |
+| 모든 IU | 48~64 | 사망 | 사망 | **여전히 사망** |
+
+**해석 — 제약이 병목이 아니었다.**
+1. **모든 지점에서 plain(off)이나 hot보다 나쁘다.** WAF는 fine 풀 크기에 대해 단조 악화된다.
+2. **GC 주도 축출은 cold 데이터를 옮긴다.** coarse GC victim에 남은 clean IU는 정의상 오래 안 쓰인 데이터다. cold 데이터는 coarse 티어가 가장 잘 저장하는 대상(IU당 맵 엔트리 1개, refold는 GC에 공짜로 편승)이고, page-mapped 풀의 장점은 hot 부분 덮어쓰기에만 있는데 그것은 이미 fragment 경로가 잡고 있다.
+3. **핑퐁 비용.** 옮겨진 cold IU는 fine 회수의 cost-based fold에 가장 먼저 걸려(d=U → U/d=1) 도로 접힌다. 128K/쿼터32에서 unfold 트래픽이 host 쓰기의 18.6%, fold 횟수 2.8×.
+4. **평형 활용률 ~65%.** fine 풀도 자기 OP가 필요해서 쿼터의 65%까지만 차고, 그 이상 밀어넣으면 fold-back이 상쇄한다. 그래서 쿼터 48+에서는 unfold=any로도 coarse가 굶는다(잔여 coarse OP 4%).
+5. **진짜 헤드룸은 fragment 워킹셋이 정한다.** 128K IU는 워킹셋이 커서 plain으로도 쿼터 8→24에서 5.75→5.27로 좋아진다 — 제약 해제가 아니라 쿼터 사이징으로 이미 얻는 이득이다.
+
+**결론.** "coarse가 모든 데이터를 소유해야 한다"는 제약은 이제 구현상 존재하지 않지만, 그것을 활용해 fine 풀을 fragment 워킹셋 너머로 키우는 것은 어느 IU 크기에서도 순손실이다. 병목은 소유권 제약이 아니라 (a) 축출 가능한 데이터가 cold라는 사실과 (b) fine 풀의 자체 OP 요구다. 기본값은 `unfold=off` 유지, `unfold=any`는 음성 결과로 보존한다.

@@ -1,0 +1,19 @@
+{
+  "tag": "unf", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 32, "op": 0.093, "fine_quota": 0.065, "fine_quota_blocks": 24, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 16045115, "buffer_absorbed": 0.0436, "total_prog": 94202908, "WAF": 5.6149, "WAF_ftl": 5.8711,
+  "prog": {"host": 16045115, "finegc": 7744696, "fold": 1396000, "cgc_clean": 57338656, "cgc_refold": 10290016, "rmw": 319865, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 1068560},
+  "prog_frac": {"host": 0.1703, "finegc": 0.0822, "fold": 0.0148, "cgc_clean": 0.6087, "cgc_refold": 0.1092, "rmw": 0.0034, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0113},
+  "reads": {"rmw": 244492, "fold_fine": 5474724, "fold_coarse": 8090122, "gc_copy": 65083352, "map": 0},
+  "RAF": 4.9169, "map_miss": 0, "map_flush": 0,
+  "erases": 1921, "erase_fine": 359, "erase_coarse": 1562,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 43625, "refold": 321563, "cgc": 1562, "pgc": 0, "cgc_dead_ext": 229037, "cgc_clean_ext": 1791833, "extent_drop": 76458, "wasted_slots": 9, "greedy": 359, "greedy_fold_pages": 1395000, "greedy_copy_pages": 7744696, "forced_fold": 0, "eager": 87088, "eager_fill": 319865, "unfold": 49139, "unfold_pages": 1068560, "budget_fold": 0, "gc_fold": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 41887.2, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25,12,40,76,96,210,43166],
+  "d_hist_unfold": [0,5521,5342,1647,5033,1462,1518,1308,4358,1292,1295,1163,1303,1117,1193,1150,3284,1045,1060,974,1041,928,1009,1061,992,843,692,462,367,275,236,168,0],
+  "d_hist_refold": [0,36610,35565,10686,32794,9934,9500,8739,28692,8446,8285,7462,8221,7612,7677,7771,21607,7053,6819,6605,6770,6488,6616,6448,6704,5317,3812,2996,2122,1652,1359,1201,0],
+  "fine_ius_end": 64850, "fine_pages_end": 801263,
+  "mem": {"total_bytes": 6599204, "total_mib": 6.29, "primary_map": 2097152, "hash_index": 1297000, "slots": 3205052},
+  "host_fine": 8838612, "host_coarse": 7526368,
+  "fine_blocks_end": 24, "coarse_blocks_end": 346, "free_end": 3, "f_end": 0.0643
+}

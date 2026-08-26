@@ -1,0 +1,19 @@
+{
+  "tag": "any", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.093, "fine_quota": 0.065, "fine_quota_blocks": 24, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 91970739, "WAF": 5.4819, "WAF_ftl": 5.7886,
+  "prog": {"host": 15888222, "finegc": 3934568, "fold": 880480, "cgc_clean": 63196720, "cgc_refold": 6702032, "rmw": 240631, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 1128086},
+  "prog_frac": {"host": 0.1728, "finegc": 0.0428, "fold": 0.0096, "cgc_clean": 0.6871, "cgc_refold": 0.0729, "rmw": 0.0026, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0123},
+  "reads": {"rmw": 207846, "fold_fine": 3486910, "fold_coarse": 5546262, "gc_copy": 67131288, "map": 0},
+  "RAF": 4.8069, "map_miss": 0, "map_flush": 0,
+  "erases": 1871, "erase_fine": 206, "erase_coarse": 1665,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 55030, "refold": 418877, "cgc": 1665, "pgc": 0, "cgc_dead_ext": 672189, "cgc_clean_ext": 3949795, "extent_drop": 99239, "wasted_slots": 2, "greedy": 206, "greedy_fold_pages": 880147, "greedy_copy_pages": 3934568, "forced_fold": 0, "eager": 122077, "eager_fill": 240631, "unfold": 73402, "unfold_pages": 1128086, "budget_fold": 0, "gc_fold": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 41286.9, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,93,147,54790],
+  "d_hist_unfold": [65405,1179,1121,503,974,480,456,406,821,404,411,441,416,137,116,132,0],
+  "d_hist_refold": [0,66439,61437,27828,54255,24431,24591,24242,41754,20943,20931,20986,19613,5622,3215,2590,0],
+  "fine_ius_end": 89296, "fine_pages_end": 785489,
+  "mem": {"total_bytes": 9122180, "total_mib": 8.70, "primary_map": 4194304, "hash_index": 1785920, "slots": 3141956},
+  "host_fine": 5062773, "host_coarse": 11066080,
+  "fine_blocks_end": 24, "coarse_blocks_end": 347, "free_end": 2, "f_end": 0.0643
+}

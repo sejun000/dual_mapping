@@ -1,0 +1,19 @@
+{
+  "tag": "any", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.093, "fine_quota": 0.044, "fine_quota_blocks": 16, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 87424270, "WAF": 5.2109, "WAF_ftl": 5.5025,
+  "prog": {"host": 15888222, "finegc": 3083276, "fold": 1262048, "cgc_clean": 59048064, "cgc_refold": 6323328, "rmw": 411790, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 1407542},
+  "prog_frac": {"host": 0.1817, "finegc": 0.0353, "fold": 0.0144, "cgc_clean": 0.6754, "cgc_refold": 0.0723, "rmw": 0.0047, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0161},
+  "reads": {"rmw": 361817, "fold_fine": 3671476, "fold_coarse": 5701919, "gc_copy": 62131340, "map": 0},
+  "RAF": 4.5233, "map_miss": 0, "map_flush": 0,
+  "erases": 1777, "erase_fine": 182, "erase_coarse": 1595,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 78878, "refold": 395208, "cgc": 1595, "pgc": 0, "cgc_dead_ext": 722192, "cgc_clean_ext": 3690504, "extent_drop": 111069, "wasted_slots": 3, "greedy": 182, "greedy_fold_pages": 1260986, "greedy_copy_pages": 3083276, "forced_fold": 0, "eager": 166794, "eager_fill": 411790, "unfold": 91296, "unfold_pages": 1407542, "budget_fold": 0, "gc_fold": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 40594.9, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,45,238,451,78144],
+  "d_hist_unfold": [81470,1547,1392,690,1243,610,609,581,1042,589,531,523,122,106,107,134,0],
+  "d_hist_refold": [0,65033,60685,27736,53358,24497,24092,24183,41746,20824,21004,19973,4191,3217,2623,2046,0],
+  "fine_ius_end": 75607, "fine_pages_end": 530917,
+  "mem": {"total_bytes": 7830112, "total_mib": 7.47, "primary_map": 4194304, "hash_index": 1512140, "slots": 2123668},
+  "host_fine": 4518460, "host_coarse": 11781552,
+  "fine_blocks_end": 16, "coarse_blocks_end": 355, "free_end": 2, "f_end": 0.0429
+}

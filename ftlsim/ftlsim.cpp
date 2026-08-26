@@ -59,7 +59,7 @@ struct Cfg {
     std::string fine_policy = "cost";  // fine victim handling: cost (default, parameter-free: fold IU iff 16/d < v/(P-v)) | cold (pressure-gated coldest-first) | greedy (d>=fold_d) | block (whole-block cost test)
                                        // | fifo_fold (oldest fine block, fold all) | greedy_copy (min-valid block, copy only) | alt (alternate fifo_fold / greedy_copy 1:1)
                                        // | cost (per-IU, parameter-free: fold iff 16/d < v/(P-v)) | cost_cold (cost + fine-cold filter)
-    std::string unfold = "off";   // coarse GC: off | hot (unfold hot IUs: move remaining chunk pages to fine, kill chunk)
+    std::string unfold = "off";   // coarse GC: off | hot (unfold hot IUs) | any (space-driven: unfold whenever the fine pool has room, incl. fragment-less IUs)
     double unfold_tau = 0.5;      // hot if last fragment write within unfold_tau x (fine tier capacity) of fine host writes
     int unfold_k = 2;             // ... and at least unfold_k host fragment writes within that window (frequency; 1 = recency only)
     int eager_u = -1;             // proposed: -1 = cost-based (default) (see eager_worth); >0 = fixed threshold: if the IU would end up with > eager_u
@@ -456,7 +456,7 @@ struct Sim {
     bool can_unfold(int need) const {
         int room = (fgf.blk >= 0) ? (P - fgf.next) : 0;
         if (room >= need) return true;
-        return fine_blocks < fine_quota_blocks && (int)freelist.size() > c.T;
+        return fine_blocks < fine_quota_blocks && (int)freelist.size() >= c.T;  // GC runs at free==T, so >= (victim erase restores one)
     }
     void unfold(u64 iu) {
         u32 old = coarse_map[iu];
@@ -625,7 +625,12 @@ struct Sim {
             if (coarse_map[iu] != ppn) { st.cgc_dead_extents++; continue; }
             int32_t fi = fine_idx[iu];
             if (fi >= 0 && fbitmap[fi]) {
-                if (c.unfold == "hot" && iu_hot(iu) && can_unfold(U - popc(fbitmap[fi]))) unfold(iu); else fold(iu, true);
+                bool un = c.unfold == "any" || (c.unfold == "hot" && iu_hot(iu));
+                if (un && can_unfold(U - popc(fbitmap[fi]))) unfold(iu); else fold(iu, true);
+            } else if (c.unfold == "any" && can_unfold(U)) {
+                // coarse pool need not own every IU: evict this (fragment-less) IU wholly into the fine pool.
+                fine_get_or_create(iu);
+                unfold(iu);
             } else {
                 st.cgc_clean_extents++;
                 st.read_gc_copy += U;
