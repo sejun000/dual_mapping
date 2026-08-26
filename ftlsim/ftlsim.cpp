@@ -147,6 +147,14 @@ struct Sim {
     int fine_blocks = 0, coarse_blocks = 0;
     Frontier ff, cf;               // fine / coarse host frontiers
     Frontier fgf, cgf;             // fine / coarse GC frontiers (used when gc_frontier)
+    // ---- SepBIT (Wang et al., FAST'22) 6-class placement on the page map (reference: github fallfish/sepbit)
+    Frontier sbf[6];               // one open segment per class
+    std::vector<u64> sb_wtime;     // per-LPN user-write timestamp (updated on host writes only, like Metadata)
+    std::vector<u64> sb_birth;     // per-block birth timestamp
+    std::vector<int8_t> sb_class;  // per-block class
+    double sb_avg = 1e300;         // mAvgLifespan (initially "infinite")
+    u64 sb_now = 0;                // global timestamp = cumulative host pages (GC appends do not tick)
+    u64 sb_lifesum = 0; int sb_ncollect = 0;
     bool in_cgc = false, in_fine_reclaim = false;
     bool fold_allowed = true;      // cold policy: set per victim by the pressure gate
     double last_fine_v = 0;        // EWMA of the fine victim's valid pages (fine-tier pressure signal)
@@ -202,6 +210,7 @@ struct Sim {
         NP = (u64)NB * P;
         coarse_map.assign(NIU, NONE);
         if (is_pg()) { pmap.assign(L, NONE); cmt_cap = (u64)(c.cache_bytes * HASH_LF / 8.0); }
+        if (is_sb()) { sb_wtime.assign(L, ~0ull); sb_birth.assign(NB + 1, 0); sb_class.assign(NB + 1, 1); }
         fine_idx.assign(NIU, -1);
         p2l.assign(NP, NONE);
         btag.assign(NB, B_FREE);
@@ -219,7 +228,8 @@ struct Sim {
     // ------------------------------------------------------------------ helpers
     inline int blk_of(u32 ppn) const { return (int)(ppn / P); }
     inline int popc(u32 x) const { return __builtin_popcount(x); }
-    bool is_pg() const { return c.mode == "page4k" || c.mode == "dftl"; }
+    bool is_pg() const { return c.mode == "page4k" || c.mode == "dftl" || c.mode == "sepbit"; }
+    bool is_sb() const { return c.mode == "sepbit"; }
 
     // ---- DFTL (Gupta et al., ASPLOS'09) cached page mapping (CFTL's write path is identical): tier-2 translation pages (1024 entries) in flash, CMT in RAM (LRU).
     static const int TP_ENTRIES = 1024;
@@ -381,7 +391,16 @@ struct Sim {
         u32 ppn = (u32)f.blk * P + f.next; f.next += U;
         return ppn;
     }
-    bool is_frontier(int b) const { return b == ff.blk || b == cf.blk || b == fgf.blk || b == cgf.blk; }
+    bool is_frontier(int b) const {
+        if (b == ff.blk || b == cf.blk || b == fgf.blk || b == cgf.blk) return true;
+        if (is_sb()) for (int i = 0; i < 6; ++i) if (b == sbf[i].blk) return true;
+        return false;
+    }
+    u32 sb_alloc(int cls) {
+        Frontier& f = sbf[cls];
+        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(B_FINE); f.next = 0; sb_birth[f.blk] = sb_now; sb_class[f.blk] = (int8_t)cls; }
+        return (u32)f.blk * P + f.next++;
+    }
 
     // ------------------------------------------------------------------ write primitives
     // 4K write into fine tier (proposed)
@@ -759,7 +778,20 @@ struct Sim {
 
     // ------------------------------------------------------------------ page4k mode
     void page_write(u64 lpn, Src src) {
-        u32 ppn = fine_alloc_page(src != S_HOST);
+        u32 ppn;
+        if (is_sb()) {
+            int cls;
+            if (src == S_HOST) {
+                // class 0 iff the previous copy's lifespan is short (< avg); GC appends never tick time
+                cls = (sb_wtime[lpn] != ~0ull && (double)(sb_now - sb_wtime[lpn]) < sb_avg) ? 0 : 1;
+                sb_wtime[lpn] = sb_now; sb_now++;
+            } else {
+                if (sb_class[sb_gc_victim] == 0) cls = 2;
+                else { double age = (double)(sb_now - sb_wtime[lpn]);
+                       cls = age < 4 * sb_avg ? 3 : (age < 16 * sb_avg ? 4 : 5); }
+            }
+            ppn = sb_alloc(cls);
+        } else ppn = fine_alloc_page(src != S_HOST);
         p2l[ppn] = (u32)lpn;
         bvalid[blk_of(ppn)]++;
         st.prog[src]++;
@@ -768,10 +800,28 @@ struct Sim {
         pmap[lpn] = ppn;
         if (src == S_HOST) cmt_update(lpn); else cmt_gc_update(lpn);
     }
+    int sb_gc_victim = -1;
+    int sb_pick_victim() {   // reference default: cost-benefit, score = garbage/valid * sqrt(age), max wins
+        int best = -1; double bs = -1;
+        for (int b = 0; b < NB; ++b) {
+            if (btag[b] != B_FINE || is_frontier(b)) continue;
+            double score = bvalid[b] == 0 ? 1e308
+                : (double)(P - bvalid[b]) / (double)bvalid[b] * std::sqrt((double)(sb_now - sb_birth[b]));
+            if (score > bs) { bs = score; best = b; }
+        }
+        return best;
+    }
     void page_gc() {
         in_cgc = true;
-        int b = pick_victim(B_FINE);
+        int b = is_sb() ? sb_pick_victim() : pick_victim(B_FINE);
         if (b < 0) DIE("no page4k victim");
+        if (is_sb()) {
+            sb_gc_victim = b;
+            if (sb_class[b] == 0) {   // mAvgLifespan = mean age of class-0 segments at collection, every 16
+                sb_lifesum += sb_now - sb_birth[b];
+                if (++sb_ncollect == 16) { sb_avg = (double)sb_lifesum / 16.0; sb_lifesum = 0; sb_ncollect = 0; }
+            }
+        }
         st.n_pgc++; st.pgc_valid_sum += bvalid[b];
         u32 base = (u32)b * P;
         for (int s = 0; s < P && bvalid[b] > 0; ++s) {
@@ -894,7 +944,7 @@ struct Sim {
           printf("  \"fine_ius_end\": %llu, \"fine_pages_end\": %llu,\n", (unsigned long long)fine_ius, (unsigned long long)fine_pages);
           // RAM model (measured end state). PPN = 4B. Hash-managed maps: (key+value)/0.7.
           double mem = 0, a = 0, b2 = 0, c2 = 0;
-          if (c.mode == "page4k") { a = (double)L * 4; mem = a; }
+          if (c.mode == "page4k" || c.mode == "sepbit") { a = (double)L * 4; mem = a; }
           else if (c.mode == "dftl") { a = hash_bytes((double)cmt.size(), 8); b2 = (double)(L / TP_ENTRIES) * 4; mem = a + b2; }
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
@@ -1697,6 +1747,7 @@ int main(int argc, char** argv) {
         else { fprintf(stderr, "unknown key %s\n", k.c_str()); return 1; }
     }
     if (c.mode == "cftl") c.mode = "dftl";  // alias
+    if (c.mode == "sepbit" && c.T == 2) c.T = 8;  // GC writes fan out to classes 2-5: reserve must cover 6 open segments
     if (c.U > 32) { fprintf(stderr, "U > 32 unsupported (bitmap)\n"); return 1; }
     if (c.P == 0) { u64 pages = c.capacity / 4096; u64 p = pages * 3 / 1024; p -= p % (64 * c.U); if (p < (u64)(64 * c.U)) p = 64 * c.U; c.P = (int)p; }
     if (c.mode == "fast" || c.mode == "last" || c.mode == "janus") { HybridSim s(c); Runner<HybridSim> r(s); r.run(); }

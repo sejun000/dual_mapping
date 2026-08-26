@@ -554,3 +554,33 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - 64K-gs도 z0.8/1.2에서 canonical을 이기지만(7.33/2.47) 폭이 작다 — 32K IU가 이 정책 세트의 최적 동작점.
 
 **미결.** canonical을 이 정책으로 교체할지(그러면 전체 스윕·ablation·그림 재생성 필요), 32K를 새 기본 IU로 삼을지는 결정 대기. 균등 워크로드 열세를 줄이는 방향(잔존 skew 추정으로 fine_full 게이팅 등)도 후보.
+
+## v2.9.1 — SepBIT 베이스라인 (FAST'22, `mode=sepbit`, `results/sepbit`)
+
+**왜.** v2.9의 page4k 역전은 "구조적 hot/cold 분리" 효과다. 그렇다면 최신 분리 기법을 얹은 page-mapped FTL이 정당한 대조군이다 — 리뷰어가 반드시 요구할 비교. SepBIT(Wang et al., FAST'22)를 공개 레퍼런스(github fallfish/sepbit)에서 그대로 포팅했다.
+
+**포팅 내용(레퍼런스 충실).**
+- 6클래스 배치: user write는 직전 수명(now−마지막 user write 시각) < ℓ이면 class 0, 아니면 1. GC copy는 victim 세그먼트가 class 0이면 2, 아니면 페이지 나이로 <4ℓ→3, <16ℓ→4, ≥16ℓ→5. 클래스당 open 세그먼트 1개(총 6 frontier).
+- 시간 = 누적 user write 페이지 수(GC append는 tick 없음), 타임스탬프는 user write에만 갱신 — 레퍼런스의 Metadata/globalTimestamp semantics 그대로.
+- ℓ = class-0 세그먼트가 GC로 수거될 때의 나이를 16개마다 평균(초기 ∞).
+- **victim 선택 = cost-benefit** `(P−v)/v × √age` 최대 — 레퍼런스 기본값(Config: selection="CostBenefit"). greedy로 하면 SepBIT이 page4k보다 나빠진다(8G z0.99: greedy 5.50 vs CB 4.66) — 포팅 시 주의점.
+- 예약 T=8: GC가 클래스 2~5 네 frontier로 흩어 쓰므로 T=2로는 free 고갈.
+- RAM = page4k와 동일한 전체 4K 페이지 맵(64 MiB) + 세그먼트당 메타(무시 가능). 즉 **DRAM 풍부 조건의 SOTA 분리 베이스라인**.
+
+**결과(64 GiB, 동일 물리 공간 op=9.278%, 1 MiB 버퍼).**
+
+| 워크로드 | SepBIT (64 MB) | page4k (64 MB) | 32K-gs (11 MB) |
+|---|---|---|---|
+| z=0 | 8.684 | **6.546** | 7.918 |
+| z=0.8 | 6.918 | 6.697 | **6.398** |
+| z=0.99 | **4.266** | 4.761 | 4.506 |
+| z=1.2 | **1.795** | 2.632 | 1.935 |
+| small z0.99 | **4.215** | 4.738 | 5.076 |
+| large z0.99 | 4.275 | 4.793 | **4.152** |
+
+**해석 — 주장의 재구성.**
+1. SepBIT은 고skew·small-heavy에서 32K-gs보다 좋다(z0.99 −5%, z1.2 −7%, small −17%). 단 **64 MB 페이지 맵 전체가 전제**다.
+2. 32K-gs는 z0.8과 large-heavy에서 SepBIT을 이기고(−7.5%, −2.9%), 나머지에서도 ±7% 이내다.
+3. 따라서 논문 주장은 "page-mapped를 이긴다"가 아니라: **"SOTA 분리 기법(SepBIT)의 ±7% 성능을 매핑 DRAM 1/6로 달성하며, 중간 skew·대형 I/O에서는 오히려 이긴다"**. Pareto로 보면 (64 MB, 4.27)과 (11 MB, 4.51)은 비지배 관계고, page4k(64 MB, 4.76)는 우리에게 양축 모두 지배당한다.
+4. SepBIT도 균등에서는 page4k보다 나쁘다(8.68 vs 6.55) — 분리 기법 공통의 한계로, 우리 균등 열세(7.92)와 같은 성격이며 오히려 우리가 덜 나쁘다.
+5. 향후: SepBIT의 나이-클래스 아이디어를 우리 fine 풀/coarse GC frontier에 접목하면 고skew 격차(−5~−7%)를 닫을 여지가 있다.
