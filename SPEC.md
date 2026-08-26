@@ -423,3 +423,17 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - `wbuf=0`이면 두 값이 동일하므로 버퍼 없는 결과는 영향 없음.
 
 **영향:** 모든 정책에 동일하게 적용되므로 순서·상대 비교는 불변. 흡수율이 큰 skew 구간에서 절대값이 내려간다(proposed z=1.2: 흡수 18.4%, WAF 3.15 → 2.57). `results/final_ram10_wb`, `final_sizes`, `seq`, `ablation` 전부 이 정의로 재생성했고 fig1~fig9도 재생성했다(plot.py는 `host_pages`로 나누므로 코드 변경 불필요).
+
+## v2.8 — IU 크기 민감도 실험 (`results/iu_sens`)
+
+**설정.** `U ∈ {4, 8, 16, 32}` 페이지 = 16K/32K/64K/128K IU. proposed와 IU+RMW를 동일 물리 공간(proposed = coarse OP 7% + fine 8블록, IU+RMW = `op=0.09278`)에서 비교. 다른 파라미터는 canonical과 동일(64 GiB, 192 MiB 블록, aging 8×, 1 MiB 버퍼, zipf 0/0.8/0.99/1.2 + small-heavy 크기 분포). fine 블록 쿼터(`fine_quota=0.022` → 8블록)는 U와 무관하게 고정했다 — 즉 fine 티어의 *물리 공간*은 상수로 두고 IU 크기만 스윕한다.
+
+**RAM 모델.** coarse 맵 = (용량/IU)×4 B이므로 U에 반비례한다(16K 16 MiB → 128K 2 MiB). proposed는 여기에 fine 해시 인덱스 + 슬롯(8블록 상한 → ≤1.6 MiB)이 더해진다. 따라서 이 실험은 그 자체로 **WAF–DRAM 트레이드오프 곡선**이고, fig10 오른쪽 패널이 그 Pareto front다.
+
+**결과 요약.**
+- IU+RMW는 U에 대해 단조 증가 — RMW 비용이 요청당 (U−1) 페이지로 선형이기 때문(측정: 64K 15페이지/요청).
+- proposed는 32K 부근에서 최소가 되는 완만한 U자형. IU를 줄이면 RMW 낭비는 줄지만 (a) coarse 맵 RAM이 선형 증가하고 (b) fine 티어가 흡수할 부분 쓰기 자체가 줄어든다(호스트 쓰기 중 fine 비중 128K 48.8% → 16K 10.4%).
+- 16K에서 두 정책은 거의 같아진다(4.95 vs 5.24). 4 KB~16 KB 구간엔 부분 쓰기가 거의 없어 dual granularity가 흡수할 여지가 없다 → **제안 기법의 가치는 IU가 클수록 커진다**. 이는 IU를 키워 매핑 DRAM을 줄이려는 실제 동기와 정확히 같은 방향이다.
+- Pareto: proposed 64K(5.9 MiB, WAF 5.08) ≈ IU+RMW 16K(16 MiB, 5.24) → **2.7× 적은 DRAM으로 동등 이상**. proposed 32K(10.1 MiB, 4.79) ≈ page4k(64 MiB, 4.76).
+
+**그림.** `fig10_iu_sensitivity` — (좌) IU 크기별 WAF(α=0.99, uniform/small-heavy), (우) 매핑 DRAM 대 WAF Pareto(점 라벨 = IU 크기, 점선 = page4k 기준선).
