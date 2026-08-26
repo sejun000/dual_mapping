@@ -1,0 +1,19 @@
+{
+  "tag": "prop_lo", "mode": "proposed", "zipf": 0.000, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.070, "fine_quota": 0.022, "fine_quota_blocks": 8, "NB": 373,
+  "host_pages": 16777279, "host_pages_ftl": 16776998, "buffer_absorbed": 0.0000, "total_prog": 216563718, "WAF": 12.9082, "WAF_ftl": 12.9084,
+  "prog": {"host": 16776998, "finegc": 19360193, "fold": 14614576, "cgc_clean": 113418192, "cgc_refold": 51499568, "rmw": 894191, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.0775, "finegc": 0.0894, "fold": 0.0675, "cgc_clean": 0.5237, "cgc_refold": 0.2378, "rmw": 0.0041, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 880990, "fold_fine": 10538526, "fold_coarse": 55639331, "gc_copy": 132778385, "map": 0},
+  "RAF": 11.9114, "map_miss": 0, "map_flush": 0,
+  "erases": 4456, "erase_fine": 614, "erase_coarse": 3842,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 913411, "refold": 3218723, "cgc": 3842, "pgc": 0, "cgc_dead_ext": 1345520, "cgc_clean_ext": 7088637, "extent_drop": 77, "wasted_slots": 9, "greedy": 614, "greedy_fold_pages": 4947918, "greedy_copy_pages": 19360193, "forced_fold": 0, "eager": 225967, "eager_fill": 894191, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 41486.4, "pgc": 0.0},
+  "d_hist_fold": [7,0,0,27721,419735,119843,85265,66580,162511,18070,8667,2637,1263,542,314,179,77],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,1726049,1036740,278199,112280,17922,11476,9272,23121,2095,1089,287,113,41,25,14,0],
+  "fine_ius_end": 183298, "fine_pages_end": 325381,
+  "mem": {"total_bytes": 8114371, "total_mib": 7.74, "primary_map": 4194304, "hash_index": 2618543, "slots": 1301524},
+  "host_fine": 10796837, "host_coarse": 6874352,
+  "fine_blocks_end": 8, "coarse_blocks_end": 363, "free_end": 2, "f_end": 0.0214
+}

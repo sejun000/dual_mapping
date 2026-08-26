@@ -176,3 +176,26 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 **후속: 소유권 제약 자체를 제거한 실험(`unfold=any`).** coarse GC가 만난 fragment 없는 IU까지 통째로 fine으로 보낼 수 있게 구현해 coarse 풀이 전체 LBA를 소유할 필요를 없앴다(fine 상주 최대 156K IU ≈ 4.8 GiB 확인). 그러나 WAF는 모든 IU 크기·쿼터에서 plain 대비 단조 악화(예: 128K/24블록 5.27 → 5.92)였고 쿼터 48+에서는 여전히 사망. 원인: GC가 축출하는 데이터는 cold라서 page-mapped 풀에 두는 게 손해이고, cost-based fold가 그것부터 도로 접어 핑퐁이 생기며(최대 host 쓰기의 18.6%), fine 풀 평형 활용률이 ~65%라 자체 OP 요구를 넘는 순 OP 이득이 없다. 상세는 SPEC v2.8 보론 2.
 
 **결론.** 4K 맵 DRAM은 "중복 저장 때문에" 못 늘리는 게 아니라, **fine 티어의 유효 크기가 fragment 워킹셋으로 정해지기 때문**이다. 그 이상은 놀고 있는 공간이고, 제약(unfold)을 풀어 활용률을 되살려도 WAF 이득으로는 바뀌지 않는다. 이는 fine 티어를 고정 크기(≈2% 공간)로 두는 설계 근거이자, 앞서 기각한 RAM-CAP/mixed-pool 변형과 같은 결론이다.
+
+## v3.0 (canonical): cost-benefit victim + 나이 캐스케이드 승격 — 두 동작점 (`results/final_v3`)
+사용자 승인(2026-08-26)으로 `cgc_vict=cb`(coarse victim = (P−v)/v·√age, age는 기존 블록 시퀀스 재사용)와 `coarse_class=2`(GC 생존자 나이 캐스케이드, 블록당 1 B)를 canonical에 편입. 추가 메타데이터는 매핑 엔트리당 0, 블록(192 MiB)당 1 B(+기존 8 B 시퀀스 재사용) = 총 ~3 KB. 캐스케이드 frontier가 예약을 고갈시키지 않도록 free≤1일 때 공용 GC frontier로 우회하는 fallback 포함(T=2 유지, OP 비용 0).
+
+**두 동작점.**
+- **proposed-6M** (`prop_lo`): 64K IU, fine 8블록(추가), 기본 정책 + cb + cc2. RAM 5.6–6.2 MB.
+- **proposed-12M** (`prop_hi`): 32K IU, 쿼터 16(OP 분할), fine_full + cost_cold + gc_select=cost + cb + cc2. RAM 9.8–15.9 MB.
+
+| WAF | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (64 MB) | DOGI (~100 MB) | 구 canonical (v2.7) |
+|---|---|---|---|---|---|---|
+| z=0 | 8.09 | 7.88 | **6.55** | 8.68 | 7.81 | 7.96 |
+| z=0.8 | 6.73 | **6.09** | 6.70 | 6.92 | 5.90 | 7.52 |
+| z=0.99 | 4.32 | **4.06** | 4.76 | 4.27 | 3.78 | 5.08 |
+| z=1.2 | 1.91 | **1.85** | 2.63 | 1.80 | 1.45 | 2.57 |
+| small z0.99 | 6.12 | 4.37 | 4.74 | **4.22** | 4.00 | 7.49 |
+| large z0.99 | 4.21 | **3.87** | 4.79 | 4.28 | 3.64 | 5.21 |
+| small z0 | 12.91 | 9.12 | **6.55** | – | – | 12.81 |
+| large z0 | 7.62 | 7.64 | **6.53** | – | – | 7.47 |
+| 4K seq (1 MiB 버퍼) | 1.00 | 1.00 | 1.00 | – | – | 1.00 |
+
+- **proposed-6M**: 구 canonical 대비 z0.99 −15%(5.08→4.32), z1.2 −26%. **6 MB로 64 MB page4k를 skew 전 구간에서 역전**(z0.99 −9%), SepBIT(64 MB)와 1% 차.
+- **proposed-12M**: SepBIT를 z0/0.8/0.99/1.2에서 이기고(단 small-heavy는 SepBIT 우세), DOGI 대비 +3%(z0.8)~+27%(z1.2), z0.99 +7% — DRAM은 1/9.
+- 한계(정직): 균등+small-heavy 조합이 최약점(6M: 12.9 vs page4k 6.6). 분리할 hot이 없고 fragment만 많은 경우로, 페이지 맵 자체의 체급 차이가 드러나는 지점. skew가 있으면 small에서도 12M이 4.37로 경쟁력.

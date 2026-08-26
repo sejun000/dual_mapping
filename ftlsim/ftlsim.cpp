@@ -393,9 +393,17 @@ struct Sim {
     }
     // get U consecutive slots on the coarse frontier
     u32 coarse_alloc_extent(bool gc = false, int cls = 0) {
-        Frontier& f = (gc && c.gc_frontier) ? (cls > 0 ? ccf[std::min(cls, std::min(c.coarse_class, MAXCC)) - 1] : cgf) : cf;
+        int ccls = std::min(cls, std::min(c.coarse_class, MAXCC));
+        Frontier* fp = (gc && c.gc_frontier) ? (ccls > 0 ? &ccf[ccls - 1] : &cgf) : &cf;
+        // Cascade fallback: opening an extra class frontier must not drain the GC reserve --
+        // reroute to the shared GC frontier (or any open class frontier) instead of dying.
+        if (ccls > 0 && (fp->blk < 0 || P - fp->next < U) && freelist.size() <= 1) {
+            if (cgf.blk >= 0 && P - cgf.next >= U) { fp = &cgf; }
+            else { for (int i = 0; i < MAXCC; ++i) if (ccf[i].blk >= 0 && P - ccf[i].next >= U) { fp = &ccf[i]; break; } }
+        }
+        Frontier& f = *fp;
         if (f.blk >= 0 && P - f.next < U) { for (int i = f.next; i < P; ++i) p2l[(u32)f.blk * P + i] = NONE; f.next = P; }  // mixed: chunk must not straddle
-        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(B_COARSE); f.next = 0; bccls[f.blk] = (int8_t)std::min(cls, std::min(c.coarse_class, MAXCC)); }
+        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(B_COARSE); f.next = 0; bccls[f.blk] = (int8_t)(&f == &cf ? 0 : (&f == &cgf ? 1 : ccls)); }
         u32 ppn = (u32)f.blk * P + f.next; f.next += U;
         return ppn;
     }

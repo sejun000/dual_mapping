@@ -638,3 +638,6 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 - RAM 모델 수정: cost_cold의 flast(4 B/fine 상주 IU)가 미계상이던 버그 수정(32K-gs 11.12→11.76 MB).
 
 **미결(사용자 결정 대기).** cb+cc2를 새 canonical로 승격하면(±두 지점 모두) 전체 결과/그림 재생성이 필요하다. fine 풀 내부의 SepBIT식 클래스 배치(flast 재사용, 추가 메타 0)는 남은 미개척 최적화.
+
+## v3.0 — cb+cc2 canonical 승격 (`results/final_v3`)
+v2.10의 두 knob을 canonical로 편입(사용자 승인). 최종 수치는 README v3.0 표 참조. 구현 보완: 캐스케이드 frontier의 신규 블록 할당이 GC 예약(free≤1)을 고갈시키려 하면 공용 GC frontier(또는 여유 있는 클래스 frontier)로 우회하는 fallback — T를 올리는 방식(3+cc)은 실효 OP를 3블록(~9%) 깎아 전면 회귀(z0.99 4.02→4.46)했기에 기각. 메타데이터: 매핑 엔트리당 0 B, 블록당 1 B(클래스) + 기존 8 B 시퀀스(age) 재사용. 4K 순차 회귀(버퍼 1 MiB) 두 동작점 모두 WAF=1.000. 그림 갱신은 보류 중(두 동작점+SepBIT/DOGI 라인 반영 필요).
