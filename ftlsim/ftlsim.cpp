@@ -69,7 +69,9 @@ struct Cfg {
     int fold_d = 8;               // greedy/cold: fold an IU only when it has >= fold_d fragments (half a chunk)
     double fold_tau = 0.5;        // cold policy: IU is cold if its last fragment write is older than fold_tau x (fine tier capacity)
     bool fine_full = false;       // full-IU host writes to fine-RESIDENT IUs stay in the fine pool (keep hot IUs page-mapped)
-    std::string gc_select = "coarse"; // global free-block source: coarse (always coarse GC, default) | cost (pick coarse vs fine victim by v/(P-v))       // full-IU host writes to fine-RESIDENT IUs stay in the fine pool (keep hot IUs page-mapped)
+    std::string gc_select = "coarse"; // global free-block source: coarse (always coarse GC, default) | cost (pick coarse vs fine victim by v/(P-v))
+    int coarse_class = 0;         // SepBIT-style age cascade for coarse GC survivors: N extra GC frontiers (0 = off, one shared GC frontier)
+    std::string cgc_vict = "greedy"; // coarse GC victim: greedy (min valid) | cb (cost-benefit: max (P-v)/v * sqrt(age))       // full-IU host writes to fine-RESIDENT IUs stay in the fine pool (keep hot IUs page-mapped)
     double fold_gate = 0.0;       // cold policy: fold only when fine victim valid ratio v/P >= fold_gate (fine-pressure gate; 0 = always)
     // FAST / LAST baselines
     double last_seq_frac = 0.25;  // fraction of log blocks used as sequential log buffer (LAST)
@@ -148,6 +150,10 @@ struct Sim {
     int fine_blocks = 0, coarse_blocks = 0;
     Frontier ff, cf;               // fine / coarse host frontiers
     Frontier fgf, cgf;             // fine / coarse GC frontiers (used when gc_frontier)
+    static const int MAXCC = 4;
+    Frontier ccf[MAXCC];           // coarse_class: cascade frontiers for GC survivors (class 1..coarse_class)
+    std::vector<int8_t> bccls;     // per-block coarse age class (0 = host/refold, 1..N = GC-survivor generation)
+    int cgc_cls = 0;               // class of the coarse block currently being GC'd
     // ---- SepBIT (Wang et al., FAST'22) 6-class placement on the page map (reference: github fallfish/sepbit)
     Frontier sbf[6];               // one open segment per class
     std::vector<u64> sb_wtime;     // per-LPN user-write timestamp (updated on host writes only, like Metadata)
@@ -210,6 +216,7 @@ struct Sim {
         } else fine_quota_blocks = NB;  // page4k/cftl: no limit; iu_rmw: unused
         NP = (u64)NB * P;
         coarse_map.assign(NIU, NONE);
+        bccls.assign(NB + 1, 0);
         if (is_pg()) { pmap.assign(L, NONE); cmt_cap = (u64)(c.cache_bytes * HASH_LF / 8.0); }
         if (is_sb()) { sb_wtime.assign(L, ~0ull); sb_birth.assign(NB + 1, 0); sb_class.assign(NB + 1, 1); }
         fine_idx.assign(NIU, -1);
@@ -385,15 +392,16 @@ struct Sim {
         return (u32)f.blk * P + f.next++;
     }
     // get U consecutive slots on the coarse frontier
-    u32 coarse_alloc_extent(bool gc = false) {
-        Frontier& f = (gc && c.gc_frontier) ? cgf : cf;
+    u32 coarse_alloc_extent(bool gc = false, int cls = 0) {
+        Frontier& f = (gc && c.gc_frontier) ? (cls > 0 ? ccf[std::min(cls, std::min(c.coarse_class, MAXCC)) - 1] : cgf) : cf;
         if (f.blk >= 0 && P - f.next < U) { for (int i = f.next; i < P; ++i) p2l[(u32)f.blk * P + i] = NONE; f.next = P; }  // mixed: chunk must not straddle
-        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(B_COARSE); f.next = 0; }
+        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(B_COARSE); f.next = 0; bccls[f.blk] = (int8_t)std::min(cls, std::min(c.coarse_class, MAXCC)); }
         u32 ppn = (u32)f.blk * P + f.next; f.next += U;
         return ppn;
     }
     bool is_frontier(int b) const {
         if (b == ff.blk || b == cf.blk || b == fgf.blk || b == cgf.blk) return true;
+        for (int i = 0; i < MAXCC; ++i) if (b == ccf[i].blk) return true;
         if (is_sb()) for (int i = 0; i < 6; ++i) if (b == sbf[i].blk) return true;
         return false;
     }
@@ -469,7 +477,11 @@ struct Sim {
 
     // full IU write into coarse tier; invalidates old extent and fine fragments
     void coarse_write(u64 iu, Src src, u64 nprog_src = 0, Src src2 = S_HOST) {
-        u32 ppn = coarse_alloc_extent(src != S_HOST);
+        // Age cascade: only untouched survivors of coarse GC advance a class; host writes,
+        // refolds and folds carry fresh content and restart at class 0/1.
+        int cls = 0;
+        if (c.coarse_class > 0 && src != S_HOST) cls = (src == S_CGC_CLEAN) ? cgc_cls + 1 : 1;
+        u32 ppn = coarse_alloc_extent(src != S_HOST, cls);
         install_extent(iu, ppn, src, nprog_src, src2);
     }
     void install_extent(u64 iu, u32 ppn, Src src, u64 nprog_src = 0, Src src2 = S_HOST) {
@@ -688,12 +700,23 @@ struct Sim {
         in_fine_reclaim = false;
     }
 
-    // CoarseGC(block): victim = min valid coarse block
+    int pick_victim_cb() {   // cost-benefit (Rosenblum): max garbage/valid * sqrt(age), age from alloc sequence
+        int best = -1; double bs = -1;
+        for (int b = 0; b < NB; ++b) {
+            if (btag[b] != B_COARSE || is_frontier(b)) continue;
+            double score = bvalid[b] == 0 ? 1e308
+                : (double)(P - bvalid[b]) / (double)bvalid[b] * std::sqrt((double)(alloc_seq - bseq[b]));
+            if (score > bs) { bs = score; best = b; }
+        }
+        return best;
+    }
+    // CoarseGC(block): victim = min valid coarse block (or cost-benefit with cgc_vict=cb)
     void coarse_gc() {
         in_cgc = true;
-        int b = pick_victim(B_COARSE);
+        int b = c.cgc_vict == "cb" ? pick_victim_cb() : pick_victim(B_COARSE);
         if (b < 0) DIE("no coarse victim (free=%zu fine=%d coarse=%d)", freelist.size(), fine_blocks, coarse_blocks);
         st.n_cgc++; st.cgc_valid_sum += bvalid[b];
+        cgc_cls = bccls[b];
         u32 base = (u32)b * P;
         for (int e = 0; e < P / U && bvalid[b] > 0; ++e) {
             u32 ppn = base + e * U;
@@ -948,7 +971,7 @@ struct Sim {
           if (c.mode == "page4k" || c.mode == "sepbit") { a = (double)L * 4; mem = a; }
           else if (c.mode == "dftl") { a = hash_bytes((double)cmt.size(), 8); b2 = (double)(L / TP_ENTRIES) * 4; mem = a + b2; }
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
-          else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
+          else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
         printf("  \"host_fine\": %llu, \"host_coarse\": %llu,\n", (unsigned long long)st.host_fine, (unsigned long long)st.host_coarse);
         printf("  \"fine_blocks_end\": %d, \"coarse_blocks_end\": %d, \"free_end\": %zu, \"f_end\": %.4f\n", fine_blocks, coarse_blocks, freelist.size(), (double)fine_blocks / NB);
@@ -1741,6 +1764,8 @@ int main(int argc, char** argv) {
         else if (k == "fold_gate") c.fold_gate = atof(v.c_str());
         else if (k == "fine_full") c.fine_full = atoi(v.c_str()) != 0;
         else if (k == "gc_select") c.gc_select = v;
+        else if (k == "coarse_class") c.coarse_class = atoi(v.c_str());
+        else if (k == "cgc_vict") c.cgc_vict = v;
         else if (k == "zipf_shuffle") c.zipf_shuffle = atoi(v.c_str()) != 0;
         else if (k == "last_seq_frac") c.last_seq_frac = atof(v.c_str());
         else if (k == "last_seq_thresh") c.last_seq_thresh = strtoull(v.c_str(), nullptr, 10);

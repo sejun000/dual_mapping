@@ -1,0 +1,19 @@
+{
+  "tag": "canoncb", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.070, "fine_quota": 0.022, "fine_quota_blocks": 8, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 75174449, "WAF": 4.4807, "WAF_ftl": 4.7315,
+  "prog": {"host": 15888222, "finegc": 5061743, "fold": 912672, "cgc_clean": 47667136, "cgc_refold": 5406672, "rmw": 238004, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2114, "finegc": 0.0673, "fold": 0.0121, "cgc_clean": 0.6341, "cgc_refold": 0.0719, "rmw": 0.0032, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 211756, "fold_fine": 2576201, "fold_coarse": 4031489, "gc_copy": 52728879, "map": 0},
+  "RAF": 3.7480, "map_miss": 0, "map_flush": 0,
+  "erases": 1530, "erase_fine": 206, "erase_coarse": 1324,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 57042, "refold": 337917, "cgc": 1324, "pgc": 0, "cgc_dead_ext": 748782, "cgc_clean_ext": 2979196, "extent_drop": 30561, "wasted_slots": 2, "greedy": 206, "greedy_fold_pages": 660685, "greedy_copy_pages": 5061743, "forced_fold": 0, "eager": 122117, "eager_fill": 238004, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 38857.0, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,1639,5723,11389,13253,13217,2077,1794,1528,6422],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,59149,55339,25128,48679,22325,22092,22162,36592,14631,9755,8525,8481,1914,1637,1508,0],
+  "fine_ius_end": 57280, "fine_pages_end": 264946,
+  "mem": {"total_bytes": 6072374, "total_mib": 5.79, "primary_map": 4194304, "hash_index": 818286, "slots": 1059784},
+  "host_fine": 5059506, "host_coarse": 11066720,
+  "fine_blocks_end": 8, "coarse_blocks_end": 363, "free_end": 2, "f_end": 0.0214
+}

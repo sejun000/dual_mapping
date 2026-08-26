@@ -614,3 +614,27 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 2. 단 DOGI의 DRAM은 page 맵 64 MB에 **더해** per-4K 메타데이터가 크다: HotIntervalTracker 1 B/4K(16 MB) + FreqFeatures freqBits 1 B/4K(16 MB) + chunkFreq + FIFO/FrozenFilter + MLP/학습 버퍼 ≈ **총 ~100 MB급**. 32K-gs(11 MB)의 9배가 넘는다.
 3. 우리 주장(등DRAM Pareto)은 유지된다: (100 MB, 3.78) vs (11 MB, 4.51)은 비지배 관계. 다만 "SOTA의 ±7%"는 SepBIT 기준이었고 DOGI 기준으로는 **+16~34% 뒤진다** — 논문에서는 "1/9 DRAM으로 DOGI 대비 +16~34%, page4k(동일 64 MB급) 대비는 우세" 구도로 서술해야 정직하다.
 4. DOGI의 이득 원천(무효화 시점 예측 + 동적 그룹)은 우리 구조와 직교한다 — fine 풀 배치/coarse GC frontier에 DOGI식 나이-그룹·예측을 접목하는 것이 자연스러운 후속 최적화.
+
+## v2.10 — coarse 티어의 cost-benefit victim + 나이 캐스케이드 (`cgc_vict=cb`, `coarse_class=N`)
+
+**동기.** DOGI와의 잔여 격차의 본체는 coarse GC clean copy였다. 시도 순서와 결과:
+1. **나이 캐스케이드 단독**(coarse GC 생존자를 세대별 frontier로 분리, 블록당 1바이트): 거의 무효(z0.8 −2.6%가 최대). 원인 진단 — victim이 greedy(최소 valid)라서 분리해 놓은 cold 블록에 "죽음이 쌓일 시간"을 주는 메커니즘이 없음.
+2. **cost-benefit victim**(`(P−v)/v × √age` 최대, Rosenblum; age = alloc 시퀀스 차): 큰 효과. SepBIT 포팅 때 greedy→CB가 5.50→4.66을 만든 것과 같은 원리.
+3. **CB + 캐스케이드 조합**: CB의 √age 항이 캐스케이드가 만든 나이-균질 블록에서 의미를 갖게 되어 추가 이득.
+
+**결과(64 GiB, z별, 동일 물리 공간).**
+
+| 구성 | RAM | z=0 | z=0.8 | z=0.99 | z=1.2 | small | large |
+|---|---|---|---|---|---|---|---|
+| canonical+cb+cc2 (64K, 기본 정책) | **5.9–6.1 MB** | 8.10 | **6.66** | **4.32** | **1.90** | – | – |
+| 32K-gs+cb+cc2 (v2.9 정책 세트) | **11.8 MB** | 7.91 | **5.99** | **4.02** | **1.78** | **4.40** | **3.87** |
+| page4k | 64 MB | 6.55 | 6.70 | 4.76 | 2.63 | 4.74 | 4.79 |
+| SepBIT | 64 MB | 8.68 | 6.92 | 4.27 | 1.80 | 4.22 | 4.28 |
+| DOGI | ~100 MB | 7.81 | 5.90 | 3.78 | 1.45 | 4.00 | 3.64 |
+
+- **저메모리 지점이 변모했다**: canonical 구성 그대로 victim/캐스케이드만 바꿔 5.08→4.32(−15%). **6 MB로 page4k(64 MB)를 skew 전 구간에서 이기고**(z0.8/0.99/1.2에서 −0.5/−9/−28%), SepBIT(64 MB)와 1% 차. 균등은 +1.8% 소폭 악화(√age가 균등에서 무의미).
+- 11.8 MB 지점(32K-gs+cb+cc2)은 SepBIT를 전 skew에서 이기고 DOGI와 +1.3%(z0.8)~+23%(z1.2), z0.99 +6.5%.
+- 추가 메타데이터: age는 기존 bseq 재사용(0), 캐스케이드는 블록당 1바이트(373 B) — DRAM 스케일링 주장 불변.
+- RAM 모델 수정: cost_cold의 flast(4 B/fine 상주 IU)가 미계상이던 버그 수정(32K-gs 11.12→11.76 MB).
+
+**미결(사용자 결정 대기).** cb+cc2를 새 canonical로 승격하면(±두 지점 모두) 전체 결과/그림 재생성이 필요하다. fine 풀 내부의 SepBIT식 클래스 배치(flast 재사용, 추가 메타 0)는 남은 미개척 최적화.

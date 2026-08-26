@@ -1,0 +1,19 @@
+{
+  "tag": "canoncb2", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.070, "fine_quota": 0.022, "fine_quota_blocks": 8, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 72518369, "WAF": 4.3224, "WAF_ftl": 4.5643,
+  "prog": {"host": 15888222, "finegc": 5063365, "fold": 922448, "cgc_clean": 44808848, "cgc_refold": 5609152, "rmw": 226334, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2191, "finegc": 0.0698, "fold": 0.0127, "cgc_clean": 0.6179, "cgc_refold": 0.0773, "rmw": 0.0031, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 201973, "fold_fine": 2619925, "fold_coarse": 4189214, "gc_copy": 49872213, "map": 0},
+  "RAF": 3.5802, "map_miss": 0, "map_flush": 0,
+  "erases": 1476, "erase_fine": 207, "erase_coarse": 1269,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 57653, "refold": 350572, "cgc": 1269, "pgc": 0, "cgc_dead_ext": 746607, "cgc_clean_ext": 2800553, "extent_drop": 30305, "wasted_slots": 1, "greedy": 207, "greedy_fold_pages": 651352, "greedy_copy_pages": 5063365, "forced_fold": 0, "eager": 118764, "eager_fill": 226334, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 38397.9, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,3588,7258,11560,12395,12508,1957,1574,1200,5613],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,61798,57395,26246,50542,23312,23128,22925,36701,13435,9963,9487,9481,2467,1996,1696,0],
+  "fine_ius_end": 59757, "fine_pages_end": 270512,
+  "mem": {"total_bytes": 6130023, "total_mib": 5.85, "primary_map": 4194304, "hash_index": 853671, "slots": 1082048},
+  "host_fine": 5101484, "host_coarse": 11013072,
+  "fine_blocks_end": 8, "coarse_blocks_end": 363, "free_end": 2, "f_end": 0.0214
+}

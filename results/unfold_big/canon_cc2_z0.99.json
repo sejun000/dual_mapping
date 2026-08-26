@@ -1,0 +1,19 @@
+{
+  "tag": "canon_cc2", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.070, "fine_quota": 0.022, "fine_quota_blocks": 8, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 84613576, "WAF": 5.0434, "WAF_ftl": 5.3256,
+  "prog": {"host": 15888222, "finegc": 4565484, "fold": 984352, "cgc_clean": 56450560, "cgc_refold": 6509792, "rmw": 215166, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.1878, "finegc": 0.0540, "fold": 0.0116, "cgc_clean": 0.6672, "cgc_refold": 0.0769, "rmw": 0.0025, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 193161, "fold_fine": 2920419, "fold_coarse": 4820108, "gc_copy": 61016044, "map": 0},
+  "RAF": 4.3397, "map_miss": 0, "map_flush": 0,
+  "erases": 1722, "erase_fine": 198, "erase_coarse": 1524,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 61522, "refold": 406862, "cgc": 1524, "pgc": 0, "cgc_dead_ext": 746101, "cgc_clean_ext": 3528160, "extent_drop": 26636, "wasted_slots": 3, "greedy": 198, "greedy_fold_pages": 662183, "greedy_copy_pages": 4565484, "forced_fold": 0, "eager": 115043, "eager_fill": 215166, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 39992.5, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,11019,8516,10451,10932,10996,3283,1155,896,4274],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,71233,66050,30089,57908,26737,26549,26228,36390,15254,13597,13313,13599,5024,2638,2253,0],
+  "fine_ius_end": 58678, "fine_pages_end": 255368,
+  "mem": {"total_bytes": 6054033, "total_mib": 5.77, "primary_map": 4194304, "hash_index": 838257, "slots": 1021472},
+  "host_fine": 5149852, "host_coarse": 10953536,
+  "fine_blocks_end": 8, "coarse_blocks_end": 363, "free_end": 2, "f_end": 0.0214
+}
