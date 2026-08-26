@@ -439,3 +439,27 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 즉 proposed에 "IU+RMW 16K와 같은 16 MiB"를 4K 맵으로 주는 구성은 동일 공간에서 성립하지 않으며, 부분적으로 시도해도 손해다. 이것이 fine 티어를 **고정 크기(≈2% 공간, 슬롯 RAM ≤1 MiB)**로 두는 설계 근거를 한 번 더 확인해 준다(RAM-CAP·mixed-pool 기각 사유와 같은 맥락).
 
 **그림.** `fig10_iu_sensitivity` — (a) IU 크기별 WAF, (b) 매핑 DRAM 대 WAF의 등DRAM Pareto(점 라벨=IU, 점선=page4k), (c) 전체 공간 고정 하의 fine 티어 크기 스윕.
+
+### v2.8 보론 — "coarse 티어가 모든 데이터의 원본을 가질 필요가 있나?" (`results/unfold_big`)
+
+**먼저 사실 확인: 중복 저장은 없다.** `fine_write()`에서 새 fragment가 생기면 해당 IU 청크의 그 페이지를 즉시 무효화하고(`bvalid[blk_of(coarse_map[iu])]--`), U개가 모두 fragment가 되면 `coarse_map[iu] = NONE`으로 청크를 통째로 버린다(`extent_drop`). `verify()`도 LPN당 정확히 물리 페이지 1개만 valid로 센다. 따라서 "coarse에 원본, fine에 사본"이 아니라 **페이지 단위로 소유권이 이동**한다.
+
+**남아 있던 제약**은 하나다: 호스트가 건드리지 않은 (U−d)페이지는 청크에 남는다 → 그 IU는 청크를 계속 붙들고 있다. 이걸 푸는 것이 `unfold`(coarse GC 중 나머지 (U−d)페이지를 fine으로 옮기고 청크를 버림)이며, 이미 구현돼 있으나 튜닝 상수(`unfold_tau`, `unfold_k`) 때문에 기본 off다. 쓰기 비용만 보면 unfold는 refold보다 항상 싸다(U−d < U). 대신 fine 엔트리 (U−d)개와 fine 공간을 더 쓴다.
+
+**실험.** 전체 공간 373블록 고정(`fine_extra=0 op=0.09278`), fine 블록 8/16/32/48/64, `unfold=hot unfold_tau=1e9 unfold_k=1`(= 공간 있으면 항상 unfold), α=0.99.
+
+| IU | fine 블록 | unfold off (WAF / 활용률 / RAM) | unfold always |
+|---|---|---|---|
+| 32K | 8 | 4.789 / 64.9% / 10.05 MiB | 4.788 / 64.0% / 10.43 MiB |
+| 32K | 16 | 5.891 / 34.9% / 10.00 MiB | **4.926** / 63.2% / 11.88 MiB |
+| 64K | 8 | 5.083 / 69.5% / 5.87 MiB | 5.067 / 70.8% / 6.22 MiB |
+| 64K | 16 | 5.053 / 65.4% / 7.02 MiB | 5.030 / 64.5% / 7.38 MiB |
+| — | 32~64 | `GC makes no progress` | 동일 |
+
+**해석.**
+1. fine을 키울 때 나빠지는 원인은 중복이 아니라 **활용률**이다. fine 티어는 고정 예약인데 채워지는 양은 fragment 워킹셋이 정한다. 32K IU에 16블록을 주면 활용률이 34.9%로 떨어지고 그만큼 coarse OP가 사라진다.
+2. unfold는 그 문제를 실제로 고친다(34.9% → 63.2%, 5.89 → 4.93). 제약을 푸는 방향 자체는 옳다.
+3. 그러나 **fine 8블록(4.79)을 넘지 못한다.** fine 티어도 자기 OP가 필요한 page-mapped 로그 구조라, 192 MiB 블록 + greedy GC로 이미 효율적인 coarse 티어에서 공간을 빼앗아 오는 것이 순이득이 아니다. DRAM만 1.8 MiB 더 든다.
+4. 32블록 이상은 unfold를 켜도 죽는다: unfold는 *이미 fragment가 있는* IU만 옮길 수 있으므로 fine이 흡수 가능한 총량은 워크로드가 정한다. 예약만 키우면 coarse가 굶는다(종료 상태 free=2, fine=28/32, coarse=343).
+
+**결론.** 4K 맵 DRAM을 늘려 WAF를 사는 경로는 이 구조에 존재하지 않는다. fine 티어의 유효 크기는 fragment 워킹셋이 정하고, 그 이상은 노는 공간이다. 이는 고정 크기 fine 티어(≈2% 공간, 슬롯 RAM ≤1 MiB) 설계의 근거이며 RAM-CAP·mixed-pool 기각과 같은 결론이다. 남은 미탐색 방향은 *fragment가 없는 IU까지* 통째로 fine(=page-mapped)으로 승격시키는 것인데, 이는 사실상 hybrid page/coarse 파티션(Janus-FTL 계열)이 되고 DRAM이 제한된 상황에서는 page4k로 수렴한다.
