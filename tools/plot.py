@@ -574,7 +574,7 @@ def fig_ablation():
 
 
 IUSENS = os.path.join(ROOT, "results", "iu_sens")   # IU-size sensitivity
-US = [4, 8, 16, 32]                                 # pages per IU -> 16/32/64/128 KiB
+US = [4, 6, 8, 12, 16, 24, 32]                      # pages per IU -> 16K..128K (U>32 unsupported: 32-bit bitmap)
 
 
 def _iu(mode, U, suffix):
@@ -582,17 +582,16 @@ def _iu(mode, U, suffix):
 
 
 def fig_iu_sensitivity():
-    """WAF vs. indirection-unit size, and the resulting WAF/DRAM Pareto front."""
-    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    """IU-size sweep: WAF vs. IU, the iso-DRAM Pareto front, and the fine-tier size sweep."""
+    fig, axes = plt.subplots(1, 3, figsize=(21, 6))
     xs = range(len(US))
-    labels = [f"{U * 4}K" for U in US]
 
     ax = axes[0]
-    series = [("proposed", "z0.99", "Proposed, uniform", "#2a78d6", "o", "-"),
-              ("iu_rmw", "z0.99", "IU+RMW, uniform", "#eda100", "D", "-"),
-              ("proposed", "small_z0.99", "Proposed, small-heavy", "#2a78d6", "o", "--"),
-              ("iu_rmw", "small_z0.99", "IU+RMW, small-heavy", "#eda100", "D", "--")]
-    for mode, sfx, label, color, marker, ls in series:
+    for mode, sfx, label, color, marker, ls in [
+            ("proposed", "z0.99", "Proposed, uniform", "#2a78d6", "o", "-"),
+            ("iu_rmw", "z0.99", "IU+RMW, uniform", "#eda100", "D", "-"),
+            ("proposed", "small_z0.99", "Proposed, small-heavy", "#2a78d6", "o", "--"),
+            ("iu_rmw", "small_z0.99", "IU+RMW, small-heavy", "#eda100", "D", "--")]:
         y = [_iu(mode, U, sfx)["WAF"] for U in US]
         ax.plot(xs, y, marker=marker, color=color, label=label, linestyle=ls,
                 linewidth=3.0 if mode == "proposed" else 1.8,
@@ -603,7 +602,7 @@ def fig_iu_sensitivity():
     log_ticks(ax, [4, 6, 10, 20, 50])
     ax.set_ylim(3.5, 60)
     ax.set_xticks(list(xs))
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels([f"{U * 4}K" for U in US], fontsize=15)
     ax.set_xlim(-0.25, len(US) - 0.75)
     ax.set_xlabel("Indirection unit size")
     ax.set_ylabel(r"WAF ($\alpha$=0.99)")
@@ -611,41 +610,64 @@ def fig_iu_sensitivity():
     ax.set_axisbelow(True)
     outside_legend(ax, 2)
 
+    # (b) iso-DRAM Pareto: x is measured mapping DRAM, so the two curves are directly comparable.
     ax = axes[1]
     for mode, label, color, marker in [("proposed", "Proposed", "#2a78d6", "o"),
                                        ("iu_rmw", "IU+RMW", "#eda100", "D")]:
-        pts = [(_iu(mode, U, "z0.99")["mem"]["total_mib"],
-                _iu(mode, U, "z0.99")["WAF"], U) for U in US]
+        pts = [(_iu(mode, U, "z0.99")["mem"]["total_mib"], _iu(mode, U, "z0.99")["WAF"], U)
+               for U in US]
         ax.plot([p[0] for p in pts], [p[1] for p in pts], marker=marker, color=color,
                 label=label, linewidth=3.0 if mode == "proposed" else 1.8,
                 markersize=11 if mode == "proposed" else 8)
         for x, y, U in pts:
-            if U == 4:   # 16K: the two curves meet here, so push the labels apart
-                off = (14, 2) if mode == "proposed" else (-14, -14)
-            else:
-                off = (0, 11) if mode == "proposed" else (0, -20)
+            if U not in (4, 8, 16, 32):
+                continue
+            off = (0, 12) if mode == "proposed" else (0, -22)
             ax.annotate(f"{U * 4}K", (x, y), textcoords="offset points", xytext=off,
-                        ha="left" if off[0] > 0 else ("right" if off[0] < 0 else "center"),
-                        fontsize=15, color=color)
+                        ha="center", fontsize=15, color=color)
     ax.axhline(load(CANON, "page4k_eq_z0.99.json")["WAF"], color="#777777",
                linestyle=":", linewidth=1.8)
-    ax.annotate("Page-4K (64 MiB)", (2.1, load(CANON, "page4k_eq_z0.99.json")["WAF"]),
-                textcoords="offset points", xytext=(0, 6), fontsize=15, color="#555555")
+    ax.annotate("Page-4K (64 MiB)", (1.85, load(CANON, "page4k_eq_z0.99.json")["WAF"]),
+                textcoords="offset points", xytext=(0, 7), fontsize=15, color="#555555")
     ax.set_xscale("log")
     ax.xaxis.set_major_locator(FixedLocator([2, 4, 8, 16]))
     ax.xaxis.set_minor_locator(FixedLocator([]))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
     ax.set_yscale("log")
     log_ticks(ax, [4, 5, 6, 8, 10, 14])
-    ax.set_ylim(4.2, 15)
-    ax.set_xlim(1.6, 22)
+    ax.set_ylim(4.2, 16)
+    ax.set_xlim(1.7, 21)
     ax.set_xlabel("Mapping DRAM (MiB)")
     ax.set_ylabel(r"WAF ($\alpha$=0.99, uniform)")
     ax.grid(color="#dddddd", linewidth=0.8)
     ax.set_axisbelow(True)
     outside_legend(ax, 2)
 
-    fig.subplots_adjust(wspace=0.28)
+    # (c) growing the fine tier at FIXED total physical space: more 4K-map DRAM costs coarse OP.
+    ax = axes[2]
+    QS = ["0.011", "0.022", "0.043"]
+    xs3 = range(len(QS))
+    for U, label, color, marker in [(8, "Proposed, 32K IU", "#2a78d6", "o"),
+                                    (16, "Proposed, 64K IU", "#5aa9e6", "s")]:
+        recs = [load(IUSENS, f"propq_U{U}_q{q}_z0.99.json") for q in QS]
+        ax.plot(xs3, [r["WAF"] for r in recs], marker=marker, color=color, label=label,
+                linewidth=3.0, markersize=11)
+        for x, r in zip(xs3, recs):
+            ax.annotate(f"{r['mem']['total_mib']:.1f} MiB", (x, r["WAF"]),
+                        textcoords="offset points", xytext=(0, 12), ha="center",
+                        fontsize=14, color=color)
+    ax.set_xticks(list(xs3))
+    ax.set_xticklabels([f"{int(float(q) * 373)}\n({int(float(q) * 373) * 192 / 1024:.1f} GiB)" for q in QS],
+                       fontsize=15)
+    ax.set_xlim(-0.3, len(QS) - 0.7)
+    ax.set_ylim(4.3, 6.6)
+    ax.set_xlabel("Fine-tier size (blocks), total space fixed")
+    ax.set_ylabel(r"WAF ($\alpha$=0.99, uniform)")
+    ax.grid(axis="y", color="#dddddd", linewidth=0.8)
+    ax.set_axisbelow(True)
+    outside_legend(ax, 2)
+
+    fig.subplots_adjust(wspace=0.30)
     save(fig, "fig10_iu_sensitivity")
 
 
