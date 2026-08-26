@@ -584,3 +584,33 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 3. 따라서 논문 주장은 "page-mapped를 이긴다"가 아니라: **"SOTA 분리 기법(SepBIT)의 ±7% 성능을 매핑 DRAM 1/6로 달성하며, 중간 skew·대형 I/O에서는 오히려 이긴다"**. Pareto로 보면 (64 MB, 4.27)과 (11 MB, 4.51)은 비지배 관계고, page4k(64 MB, 4.76)는 우리에게 양축 모두 지배당한다.
 4. SepBIT도 균등에서는 page4k보다 나쁘다(8.68 vs 6.55) — 분리 기법 공통의 한계로, 우리 균등 열세(7.92)와 같은 성격이며 오히려 우리가 덜 나쁘다.
 5. 향후: SepBIT의 나이-클래스 아이디어를 우리 fine 풀/coarse GC frontier에 접목하면 고skew 격차(−5~−7%)를 닫을 여지가 있다.
+
+## v2.9.2 — DOGI 베이스라인 (FAST'26, ML 포함 아티팩트 포팅, `third_party/dogi_port`, `results/dogi`)
+
+**출처와 포팅.** DOGI(Kim et al., FAST'26)는 SepBIT 이후의 SOTA 배치 기법으로, 공식 아티팩트(github dgist-datalab/DOGI, SepBIT 프로토타입 기반)를 `third_party/dogi_port`로 가져와 ZNS 장치 없이 돌게 최소 패치했다:
+- storage adapter를 no-op **NullAdapter**로(세그먼트 메타데이터는 전부 인메모리라 WAF에 페이로드 불필요), ZenFS 어댑터 제거, `zbd reset` 제거.
+- 크기 파라미터를 env로: `DOGI_LOGICAL_BYTES`(64 GiB), `DOGI_OP`(0.09278 → GpThreshold=OP/(1+OP)=0.0849), 세그먼트 = **49152블록 = 192 MiB**(ftlsim과 동일). 물리 세그먼트 373개 = ftlsim의 NB=373과 정확히 일치.
+- 측정 구간 경계에서 raw 카운터를 찍는 `DOGI_MARK_PAGES`(버퍼 드레인 후 기록).
+- 빌드: zig c++, cblas는 naive sgemm 스텁(추론 수학은 동일), zconf.h 스텁, sstream include 추가.
+- **ML 파이프라인 온전 가동**: 학습 트리거(2×장치 쓰기) → 수집 → `../venv/bin/python3 model_trainer.py`(PyTorch CPU, ~/venv에 설치) → MLP 리로드 → Markov-chain 그룹 최적화(K, BIR 동적 적용) → APPLY_ML=1. 워크로드당 2~4회 재학습 확인.
+
+**입력.** ftlsim에 `out_trace=` 내보내기 추가: **post-buffer** 호스트 스트림(1 MiB IU-coalescing 버퍼 통과 후)을 4K 페이지당 한 줄("0 1 lpn 4096")로 덤프 — DOGI의 시간 단위(4K당 1틱)와 일치, 우리 FTL이 본 것과 같은 트래픽. WAF 분모는 우리 규약(측정 구간 제출 페이지, export JSON의 host_pages)로 환산.
+
+**결과(64 GiB, 동일 물리 공간 OP 9.278%, 192 MiB 세그먼트).**
+
+| 워크로드 | DOGI (64 MB+) | SepBIT (64 MB) | page4k (64 MB) | 32K-gs (11 MB) | canonical (6.2 MB) |
+|---|---|---|---|---|---|
+| z=0 | 7.809* | 8.684 | **6.546** | 7.918 | 7.955 |
+| z=0.8 | **5.896** | 6.918 | 6.697 | 6.398 | 7.524 |
+| z=0.99 | **3.779** | 4.266 | 4.761 | 4.506 | 5.083 |
+| z=1.2 | **1.445** | 1.795 | 2.632 | 1.935 | 2.572 |
+| small z0.99 | **4.001** | 4.215 | 4.738 | 5.076 | 7.494 |
+| large z0.99 | **3.635** | 4.275 | 4.793 | 4.152 | 5.208 |
+
+*z=0에서는 학습 데이터 수집이 끝나지 않아 ML 미적용(휴리스틱만) — 균등에서는 분리 기법 모두 page4k에 열세.
+
+**해석.**
+1. **DOGI는 실제 SOTA다**: skew 전 구간에서 SepBIT 대비 −5~−20%, 우리 32K-gs 대비 −8~−25%.
+2. 단 DOGI의 DRAM은 page 맵 64 MB에 **더해** per-4K 메타데이터가 크다: HotIntervalTracker 1 B/4K(16 MB) + FreqFeatures freqBits 1 B/4K(16 MB) + chunkFreq + FIFO/FrozenFilter + MLP/학습 버퍼 ≈ **총 ~100 MB급**. 32K-gs(11 MB)의 9배가 넘는다.
+3. 우리 주장(등DRAM Pareto)은 유지된다: (100 MB, 3.78) vs (11 MB, 4.51)은 비지배 관계. 다만 "SOTA의 ±7%"는 SepBIT 기준이었고 DOGI 기준으로는 **+16~34% 뒤진다** — 논문에서는 "1/9 DRAM으로 DOGI 대비 +16~34%, page4k(동일 64 MB급) 대비는 우세" 구도로 서술해야 정직하다.
+4. DOGI의 이득 원천(무효화 시점 예측 + 동적 그룹)은 우리 구조와 직교한다 — fine 풀 배치/coarse GC frontier에 DOGI식 나이-그룹·예측을 접목하는 것이 자연스러운 후속 최적화.

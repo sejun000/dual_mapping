@@ -49,7 +49,8 @@ struct Cfg {
     double measure_x = 1.0;       // measured workload multiples of capacity
     bool seq_fill = true;
     u64 ts_interval = 0;          // host pages between time-series samples (0 = capacity/200)
-    std::string out_ts;           // csv path for time-series
+    std::string out_ts;
+    std::string out_trace;        // export the post-buffer host stream (one line per 4K page: "0 1 <lpn> 4096")           // csv path for time-series
     std::string tag;              // free-form label echoed in output
     bool fine_extra = true;       // fine quota is physical space ADDED on top of OP (else carved from OP)
     bool gc_frontier = true;      // separate active blocks for GC/reclaim writes vs host writes (hot/cold separation)
@@ -1614,13 +1615,18 @@ struct Runner {
         while (off < U) {
             if (!(bm & (1u << off))) { off++; continue; }
             int start = off; while (off < U && (bm & (1u << off))) off++;
-            s.host_write(iu * U + start, off - start);
+            emit_host(iu * U + start, off - start);
         }
         wb_pages -= __builtin_popcount(bm);
     }
+    FILE* tracef = nullptr; u64 trace_pages = 0;
+    void emit_host(u64 lpn, u64 n) {
+        if (tracef) { for (u64 i = 0; i < n; ++i) fprintf(tracef, "0 1 %llu 4096\n", (unsigned long long)(lpn + i)); trace_pages += n; }
+        s.host_write(lpn, n);
+    }
     void wb_write(u64 lpn, u64 n) {
         s.st.host_submitted += n;
-        if (!c.wbuf_pages) { s.host_write(lpn, n); return; }
+        if (!c.wbuf_pages) { emit_host(lpn, n); return; }
         u64 cur = lpn, end = lpn + n;
         while (cur < end) {
             u64 iu = cur / U; int off = (int)(cur % U);
@@ -1632,7 +1638,7 @@ struct Runner {
             u32 old = it->second.second; u32 nb = old | bits;
             wb_pages += __builtin_popcount(nb) - __builtin_popcount(old);   // overwrites of buffered pages are absorbed
             it->second.second = nb;
-            if (__builtin_popcount(nb) == U) { wb_lru.erase(it->second.first); wb.erase(it); s.host_write(iu * U, U); wb_pages -= U; }
+            if (__builtin_popcount(nb) == U) { wb_lru.erase(it->second.first); wb.erase(it); emit_host(iu * U, U); wb_pages -= U; }
             cur += w;
             while (wb_pages > c.wbuf_pages && !wb_lru.empty()) {           // evict LRU IU as fragments
                 u64 v = wb_lru.back(); wb_lru.pop_back(); u32 bm = wb[v].second; wb.erase(v); wb_flush_iu(v, bm);
@@ -1662,10 +1668,12 @@ struct Runner {
 
     void run() {
         build_workload();
+        if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); }
         if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
         if (c.age_x > 0) { fprintf(stderr, "[phase] aging %.2fx\n", c.age_x); run_workload((u64)(L * c.age_x)); }
         s.verify();
         wb_drain();
+        if (tracef) fprintf(stderr, "[trace] pages before measure: %llu\n", (unsigned long long)trace_pages);
         fprintf(stderr, "[phase] reset stats, measure %.2fx\n", c.measure_x);
         s.st.reset(U);
         s.measuring = true;
@@ -1675,6 +1683,7 @@ struct Runner {
         run_workload((u64)(L * c.measure_x));
         wb_drain();
         if (s.ts) { s.ts_sample(); fclose(s.ts); }
+        if (tracef) { fprintf(stderr, "[trace] total pages: %llu\n", (unsigned long long)trace_pages); fclose(tracef); }
         s.verify();
         s.report();
     }
@@ -1718,6 +1727,7 @@ int main(int argc, char** argv) {
         else if (k == "seq_fill") c.seq_fill = atoi(v.c_str()) != 0;
         else if (k == "ts_interval") c.ts_interval = strtoull(v.c_str(), nullptr, 10);
         else if (k == "out_ts") c.out_ts = v;
+        else if (k == "out_trace") c.out_trace = v;
         else if (k == "tag") c.tag = v;
         else if (k == "fine_extra") c.fine_extra = atoi(v.c_str()) != 0;
         else if (k == "gc_frontier") c.gc_frontier = atoi(v.c_str()) != 0;
