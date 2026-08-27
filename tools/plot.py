@@ -693,7 +693,7 @@ def fig_op_sweep():
     series = [("p12", "Proposed, 12 MB", "#2a78d6", "o", 3.0, 11),
               ("p6", "Proposed, 6 MB", "#5aa9e6", "s", 1.8, 8),
               ("p4k", "Page-4K, 64 MB", "#eb6834", "D", 1.8, 8),
-              ("sb", "SepBIT, 64 MB", "#1baf7a", "^", 1.8, 8)]
+              ("sb", "SepBIT, 128 MB", "#1baf7a", "^", 1.8, 8)]
 
     def waf(tag, op, z):
         f = os.path.join(OPSW, f"{tag}_op{op}_z{z}.json")
