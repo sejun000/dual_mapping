@@ -683,6 +683,80 @@ def fig_iu_sensitivity():
     save(fig, "fig10_iu_sensitivity")
 
 
+OPSW = os.path.join(ROOT, "results", "opsweep")   # OP phase diagram
+OPS = ["0.04", "0.05", "0.07", "0.10", "0.15", "0.20"]
+
+
+def fig_op_sweep():
+    """WAF vs. over-provisioning: absolute curves, and the crossover seen as a ratio."""
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    series = [("p12", "Proposed, 12 MB", "#2a78d6", "o", 3.0, 11),
+              ("p6", "Proposed, 6 MB", "#5aa9e6", "s", 1.8, 8),
+              ("p4k", "Page-4K, 64 MB", "#eb6834", "D", 1.8, 8),
+              ("sb", "SepBIT, 64 MB", "#1baf7a", "^", 1.8, 8)]
+
+    def waf(tag, op, z):
+        f = os.path.join(OPSW, f"{tag}_op{op}_z{z}.json")
+        if not os.path.exists(f) or not os.path.getsize(f):
+            return None
+        return load(OPSW, f"{tag}_op{op}_z{z}.json")["WAF"]
+
+    # (a) absolute, alpha = 0.99
+    ax = axes[0]
+    for tag, label, color, marker, lw, ms in series:
+        pts = [(float(op) * 100, waf(tag, op, "0.99")) for op in OPS]
+        pts = [(x, y) for x, y in pts if y is not None]
+        ax.plot([p[0] for p in pts], [p[1] for p in pts], marker=marker, color=color,
+                label=label, linewidth=lw, markersize=ms)
+    ax.set_yscale("log")
+    log_ticks(ax, [2, 3, 5, 8, 14])
+    ax.set_ylim(1.9, 16)
+    ax.set_xlim(3, 21)
+    ax.set_xticks([4, 7, 10, 15, 20])
+    ax.set_xticklabels(["4%", "7%", "10%", "15%", "20%"], fontsize=15)
+    ax.set_xlabel("Total over-provisioning")
+    ax.set_ylabel(r"WAF ($\alpha$=0.99)")
+    ax.grid(color="#dddddd", linewidth=0.8)
+    ax.set_axisbelow(True)
+    outside_legend(ax, 2, y=1.04)
+
+    # (b) ratio to Proposed-12M: above 1.0 means the baseline is worse than we are
+    ax = axes[1]
+    for z, ls, mfc in [("0.99", "-", None), ("0.8", "--", "white")]:
+        for tag, label, color, marker in [("p4k", "Page-4K", "#eb6834", "D"),
+                                          ("sb", "SepBIT", "#1baf7a", "^")]:
+            pts = []
+            for op in OPS:
+                a, b = waf(tag, op, z), waf("p12", op, z)
+                if a and b:
+                    pts.append((float(op) * 100, a / b))
+            ax.plot([p[0] for p in pts], [p[1] for p in pts], marker=marker, color=color,
+                    linestyle=ls, linewidth=2.2, markersize=9,
+                    markerfacecolor=mfc or color,
+                    label=rf"{label}, $\alpha$={z}")
+    ax.axhline(1.0, color="#2a78d6", linewidth=3.0, zorder=3)
+    ax.annotate("Proposed, 12 MB", (20.4, 1.0), textcoords="offset points", xytext=(0, 8),
+                ha="right", fontsize=15, color="#2a78d6")
+    ax.axvspan(3, 12, color="#2a78d6", alpha=0.06, zorder=0)
+    ax.annotate("proposed wins", (8.9, 1.68), ha="center", fontsize=16, color="#2a78d6")
+    ax.annotate("baselines win", (16.5, 1.68), ha="center", fontsize=16, color="#777777")
+    ax.set_xlim(3, 21)
+    ax.set_ylim(0.8, 2.0)
+    ax.set_xticks([4, 7, 10, 15, 20])
+    ax.set_xticklabels(["4%", "7%", "10%", "15%", "20%"], fontsize=15)
+    ax.set_yticks([0.8, 1.0, 1.2, 1.5, 2.0])
+    ax.set_yticklabels([r"0.8$\times$", r"1.0$\times$", r"1.2$\times$", r"1.5$\times$", r"2.0$\times$"],
+                       fontsize=15)
+    ax.set_xlabel("Total over-provisioning")
+    ax.set_ylabel("WAF relative to Proposed, 12 MB")
+    ax.grid(color="#dddddd", linewidth=0.8)
+    ax.set_axisbelow(True)
+    outside_legend(ax, 2, y=1.04)
+
+    fig.subplots_adjust(wspace=0.30)
+    save(fig, "fig11_op_sweep")
+
+
 if __name__ == "__main__":
     fig_waf_zipf()
     fig_waf_zipf_main()
@@ -698,3 +772,4 @@ if __name__ == "__main__":
     fig_related_work()
     fig_ablation()
     fig_iu_sensitivity()
+    fig_op_sweep()
