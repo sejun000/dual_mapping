@@ -111,6 +111,8 @@ struct Stats {
     u64 n_unfold = 0, unfold_pages = 0; std::vector<u64> d_unfold;
     u64 n_budget_fold = 0, n_gcfold = 0;
     u64 n_shrink_fold = 0, n_space_capped = 0;
+    u64 vblk_age_sum = 0, vblk_age_n = 0;   // victim fine block age at reclaim (fine_clock units)
+    u64 vblk_age_hist[6] = {0,0,0,0,0,0};   // in pool turnovers: <.25 .5 1 2 4 4+
     u64 age_hist[7] = {0,0,0,0,0,0,0};   // (fine_clock-flast)/pool turnovers: <.125 .25 .5 1 2 4 4+
     u64 age_hist_fold[7] = {0,0,0,0,0,0,0};  // ... among those the cost test wanted to fold
     u64 n_switch = 0, n_partial = 0, n_full = 0, n_dead_reclaim = 0, n_merge_reclaim = 0, full_assoc_sum = 0, n_seq_req = 0, n_rand_req = 0, n_hot_pages = 0, n_cold_pages = 0;
@@ -173,7 +175,8 @@ struct Sim {
     bool mixed = false;
     bool ram_cap = false;
     bool in_shrink = false;
-    int reclaim_victim = -1;          // proposed + fine_cap=ram
+    int reclaim_victim = -1;
+    int last_vblk = -1;          // proposed + fine_cap=ram
     double fine_budget = 0;                       // bytes
     std::vector<std::unordered_set<u32>> by_d;    // d -> IUs with that many fragments (for budget eviction)
     u64 fine_ius_n = 0, fine_frags_n = 0;
@@ -640,6 +643,13 @@ struct Sim {
             int32_t fi = fine_idx[iu];
             if (fi < 0 || !(fbitmap[fi] & (1u << off)) || fslot[(u64)fi * U + off] != ppn) continue;
             int d = popc(fbitmap[fi]);
+            if (s0 == 0 || st.vblk_age_n == 0 || last_vblk != b) {   // once per victim block
+                last_vblk = b;
+                double bt = (double)(fine_clock - fbirth[b]) / ((double)fine_quota_blocks * P);
+                st.vblk_age_sum += fine_clock - fbirth[b]; st.vblk_age_n++;
+                int bk = bt < 0.25 ? 0 : bt < 0.5 ? 1 : bt < 1 ? 2 : bt < 2 ? 3 : bt < 4 ? 4 : 5;
+                st.vblk_age_hist[bk]++;
+            }
             double turns = (double)(fine_clock - flast[fi]) / ((double)fine_quota_blocks * P);
             { int bk = turns < 0.125 ? 0 : turns < 0.25 ? 1 : turns < 0.5 ? 2 : turns < 1 ? 3 : turns < 2 ? 4 : turns < 4 ? 5 : 6;
               st.age_hist[bk]++; if ((double)popc(fbitmap[fi]) * victim_v > (double)U * (P - victim_v)) st.age_hist_fold[bk]++; }
@@ -995,6 +1005,9 @@ struct Sim {
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
+        { printf("  \"vblk_age_mean_turnovers\": %.4f, \"vblk_age_hist\": [",
+                 st.vblk_age_n ? (double)st.vblk_age_sum / st.vblk_age_n / ((double)fine_quota_blocks * P) : 0.0);
+          for (int i=0;i<6;++i) printf("%s%llu", i?",":"", (unsigned long long)st.vblk_age_hist[i]); printf("],\n"); }
         { printf("  \"age_turnovers\": ["); for (int i=0;i<7;++i) printf("%s%llu", i?",":"", (unsigned long long)st.age_hist[i]);
           printf("], \"age_turnovers_costfold\": ["); for (int i=0;i<7;++i) printf("%s%llu", i?",":"", (unsigned long long)st.age_hist_fold[i]); printf("],\n"); }
         printf("  \"host_fine\": %llu, \"host_coarse\": %llu,\n", (unsigned long long)st.host_fine, (unsigned long long)st.host_coarse);
