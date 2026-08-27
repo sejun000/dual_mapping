@@ -976,7 +976,10 @@ struct Sim {
           printf("  \"fine_ius_end\": %llu, \"fine_pages_end\": %llu,\n", (unsigned long long)fine_ius, (unsigned long long)fine_pages);
           // RAM model (measured end state). PPN = 4B. Hash-managed maps: (key+value)/0.7.
           double mem = 0, a = 0, b2 = 0, c2 = 0;
-          if (c.mode == "page4k" || c.mode == "sepbit") { a = (double)L * 4; mem = a; }
+          if (c.mode == "page4k") { a = (double)L * 4; mem = a; }
+          // SepBIT also needs a per-LPN last-user-write timestamp for the GC-time age test
+          // (reference keeps 8 B in Metadata; 4 B suffices) plus per-block birth/class.
+          else if (c.mode == "sepbit") { a = (double)L * 4; b2 = (double)L * 4; c2 = (double)NB * 9; mem = a + b2 + c2; }
           else if (c.mode == "dftl") { a = hash_bytes((double)cmt.size(), 8); b2 = (double)(L / TP_ENTRIES) * 4; mem = a + b2; }
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }

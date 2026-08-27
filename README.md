@@ -184,7 +184,7 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 - **proposed-6M** (`prop_lo`): 64K IU, fine 8블록(추가), 기본 정책 + cb + cc2. RAM 5.6–6.2 MB.
 - **proposed-12M** (`prop_hi`): 32K IU, 쿼터 16(OP 분할), fine_full + cost_cold + gc_select=cost + cb + cc2. RAM 9.8–15.9 MB.
 
-| WAF | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (64 MB) | DOGI (~100 MB) | 구 canonical (v2.7) |
+| WAF | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (128 MB) | DOGI (~100 MB) | 구 canonical (v2.7) |
 |---|---|---|---|---|---|---|
 | z=0 | 8.09 | 7.88 | **6.55** | 8.68 | 7.81 | 7.96 |
 | z=0.8 | 6.73 | **6.09** | 6.70 | 6.92 | 5.90 | 7.52 |

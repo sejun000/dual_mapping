@@ -569,7 +569,7 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 
 **결과(64 GiB, 동일 물리 공간 op=9.278%, 1 MiB 버퍼).**
 
-| 워크로드 | SepBIT (64 MB) | page4k (64 MB) | 32K-gs (11 MB) |
+| 워크로드 | SepBIT (128 MB) | page4k (64 MB) | 32K-gs (11 MB) |
 |---|---|---|---|
 | z=0 | 8.684 | **6.546** | 7.918 |
 | z=0.8 | 6.918 | 6.697 | **6.398** |
@@ -598,7 +598,7 @@ Feng et al., "Mapping Granularity Adaptive FTL Based on Flash Page Re-programmin
 
 **결과(64 GiB, 동일 물리 공간 OP 9.278%, 192 MiB 세그먼트).**
 
-| 워크로드 | DOGI (64 MB+) | SepBIT (64 MB) | page4k (64 MB) | 32K-gs (11 MB) | canonical (6.2 MB) |
+| 워크로드 | DOGI (64 MB+) | SepBIT (128 MB) | page4k (64 MB) | 32K-gs (11 MB) | canonical (6.2 MB) |
 |---|---|---|---|---|---|
 | z=0 | 7.809* | 8.684 | **6.546** | 7.918 | 7.955 |
 | z=0.8 | **5.896** | 6.918 | 6.697 | 6.398 | 7.524 |
@@ -652,7 +652,7 @@ v2.10의 두 knob을 canonical로 편입(사용자 승인). 최종 수치는 REA
 | proposed-12M | 10.62 | **8.03** | **5.47** | 2.34 |
 | page4k (64 MB) | **8.75** | 8.53 | 5.99 | 3.09 |
 | DFTL | 9.36 | 8.93 | 6.18 | 3.14 |
-| SepBIT (64 MB) | 13.55 | 10.56 | 6.37 | 2.43 |
+| SepBIT (128 MB) | 13.55 | 10.56 | 6.37 | 2.43 |
 | IU+RMW | 15.94 | 15.57 | 10.69 | 5.07 |
 | μ-FTL | 17.30 | 55.66 | 33.19 | 12.40 |
 | FAST | 18.56 | 20.58 | 27.48 | 42.55 |
@@ -673,7 +673,7 @@ v2.10의 두 knob을 canonical로 편입(사용자 승인). 최종 수치는 REA
 
 **z=0.99**
 
-| OP | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (64 MB) |
+| OP | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (128 MB) |
 |---|---|---|---|---|
 | 4% | 사망 | 사망 | 10.65 | 사망 |
 | 5% | 8.45 | **7.17** | 8.03 | 13.45 |
@@ -684,7 +684,7 @@ v2.10의 두 knob을 canonical로 편입(사용자 승인). 최종 수치는 REA
 
 **z=0.8**
 
-| OP | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (64 MB) |
+| OP | proposed-6M | proposed-12M | page4k (64 MB) | SepBIT (128 MB) |
 |---|---|---|---|---|
 | 4% | 사망 | 사망 | 15.76 | 사망 |
 | 5% | 13.97 | 12.16 | **11.82** | 사망 |
@@ -698,3 +698,25 @@ v2.10의 두 knob을 canonical로 편입(사용자 승인). 최종 수치는 REA
 2. **page4k는 z=0.99 전 OP 구간에서, z=0.8은 OP≥7%에서 진다.** proposed-12M 기준.
 3. **다그룹 분리는 OP를 open segment에 묶어 놓는다.** SepBIT은 5%(z0.8)·4%(전부)에서 `GC makes no progress`로 사망하는데, 원인은 6개 그룹의 open segment(6블록) + GC 팬아웃용 예약(T=8) = 14블록이 총 OP 16.7블록의 84%를 점유하기 때문이다. 우리는 예약 T=2로 충분해(캐스케이드는 여유 없으면 공용 frontier로 우회) 같은 5%에서 생존한다. **"분리 기법은 분리할 공간부터 필요하다"**는 것이 저OP 붕괴의 메커니즘.
 4. **우리 쪽 실현 가능 하한은 OP 5%.** 4%에서는 `no fine victim`으로 사망 — 총 OP 12.7블록에서 fine 8블록을 떼면 coarse OP가 1.4%(12M은 음수)라 애초에 성립하지 않는 구성이다. 정직하게 한계로 명시한다.
+
+### v3.1 보론 — 매핑 DRAM 재계산: 왜 예측 기반 기법은 페이지당 DRAM을 더 쓰는가
+
+**원인은 예측의 단위가 4K라는 것.** DOGI/SepBIT은 "이 4K 블록이 언제 무효화될지"를 블록별로 추정한다. 추정하려면 그 블록의 과거를 기억해야 하고, 어느 블록이 중요한지 미리 알 수 없으므로 **장치 전체를 추적**해야 한다. 64 GiB 기준 정보량(구현 상수가 아닌 필요 최소량):
+
+| 항목 | DOGI | SepBIT | proposed-12M |
+|---|---|---|---|
+| L2P 페이지 맵 (4 B/4K) | 64.0 MB | 64.0 MB | — |
+| coarse 맵 (4 B/IU = 0.5 B/4K) | — | — | 8.0 MB |
+| 재작성 간격 `intervals_` (1 B/4K) | 16.0 MB | — | — |
+| 최근성 비트맵 `freqBits_` (1 B/4K) | 17.5 MB | — | — |
+| 청크 빈도 (8 B/2 MiB) | 0.3 MB | — | — |
+| FrozenFilter (1 bit/4K) | 2.0 MB | — | — |
+| last-write 타임스탬프 (4 B/4K) | — | 64.0 MB | — |
+| fine 맵 + 해시 인덱스 + `flast` (**상주분만**) | — | — | 3.5 MB |
+| MLP 가중치 (6-32-32) | ~0 MB | — | — |
+| **합계** | **99.8 MB** | **128.0 MB** | **11.5 MB** |
+
+**세 가지 시사점.**
+1. **DRAM을 먹는 건 ML이 아니다.** MLP는 6→32→32라 수 KB다. 비용은 **ML에 먹일 피처를 per-LBA로 모으는 데** 있다. "ML을 빼면 가벼워진다"는 반론은 성립하지 않는다.
+2. **SepBIT 표기를 64 MB → 128 MB로 정정한다.** 이전 표는 페이지 맵만 세고 GC 나이 판정용 per-LPN 타임스탬프(레퍼런스 `Metadata`, 8 B; 최소 4 B)를 누락했다. ftlsim의 RAM 모델도 수정했다(`mode=sepbit`). 우리에게 불리한 방향의 오류였으므로 정정하면 격차가 커진다.
+3. **우리 비용은 O(hot 워킹셋)이다.** coarse 맵은 IU당 1엔트리라 4K당 0.5 B로 압축되고, per-LBA 추적은 아예 없다 — hotness 1차 신호가 "fine 풀 상주 여부" 자체이기 때문에 비상주 영역(대부분)은 추적할 이유가 없다. `flast`(4 B)도 상주 IU에만 붙는다. 용량이 커질수록 격차가 벌어진다: 4 TiB로 스케일하면 DOGI ~6.2 GB / SepBIT ~8 GB vs proposed ~0.6 GB.
