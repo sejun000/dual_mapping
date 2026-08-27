@@ -1,0 +1,19 @@
+{
+  "tag": "p6", "mode": "proposed", "zipf": 0.800, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.150, "fine_quota": 0.021, "fine_quota_blocks": 8, "NB": 392,
+  "host_pages": 16777228, "host_pages_ftl": 16701003, "buffer_absorbed": 0.0045, "total_prog": 79292144, "WAF": 4.7262, "WAF_ftl": 4.7477,
+  "prog": {"host": 16701003, "finegc": 5452066, "fold": 2129616, "cgc_clean": 46733536, "cgc_refold": 7359648, "rmw": 916275, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2106, "finegc": 0.0688, "fold": 0.0269, "cgc_clean": 0.5894, "cgc_refold": 0.0928, "rmw": 0.0116, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 862533, "fold_fine": 3222606, "fold_coarse": 6578926, "gc_copy": 52185602, "map": 0},
+  "RAF": 3.7632, "map_miss": 0, "map_flush": 0,
+  "erases": 1624, "erase_fine": 200, "erase_coarse": 1424,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 133101, "refold": 459978, "cgc": 1424, "pgc": 0, "cgc_dead_ext": 964930, "cgc_clean_ext": 2920846, "extent_drop": 8794, "wasted_slots": 1, "greedy": 200, "greedy_fold_pages": 1245515, "greedy_copy_pages": 5452066, "forced_fold": 0, "eager": 273691, "eager_fill": 916275, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 36817.7, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,4177,52798,38640,14177,6283,4775,3366,2925,2119,3841],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,100730,93494,42678,82338,37845,37623,33718,24299,3637,1373,735,583,380,321,224,0],
+  "fine_ius_end": 78554, "fine_pages_end": 279831,
+  "mem": {"total_bytes": 6435828, "total_mib": 6.14, "primary_map": 4194304, "hash_index": 1122200, "slots": 1119324},
+  "host_fine": 4358862, "host_coarse": 13258416,
+  "fine_blocks_end": 8, "coarse_blocks_end": 381, "free_end": 3, "f_end": 0.0204
+}

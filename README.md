@@ -199,3 +199,6 @@ quota 8블록(2.2%). fine 정리 정책 `cost`: victim 블록(valid v)의 IU별�
 - **proposed-6M**: 구 canonical 대비 z0.99 −15%(5.08→4.32), z1.2 −26%. **6 MB로 64 MB page4k를 skew 전 구간에서 역전**(z0.99 −9%), SepBIT(64 MB)와 1% 차.
 - **proposed-12M**: SepBIT를 z0/0.8/0.99/1.2에서 이기고(단 small-heavy는 SepBIT 우세), DOGI 대비 +3%(z0.8)~+27%(z1.2), z0.99 +7% — DRAM은 1/9.
 - 한계(정직): 균등+small-heavy 조합이 최약점(6M: 12.9 vs page4k 6.6). 분리할 hot이 없고 fragment만 많은 경우로, 페이지 맵 자체의 체급 차이가 드러나는 지점. skew가 있으면 small에서도 12M이 4.37로 경쟁력.
+
+## v3.1: OP 상전이 (`results/opsweep`, fig11)
+OP 4~20% 스윕 결과, **SepBIT과의 크로스오버는 OP ≈ 12%**다. 그 아래(상용 SSD의 7% 포함)는 proposed 구간, 위는 SepBIT 구간. page4k는 z=0.99의 전 OP 구간에서 proposed-12M에 진다. 저OP에서 분리 기법이 무너지는 이유는 open segment + GC 예약이 OP를 점유하기 때문(SepBIT: 총 OP의 84%). 우리 실현 하한은 OP 5%(4%는 fine 풀을 뗄 공간이 없어 사망). 상세는 SPEC v3.1.

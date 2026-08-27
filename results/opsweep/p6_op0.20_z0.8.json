@@ -1,0 +1,19 @@
+{
+  "tag": "p6", "mode": "proposed", "zipf": 0.800, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.200, "fine_quota": 0.021, "fine_quota_blocks": 8, "NB": 409,
+  "host_pages": 16777228, "host_pages_ftl": 16701003, "buffer_absorbed": 0.0045, "total_prog": 66390959, "WAF": 3.9572, "WAF_ftl": 3.9753,
+  "prog": {"host": 16701003, "finegc": 5202332, "fold": 2368352, "cgc_clean": 34781424, "cgc_refold": 6053968, "rmw": 1283880, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2516, "finegc": 0.0784, "fold": 0.0357, "cgc_clean": 0.5239, "cgc_refold": 0.0912, "rmw": 0.0193, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 1221403, "fold_fine": 2808438, "fold_coarse": 5951990, "gc_copy": 39983756, "map": 0},
+  "RAF": 2.9918, "map_miss": 0, "map_flush": 0,
+  "erases": 1362, "erase_fine": 185, "erase_coarse": 1177,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 148022, "refold": 378373, "cgc": 1177, "pgc": 0, "cgc_dead_ext": 1031067, "cgc_clean_ext": 2173839, "extent_drop": 7216, "wasted_slots": 1, "greedy": 185, "greedy_fold_pages": 1250772, "greedy_copy_pages": 5202332, "forced_fold": 0, "eager": 327877, "eager_fill": 1283880, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 33658.3, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,1960,15294,26563,64069,11569,7958,5586,4705,3179,2407,1629,3103],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,91306,85484,39930,75342,34061,22879,14312,12181,931,650,402,375,259,168,93,0],
+  "fine_ius_end": 89198, "fine_pages_end": 288155,
+  "mem": {"total_bytes": 6621181, "total_mib": 6.31, "primary_map": 4194304, "hash_index": 1274257, "slots": 1152620},
+  "host_fine": 3859491, "host_coarse": 14125392,
+  "fine_blocks_end": 8, "coarse_blocks_end": 399, "free_end": 2, "f_end": 0.0196
+}

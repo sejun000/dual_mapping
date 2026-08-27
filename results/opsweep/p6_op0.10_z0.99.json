@@ -1,0 +1,19 @@
+{
+  "tag": "p6", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.100, "fine_quota": 0.022, "fine_quota_blocks": 8, "NB": 375,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 69872385, "WAF": 4.1647, "WAF_ftl": 4.3977,
+  "prog": {"host": 15888222, "finegc": 5048351, "fold": 1061584, "cgc_clean": 42240368, "cgc_refold": 5391392, "rmw": 242468, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2274, "finegc": 0.0723, "fold": 0.0152, "cgc_clean": 0.6045, "cgc_refold": 0.0772, "rmw": 0.0035, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 214258, "fold_fine": 2615391, "fold_coarse": 4129278, "gc_copy": 47288719, "map": 0},
+  "RAF": 3.4143, "map_miss": 0, "map_flush": 0,
+  "erases": 1423, "erase_fine": 206, "erase_coarse": 1217,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 66349, "refold": 336962, "cgc": 1217, "pgc": 0, "cgc_dead_ext": 760911, "cgc_clean_ext": 2640023, "extent_drop": 29729, "wasted_slots": 2, "greedy": 206, "greedy_fold_pages": 728274, "greedy_copy_pages": 5048351, "forced_fold": 0, "eager": 123384, "eager_fill": 242468, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 37827.7, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,6015,11877,12797,12976,12795,1753,1410,1130,5596],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,60343,56428,25779,49308,23044,22669,22615,34107,10028,9054,8990,9093,2161,1775,1568,0],
+  "fine_ius_end": 58036, "fine_pages_end": 251401,
+  "mem": {"total_bytes": 6028994, "total_mib": 5.75, "primary_map": 4194304, "hash_index": 829086, "slots": 1005604},
+  "host_fine": 5043698, "host_coarse": 11086992,
+  "fine_blocks_end": 8, "coarse_blocks_end": 365, "free_end": 2, "f_end": 0.0213
+}

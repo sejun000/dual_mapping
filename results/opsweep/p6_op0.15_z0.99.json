@@ -1,0 +1,19 @@
+{
+  "tag": "p6", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 16, "op": 0.150, "fine_quota": 0.021, "fine_quota_blocks": 8, "NB": 392,
+  "host_pages": 16777228, "host_pages_ftl": 15888222, "buffer_absorbed": 0.0530, "total_prog": 53204523, "WAF": 3.1712, "WAF_ftl": 3.3487,
+  "prog": {"host": 15888222, "finegc": 4115672, "fold": 1350064, "cgc_clean": 27276224, "cgc_refold": 4013040, "rmw": 561301, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2986, "finegc": 0.0774, "fold": 0.0254, "cgc_clean": 0.5127, "cgc_refold": 0.0754, "rmw": 0.0105, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 507069, "fold_fine": 2165534, "fold_coarse": 3591734, "gc_copy": 31391896, "map": 0},
+  "RAF": 2.3701, "map_miss": 0, "map_flush": 0,
+  "erases": 1082, "erase_fine": 169, "erase_coarse": 913,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 84379, "refold": 250815, "cgc": 913, "pgc": 0, "cgc_dead_ext": 848349, "cgc_clean_ext": 1704764, "extent_drop": 20342, "wasted_slots": 1, "greedy": 169, "greedy_fold_pages": 776649, "greedy_copy_pages": 4115672, "forced_fold": 0, "eager": 197192, "eager_fill": 561301, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 33181.3, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,894,12646,27831,14750,14317,3953,2466,1777,1414,1073,3258],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,52379,48871,22838,43221,20662,20074,11126,12478,6397,6238,2081,1500,1200,952,798,0],
+  "fine_ius_end": 73228, "fine_pages_end": 270431,
+  "mem": {"total_bytes": 6322142, "total_mib": 6.03, "primary_map": 4194304, "hash_index": 1046114, "slots": 1081724},
+  "host_fine": 4181603, "host_coarse": 12267920,
+  "fine_blocks_end": 8, "coarse_blocks_end": 382, "free_end": 2, "f_end": 0.0204
+}
