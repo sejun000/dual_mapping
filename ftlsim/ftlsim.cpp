@@ -67,7 +67,8 @@ struct Cfg {
                                   // of its 16 pages present (new pages + existing fragments), complete it to a full
                                   // chunk right away (selective RMW) instead of appending fragments. 0 = off.
     int fold_d = 8;               // greedy/cold: fold an IU only when it has >= fold_d fragments (half a chunk)
-    double fold_tau = 0.5;        // cold policy: IU is cold if its last fragment write is older than fold_tau x (fine tier capacity)
+    double fold_tau = -1;         // cost_cold: <0 = parameter-free (cold iff untouched while the victim block lived);
+                                  // >=0 = legacy fixed window of fold_tau x (fine tier capacity)
     bool fine_full = false;       // full-IU host writes to fine-RESIDENT IUs stay in the fine pool (keep hot IUs page-mapped)
     std::string gc_select = "coarse"; // global free-block source: coarse (always coarse GC, default) | cost (pick coarse vs fine victim by v/(P-v))
     int coarse_class = 0;         // SepBIT-style age cascade for coarse GC survivors: N extra GC frontiers (0 = off, one shared GC frontier)
@@ -136,6 +137,7 @@ struct Sim {
     std::vector<int32_t> fine_idx; // IU -> fine pool index or -1
     std::vector<u32> fbitmap;      // pool idx -> bitmap
     std::vector<u32> fslot;        // pool idx*U + off -> ppn
+    std::vector<u64> fbirth;       // fine block -> fine_clock when the block was opened (parameter-free cold test)
     std::vector<u64> flast;        // pool idx -> fine-host-write clock at last host fragment write (unfold hotness)
     std::vector<uint8_t> fcnt;     // pool idx -> host *requests* that wrote fragments to this IU within the hotness window (saturating)
     std::vector<u32> freq;         // pool idx -> id of the last host request that touched this IU (sim-only; dedups pages of one request)
@@ -219,6 +221,7 @@ struct Sim {
         NP = (u64)NB * P;
         coarse_map.assign(NIU, NONE);
         bccls.assign(NB + 1, 0);
+        fbirth.assign(NB + 1, 0);
         if (is_pg()) { pmap.assign(L, NONE); cmt_cap = (u64)(c.cache_bytes * HASH_LF / 8.0); }
         if (is_sb()) { sb_wtime.assign(L, ~0ull); sb_birth.assign(NB + 1, 0); sb_class.assign(NB + 1, 1); }
         fine_idx.assign(NIU, -1);
@@ -390,7 +393,7 @@ struct Sim {
     // get one page slot on the fine frontier
     u32 fine_alloc_page(bool gc = false) {
         Frontier& f = mixed ? ((gc && c.gc_frontier) ? cgf : cf) : ((gc && c.gc_frontier) ? fgf : ff);
-        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(mixed ? B_COARSE : B_FINE); f.next = 0; }
+        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(mixed ? B_COARSE : B_FINE); f.next = 0; fbirth[f.blk] = fine_clock; }
         return (u32)f.blk * P + f.next++;
     }
     // get U consecutive slots on the coarse frontier
@@ -640,7 +643,10 @@ struct Sim {
             double turns = (double)(fine_clock - flast[fi]) / ((double)fine_quota_blocks * P);
             { int bk = turns < 0.125 ? 0 : turns < 0.25 ? 1 : turns < 0.5 ? 2 : turns < 1 ? 3 : turns < 2 ? 4 : turns < 4 ? 5 : 6;
               st.age_hist[bk]++; if ((double)popc(fbitmap[fi]) * victim_v > (double)U * (P - victim_v)) st.age_hist_fold[bk]++; }
-            bool cold = (double)(fine_clock - flast[fi]) >= c.fold_tau * (double)fine_quota_blocks * P;
+            // Parameter-free (fold_tau < 0): cold iff the IU was never rewritten while this block lived.
+            // The block's own residence time is the pool's natural turnover clock, so no constant is needed.
+            bool cold = c.fold_tau < 0 ? (flast[fi] <= fbirth[b])
+                                       : (double)(fine_clock - flast[fi]) >= c.fold_tau * (double)fine_quota_blocks * P;
             bool do_fold;
             if (c.fine_policy == "cost" || c.fine_policy == "cost_cold") {
                 // per-slot cost: fold = U/d, copy-path = v/(P-v)  ->  fold iff d*v > U*(P-v)
