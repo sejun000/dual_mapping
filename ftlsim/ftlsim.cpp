@@ -110,6 +110,8 @@ struct Stats {
     u64 n_unfold = 0, unfold_pages = 0; std::vector<u64> d_unfold;
     u64 n_budget_fold = 0, n_gcfold = 0;
     u64 n_shrink_fold = 0, n_space_capped = 0;
+    u64 age_hist[7] = {0,0,0,0,0,0,0};   // (fine_clock-flast)/pool turnovers: <.125 .25 .5 1 2 4 4+
+    u64 age_hist_fold[7] = {0,0,0,0,0,0,0};  // ... among those the cost test wanted to fold
     u64 n_switch = 0, n_partial = 0, n_full = 0, n_dead_reclaim = 0, n_merge_reclaim = 0, full_assoc_sum = 0, n_seq_req = 0, n_rand_req = 0, n_hot_pages = 0, n_cold_pages = 0;
     u64 total_prog() const { u64 s = 0; for (auto p : prog) s += p; return s; }
     void reset(int U) { *this = Stats(); d_fold.assign(U + 1, 0); d_refold.assign(U + 1, 0); d_unfold.assign(U + 1, 0); }
@@ -635,6 +637,9 @@ struct Sim {
             int32_t fi = fine_idx[iu];
             if (fi < 0 || !(fbitmap[fi] & (1u << off)) || fslot[(u64)fi * U + off] != ppn) continue;
             int d = popc(fbitmap[fi]);
+            double turns = (double)(fine_clock - flast[fi]) / ((double)fine_quota_blocks * P);
+            { int bk = turns < 0.125 ? 0 : turns < 0.25 ? 1 : turns < 0.5 ? 2 : turns < 1 ? 3 : turns < 2 ? 4 : turns < 4 ? 5 : 6;
+              st.age_hist[bk]++; if ((double)popc(fbitmap[fi]) * victim_v > (double)U * (P - victim_v)) st.age_hist_fold[bk]++; }
             bool cold = (double)(fine_clock - flast[fi]) >= c.fold_tau * (double)fine_quota_blocks * P;
             bool do_fold;
             if (c.fine_policy == "cost" || c.fine_policy == "cost_cold") {
@@ -984,6 +989,8 @@ struct Sim {
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
+        { printf("  \"age_turnovers\": ["); for (int i=0;i<7;++i) printf("%s%llu", i?",":"", (unsigned long long)st.age_hist[i]);
+          printf("], \"age_turnovers_costfold\": ["); for (int i=0;i<7;++i) printf("%s%llu", i?",":"", (unsigned long long)st.age_hist_fold[i]); printf("],\n"); }
         printf("  \"host_fine\": %llu, \"host_coarse\": %llu,\n", (unsigned long long)st.host_fine, (unsigned long long)st.host_coarse);
         printf("  \"fine_blocks_end\": %d, \"coarse_blocks_end\": %d, \"free_end\": %zu, \"f_end\": %.4f\n", fine_blocks, coarse_blocks, freelist.size(), (double)fine_blocks / NB);
         printf("}\n");
