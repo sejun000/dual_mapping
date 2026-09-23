@@ -1745,15 +1745,26 @@ struct Runner {
                 c.trace_file.c_str(), (unsigned long long)total_pages, total_pages / 262144.0,
                 (double)total_pages / L, 100 * c.trace_warmup);
         rewind(f);
+        // Dense remap at 1 MiB granularity: regions get dense slots in first-touch order, offsets
+        // inside a region are preserved (so request alignment survives). Sparse multi-TB address
+        // spaces thus compact into the device instead of being folded destructively by modulo.
+        const u64 RPG = (1u << 20) / 4096;                  // pages per region
+        std::unordered_map<u64, u64> rmap_dense; u64 next_region = 0;
         u64 done = 0; bool measuring_started = false;
         while (fgets(line, sizeof line, f)) {
             char op; long long off, len;
             if (sscanf(line, "%*[^,],%c,%lld,%lld", &op, &off, &len) != 3 || op != 'W') continue;
             u64 p0 = (u64)off / 4096, p1 = ((u64)off + (u64)len + 4095) / 4096;
-            u64 lpn = p0 % L, n = p1 - p0;
-            if (lpn + n > L) { wb_write(lpn, L - lpn); wb_write(0, n - (L - lpn)); }  // modulo wrap
-            else wb_write(lpn, n);
-            done += n;
+            for (u64 cur = p0; cur < p1; ) {                       // per-source-region segments
+                u64 r = cur / RPG, seg_end = std::min(p1, (r + 1) * RPG);
+                auto it = rmap_dense.find(r);
+                if (it == rmap_dense.end()) it = rmap_dense.emplace(r, next_region++).first;
+                u64 lpn = it->second * RPG + (cur - r * RPG), n = seg_end - cur;
+                if (lpn + n > L) DIE("trace dense space exceeds device (%llu regions); raise capacity",
+                                     (unsigned long long)next_region);
+                wb_write(lpn, n);
+                done += n; cur = seg_end;
+            }
             if (!measuring_started && done >= warm) {
                 s.verify();
                 fprintf(stderr, "[trace] warmup done (%llu pages), reset stats\n", (unsigned long long)done);
@@ -1761,6 +1772,8 @@ struct Runner {
             }
         }
         fclose(f);
+        fprintf(stderr, "[trace] dense space: %llu MiB regions (%.1f GiB), device utilization %.1f%%\n",
+                (unsigned long long)next_region, next_region / 1024.0, 100.0 * next_region * RPG / L);
         wb_drain();
         s.verify();
         s.report();

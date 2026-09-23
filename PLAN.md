@@ -1,7 +1,7 @@
 # DAC 2027 실행 계획 (2026-09-23 확정)
 
 ## 결정 사항
-- **타깃: DAC 2027** (full paper ~11월 중하순, 정확한 마감 TBD — https://dac.com/2027/authors/call-for-contributions 주시). 교수님 지시로 국문 저널 취소, FAST'28은 별도 주제로 — **이 논문은 DAC이 종착지, 내용 아낄 필요 없음**.
+- **타깃: DAC 2027** — 공식 일정(https://dac.com/2027/program/research-manuscript-submissions): **초록 11/11 17:00 PST (KST 11/12 10:00), 본문 11/18 17:00 PST (KST 11/19 10:00)**, 통보 2027-03-08, 카메라레디 3/31. 6쪽+참고문헌 1쪽, 더블블라인드, rebuttal 없음. ATC'27(1월 마감설)과는 심사 기간이 겹쳐 택일 → DAC 확정(2026-09-23). 교수님 지시로 국문 저널 취소, FAST'28은 별도 주제로 — **이 논문은 DAC이 종착지, 내용 아낄 필요 없음**.
 - **NVMeVirt는 DAC에도 포함** (read 성능 vs DFTL이 저DRAM 경쟁 구도의 마침표).
 - 확률 추정: real trace가 버텨주면 55~70%, synthetic만이면 35~50%.
 
