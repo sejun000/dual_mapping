@@ -50,6 +50,8 @@ struct Cfg {
     bool seq_fill = true;
     u64 ts_interval = 0;          // host pages between time-series samples (0 = capacity/200)
     std::string out_ts;
+    std::string trace_file;       // replay a real trace (CSV: dev,op,byte_off,len_bytes[,ts]) instead of the synthetic workload
+    double trace_warmup = 0.5;    // fraction of the trace's write volume used as aging; stats reset there, rest is measured
     std::string out_trace;        // export the post-buffer host stream (one line per 4K page: "0 1 <lpn> 4096")           // csv path for time-series
     std::string tag;              // free-form label echoed in output
     bool fine_extra = true;       // fine quota is physical space ADDED on top of OP (else carved from OP)
@@ -1726,7 +1728,50 @@ struct Runner {
         for (u64 p = 0; p < L; p += chunk) wb_write(p, std::min(chunk, L - p));
     }
 
+    // Real-trace replay: writes only, LBAs folded into the device by modulo, fed through the
+    // same write buffer. Pass 1 counts write pages so the warmup/measure split is exact.
+    void run_trace() {
+        FILE* f = fopen(c.trace_file.c_str(), "r");
+        if (!f) DIE("cannot open trace %s", c.trace_file.c_str());
+        char line[256]; u64 total_pages = 0;
+        while (fgets(line, sizeof line, f)) {
+            char op; long long off, len;
+            if (sscanf(line, "%*[^,],%c,%lld,%lld", &op, &off, &len) != 3 || op != 'W') continue;
+            u64 p0 = (u64)off / 4096, p1 = ((u64)off + (u64)len + 4095) / 4096;
+            total_pages += p1 - p0;
+        }
+        u64 warm = (u64)(total_pages * c.trace_warmup);
+        fprintf(stderr, "[trace] %s: %llu write pages (%.1f GiB, %.2fx device), warmup %.0f%%\n",
+                c.trace_file.c_str(), (unsigned long long)total_pages, total_pages / 262144.0,
+                (double)total_pages / L, 100 * c.trace_warmup);
+        rewind(f);
+        u64 done = 0; bool measuring_started = false;
+        while (fgets(line, sizeof line, f)) {
+            char op; long long off, len;
+            if (sscanf(line, "%*[^,],%c,%lld,%lld", &op, &off, &len) != 3 || op != 'W') continue;
+            u64 p0 = (u64)off / 4096, p1 = ((u64)off + (u64)len + 4095) / 4096;
+            u64 lpn = p0 % L, n = p1 - p0;
+            if (lpn + n > L) { wb_write(lpn, L - lpn); wb_write(0, n - (L - lpn)); }  // modulo wrap
+            else wb_write(lpn, n);
+            done += n;
+            if (!measuring_started && done >= warm) {
+                s.verify();
+                fprintf(stderr, "[trace] warmup done (%llu pages), reset stats\n", (unsigned long long)done);
+                s.st.reset(U); s.measuring = true; measuring_started = true;
+            }
+        }
+        fclose(f);
+        wb_drain();
+        s.verify();
+        s.report();
+    }
+
     void run() {
+        if (!c.trace_file.empty()) {
+            if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
+            run_trace();
+            return;
+        }
         build_workload();
         if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); }
         if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
@@ -1788,6 +1833,8 @@ int main(int argc, char** argv) {
         else if (k == "ts_interval") c.ts_interval = strtoull(v.c_str(), nullptr, 10);
         else if (k == "out_ts") c.out_ts = v;
         else if (k == "out_trace") c.out_trace = v;
+        else if (k == "trace") c.trace_file = v;
+        else if (k == "trace_warmup") c.trace_warmup = atof(v.c_str());
         else if (k == "tag") c.tag = v;
         else if (k == "fine_extra") c.fine_extra = atoi(v.c_str()) != 0;
         else if (k == "gc_frontier") c.gc_frontier = atoi(v.c_str()) != 0;
