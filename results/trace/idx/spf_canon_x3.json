@@ -1,0 +1,23 @@
+{
+  "tag": "spf_canon_x3", "mode": "proposed", "zipf": 0.000, "seed": 1,
+  "capacity_gb": 40.02, "P": 30720, "U": 8, "op": 0.093, "fine_quota": 0.043, "fine_quota_blocks": 16, "NB": 373,
+  "host_pages": 29650109, "host_pages_ftl": 29650293, "buffer_absorbed": -0.0000, "total_prog": 413969794, "WAF": 13.9618, "WAF_ftl": 13.9617,
+  "prog": {"host": 29650293, "finegc": 60637747, "fold": 31820176, "cgc_clean": 161702072, "cgc_refold": 130159488, "rmw": 18, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.0716, "finegc": 0.1465, "fold": 0.0769, "cgc_clean": 0.3906, "cgc_refold": 0.3144, "rmw": 0.0000, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 16, "fold_fine": 27271912, "fold_coarse": 134707754, "gc_copy": 222339819, "map": 0},
+  "RAF": 12.9617, "map_miss": 0, "map_flush": 0,
+  "erases": 13603, "erase_fine": 2864, "erase_coarse": 10739,
+  "events": {"finegc": 0, "blockfold": 70, "fold": 3977522, "refold": 16269936, "cgc": 10739, "pgc": 0, "cgc_dead_ext": 4260665, "cgc_clean_ext": 20212759, "extent_drop": 22146, "wasted_slots": 15, "greedy": 2794, "greedy_fold_pages": 5171937, "greedy_copy_pages": 60637747, "forced_fold": 70, "eager": 13, "eager_fill": 18, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 65, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 25309.6, "pgc": 0.0},
+  "d_hist_fold": [60,1529535,1844159,517390,58530,5343,331,29,22145],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,12907283,2979107,342297,37272,3666,280,31,0],
+  "fine_d_hist_end": [0,304229,40485,3697,317,37,2,0,3],
+  "fine_ius_end": 348770, "fine_pages_end": 397779,
+  "mem": {"total_bytes": 13811956, "total_mib": 13.17, "primary_map": 5245440, "hash_index": 6975400, "slots": 1591116},
+  "vblk_age_mean_turnovers": 0.3105, "vblk_age_hist": [722,1688,379,3,2,0],
+  "age_turnovers": [2828931,2852116,18731893,24742622,13772740,143370,48], "age_turnovers_costfold": [1081461,1019266,2274464,1062327,531798,37080,3],
+  "host_fine": 27328551, "host_coarse": 2321760,
+  "fine_host_new": 27279613, "fine_host_ow": 48938, "fine_pages_peak": 482211,
+  "fine_blocks_end": 16, "coarse_blocks_end": 355, "free_end": 2, "f_end": 0.0429
+}

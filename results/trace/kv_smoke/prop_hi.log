@@ -1,0 +1,9 @@
+[cfg] mode=proposed L=16038656 pages (61.2 GB) NP=17518592 NB=376 P=46592 U=8 OP=0.093 fine_quota=16 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/kvtrace/smoke.packed.csv: 38907663 write pages (148.4 GiB, 2.43x device), warmup 50%
+[verify] ok. fine_valid_pages=706 fine_blocks=1 coarse_blocks=373 free=2
+[verify] block valid histogram (deciles 0..100%): 2 0 0 0 1 4 18 26 57 75 191
+[trace] warmup done (19455375 pages), reset stats
+[trace] dense space: 62651 MiB regions (61.2 GiB), device utilization 100.0%
+[verify] ok. fine_valid_pages=1103 fine_blocks=1 coarse_blocks=373 free=2
+[verify] block valid histogram (deciles 0..100%): 2 0 1 1 2 4 20 41 34 28 241

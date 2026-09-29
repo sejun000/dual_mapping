@@ -1,0 +1,24 @@
+OP 7% (fine pool carved from it), mapping DRAM fixed as a fraction of the page map; DFTL/LeaFTL/uFTL cache = 18.75% budget
+workload   V3 18.75%     V3 10%     page4k       DFTL     LeaFTL     SepBIT       FAST     IU+RMW       uFTL
+z0            13.310     13.163      8.746      9.348      8.817     13.546     18.560     15.936     17.239
+z0.8           9.294     10.278      8.525      8.901      8.518     10.557     20.575     15.568     55.150
+z0.99          5.937      5.800      5.986      6.154      5.930      6.373     27.481     10.686     32.883
+z1.2           2.506      2.649      3.089      3.130      3.101      2.428     42.547      5.072     12.335
+ali1           4.289      4.280      5.436      5.467      5.588      5.380     14.757      7.497     49.379
+ali2           5.759      5.780      6.653      6.689      6.700      7.720     14.966      8.884     50.203
+ali3           3.293      3.272      3.967      3.972      3.833      3.794     10.861      5.338     45.911
+ssd            5.836      5.836      6.032      6.040      6.104      7.244     12.309      6.029     25.047
+kv_w1          3.687      3.687      3.343      3.349      3.251      4.055      9.114      3.330     22.152
+spfresh       14.333     30.931      7.746      9.745     11.424      7.903     17.384    130.072     34.797
+
+V3 18.75% vs best competitor in its DRAM class (page4k is 100% DRAM):
+  z0        V3=13.310  page4k= 8.746 (+52.2%)  best low-DRAM=LeaFTL  8.817 (+51.0%)
+  z0.8      V3= 9.294  page4k= 8.525 ( +9.0%)  best low-DRAM=LeaFTL  8.518 ( +9.1%)
+  z0.99     V3= 5.937  page4k= 5.986 ( -0.8%)  best low-DRAM=LeaFTL  5.930 ( +0.1%)
+  z1.2      V3= 2.506  page4k= 3.089 (-18.9%)  best low-DRAM=LeaFTL  3.101 (-19.2%)
+  ali1      V3= 4.289  page4k= 5.436 (-21.1%)  best low-DRAM=DFTL  5.467 (-21.5%)
+  ali2      V3= 5.759  page4k= 6.653 (-13.4%)  best low-DRAM=DFTL  6.689 (-13.9%)
+  ali3      V3= 3.293  page4k= 3.967 (-17.0%)  best low-DRAM=LeaFTL  3.833 (-14.1%)
+  ssd       V3= 5.836  page4k= 6.032 ( -3.3%)  best low-DRAM=IU+RMW  6.029 ( -3.2%)
+  kv_w1     V3= 3.687  page4k= 3.343 (+10.3%)  best low-DRAM=LeaFTL  3.251 (+13.4%)
+  spfresh   V3=14.333  page4k= 7.746 (+85.0%)  best low-DRAM=DFTL  9.745 (+47.1%)

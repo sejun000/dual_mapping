@@ -1,0 +1,23 @@
+{
+  "tag": "adapt", "mode": "proposed", "zipf": 0.000, "seed": 1,
+  "capacity_gb": 394.46, "P": 302592, "U": 8, "op": 0.093, "fine_quota": 0.043, "fine_quota_blocks": 16, "NB": 373,
+  "host_pages": 268435302, "host_pages_ftl": 268418968, "buffer_absorbed": 0.0001, "total_prog": 1247232407, "WAF": 4.6463, "WAF_ftl": 4.6466,
+  "prog": {"host": 268418968, "finegc": 143724, "fold": 0, "cgc_clean": 978568928, "cgc_refold": 100784, "rmw": 3, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2152, "finegc": 0.0001, "fold": 0.0000, "cgc_clean": 0.7846, "cgc_refold": 0.0001, "rmw": 0.0000, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 3, "fold_fine": 52797, "fold_coarse": 47987, "gc_copy": 978712652, "map": 0},
+  "RAF": 3.6466, "map_miss": 0, "map_flush": 0,
+  "erases": 4121, "erase_fine": 2, "erase_coarse": 4119,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 0, "refold": 12598, "cgc": 4119, "pgc": 0, "cgc_dead_ext": 32640500, "cgc_clean_ext": 122321116, "extent_drop": 5385, "wasted_slots": 0, "greedy": 2, "greedy_fold_pages": 0, "greedy_copy_pages": 143724, "forced_fold": 0, "eager": 1, "eager_fill": 3, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 2, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 237586.0, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,2760,1211,1182,1233,1399,1549,3264,0],
+  "fine_ius_end": 15713, "fine_pages_end": 113416,
+  "mem": {"total_bytes": 52469940, "total_mib": 50.04, "primary_map": 51702016, "hash_index": 314260, "slots": 453664},
+  "vblk_age_mean_turnovers": 0.0626, "vblk_age_hist": [2,0,0,0,0,0],
+  "age_turnovers": [143724,0,0,0,0,0,0], "age_turnovers_costfold": [0,0,0,0,0,0,0],
+  "host_fine": 633779, "host_coarse": 267785192,
+  "fine_host_new": 97492, "fine_host_ow": 536287,
+  "adapt": {"switches": 0, "uni_host_frac": 0.0000, "quota_base": 16, "quota_uni": 24, "uni_at_end": 0},
+  "fine_blocks_end": 2, "coarse_blocks_end": 369, "free_end": 2, "f_end": 0.0054
+}

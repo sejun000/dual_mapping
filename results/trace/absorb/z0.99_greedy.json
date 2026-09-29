@@ -1,0 +1,22 @@
+{
+  "tag": "z0.99_greedy", "mode": "proposed", "zipf": 0.990, "seed": 1,
+  "capacity_gb": 64.00, "P": 49152, "U": 8, "op": 0.093, "fine_quota": 0.064, "fine_quota_blocks": 24, "NB": 373,
+  "host_pages": 16777228, "host_pages_ftl": 15939669, "buffer_absorbed": 0.0499, "total_prog": 78596534, "WAF": 4.6847, "WAF_ftl": 4.9309,
+  "prog": {"host": 15939669, "finegc": 6980969, "fold": 105080, "cgc_clean": 52327328, "cgc_refold": 3243488, "rmw": 0, "pgc": 0, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 0, "unfold": 0},
+  "prog_frac": {"host": 0.2028, "finegc": 0.0888, "fold": 0.0013, "cgc_clean": 0.6658, "cgc_refold": 0.0413, "rmw": 0.0000, "pgc": 0.0000, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.0000, "unfold": 0.0000},
+  "reads": {"rmw": 0, "fold_fine": 1511996, "fold_coarse": 1836572, "gc_copy": 59308297, "map": 0},
+  "RAF": 3.9309, "map_miss": 0, "map_flush": 0,
+  "erases": 1600, "erase_fine": 325, "erase_coarse": 1275,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 13135, "refold": 405436, "cgc": 1275, "pgc": 0, "cgc_dead_ext": 884161, "cgc_clean_ext": 6540916, "extent_drop": 112684, "wasted_slots": 1, "greedy": 325, "greedy_fold_pages": 105080, "greedy_copy_pages": 6980969, "forced_fold": 0, "eager": 0, "eager_fill": 0, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 325, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 42481.5, "pgc": 0.0},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,13135],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,88637,77746,48950,63011,41786,42179,43127,0],
+  "fine_ius_end": 126739, "fine_pages_end": 696536,
+  "mem": {"total_bytes": 13709532, "total_mib": 13.07, "primary_map": 8388608, "hash_index": 2534780, "slots": 2786144},
+  "vblk_age_mean_turnovers": 0.5410, "vblk_age_hist": [184,0,42,97,2,0],
+  "age_turnovers": [3870511,37126,62751,621156,886345,660533,855683], "age_turnovers_costfold": [1304,1089,2080,5110,3586,3020,5263],
+  "host_fine": 8969549, "host_coarse": 6970120,
+  "fine_host_new": 2464092, "fine_host_ow": 6505457,
+  "fine_blocks_end": 23, "coarse_blocks_end": 348, "free_end": 2, "f_end": 0.0617
+}
