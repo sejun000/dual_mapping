@@ -1,7 +1,8 @@
 #!/bin/bash
 # Real-trace replay at equal total physical space (OP 9.278%), canonical v3.2 operating points.
 #   tools/run_trace.sh <packed.csv from trace_prep> <capacity_bytes> <outdir> [extra key=value ...]
-# DFTL runs after the proposed points, with its CMT sized to each point's measured RAM.
+# DFTL and LeaFTL run after the proposed points, with its CMT sized to each point's measured RAM and the
+# last-read translation page buffered in SRAM (dftl_tpbuf=1: no per-entry flash read for sequential runs).
 cd "$(dirname "$0")/.."
 TR=$1; CAP=$2; OUT=$3; shift 3
 mkdir -p "$OUT"
@@ -17,7 +18,8 @@ run iu_rmw mode=iu_rmw op=$OPEQ "$@" &
 wait
 for p in lo hi; do
   MEM=$(python3 -c "import json;print(int(json.load(open('$OUT/prop_$p.json'))['mem']['total_bytes']))")
-  run dftl_$p mode=dftl op=$OPEQ cache_bytes=$MEM "$@" &
+  run dftl_$p mode=dftl op=$OPEQ cache_bytes=$MEM dftl_tpbuf=1 "$@" &
+  run leaftl_$p mode=leaftl op=$OPEQ cache_bytes=$MEM "$@" &
 done
 wait
 python3 - "$OUT" <<'PY'

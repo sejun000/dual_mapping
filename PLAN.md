@@ -37,3 +37,12 @@
 
 ## 재현성
 - 빌드는 zig 고정(`./build.sh`; g++는 `CXX=g++`로만). canonical 재현 확인: prop_lo z0.99 = 4.3211.
+
+## 평가 기준 재설정 (2026-09-29)
+- **OP 7%** (문헌 관례: GB/GiB 차이). proposed의 fine 풀은 이 7% 안에서 분할(`fine_extra=0`) → 모든 정책 물리 공간 동일. (이전 9.278%는 "7% + fine 8블록"을 환산한 값이라 근거 없음 → 폐기)
+- **매핑 DRAM = page map(L×4 B) 대비 고정 비율**: 주 18.75%, 보조 10%. proposed는 정적 크기 fine 표(`fine_index=cuckoo2`: 2-choice 4-way bucket, kick 없음, 조회/삽입/삭제 DRAM 접근 ≤2회, 버킷 쌍이 차면 8개 엔트리 중 조각 최다 IU를 64K로 fold해 축출). DFTL/LeaFTL/μ-FTL 캐시도 같은 바이트 예산.
+- **기준 proposed = V3**: 64K IU, 8 B 엔트리(`rec_block=1`: 최근성은 블록 메타데이터로), `adapt=2`(fine 풀 흡수율이 같은 크기 random 캐시 기대값(풀 페이지/L) 미만이면 균등 모드: 풀=여유 OP 전부, greedy victim, 수명 분류 off, fine frontier 1개), fine 쿼터 기본 0.0429.
+  - `tools/run_op7.sh`, 결과 `results/op7b/<workload>/{V3_18,V3_10,page4k,dftl12,leaftl12,sepbit,fast,iu_rmw,mu12,...}.json`, 요약 `results/op7b/SUMMARY.txt`.
+- **결과 요약(V3 18.75%)**: z1.2 −19%, Alibaba1/2/3 −21/−13/−17%, ssdtrace −3% (page4k 및 최강 저DRAM 대비). z0.99 동률. 공개 경계: z0(+52%), z0.8(+9%), KV(+10%), SPFresh(page4k 대비 +85%, 단 FAST 17.4 / μ-FTL 34.8 / IU+RMW 130보다 낮음).
+- **추후 sensitivity**: IU(32K/64K/128K; V3에서 U만 바꿔 분리), DRAM 예산(10/18.75%), OP(4~20%), 엔트리 크기(8/12 B).
+- ftlsim liveness 수정 2건(예약 블록 escape `>1`, GC frontier 반대 방향 spill) — 기존 결과 비트 동일.

@@ -57,6 +57,14 @@ struct Cfg {
     bool fine_extra = true;       // fine quota is physical space ADDED on top of OP (else carved from OP)
     bool gc_frontier = true;      // separate active blocks for GC/reclaim writes vs host writes (hot/cold separation)
     bool zipf_shuffle = false;
+    std::string fine_index = "hash"; // proposed RAM model of the fine map: hash (per-IU entry, open addressing, LF 0.7, + 4 B/page slots)
+                                     // | cuckoo (per-page entries in a bucketized cuckoo table: 4-way buckets, 2 hashes, LF 0.95;
+                                     //   entry = lpn 4 B + ppn 4 B (+ 4 B write time when the cold test needs per-IU recency))
+    int rec_block = 0;               // 1: per-IU recency from block metadata instead of a per-entry write time (8 B fine entries):
+                                     //    an IU is "recent" iff one of its fragments sits in a host-frontier fine block born later
+    int uni_onefront = 0;            // adapt uniform mode: fine GC copies share the host fine frontier (one fewer open block)
+    double map_budget = 0;           // fine_index=cuckoo2: total mapping DRAM as a fraction of the page map (L x 4 B);
+                                     // the fine table gets what the coarse map leaves: 2-choice 4-way buckets, statically sized
     std::string fine_cap = "blocks"; // proposed: blocks (fixed fine block quota) | ram (no block quota; fine map capped by RAM budget, global greedy GC across tiers)
     u64 fine_budget_bytes = 0;    // mixed/ram: RAM budget for the fine map (0 = 10% of page4k L2P minus coarse map)
     std::string fine_policy = "cost";  // fine victim handling: cost (default, parameter-free: fold IU iff 16/d < v/(P-v)) | cold (pressure-gated coldest-first) | greedy (d>=fold_d) | block (whole-block cost test)
@@ -82,6 +90,15 @@ struct Cfg {
     double last_hot_frac = 0.5;   // initial hot partition fraction of the random log buffer (LAST)
     bool last_fixed_caps = true;  // disable the paper's reclaimed-block reassignment (fixed partition sizes)
     u64 cache_bytes = 12ull << 20; // dftl / mu: RAM for cached mapping (translation-page cache / mu-tree cache)
+    double leaftl_gamma = 1e-4;   // leaftl: PLR error bound (artifact default 1e-4 = exact segments)
+    int leaftl_batch = 2048;      // leaftl: pages sorted by LPN per flash-allocation batch (artifact RWCache flush = 8 MiB)
+    bool leaftl_gcsort = true;    // leaftl: GC relocates a victim's valid pages in LPN order and relearns them
+    int adapt = 0;                // proposed: 1/2 = switch per fine-pool turnover between the canonical policy and a
+                                  // uniform mode (fine pool = all spare OP, greedy coarse victim, no age cascade) when the
+                                  // fine pool absorbs less than half of its host pages by overwrite (1: majority rule) or no
+                                  // more than a random cache of its size would (2: absorption < pool pages / logical pages)
+    bool dftl_tpbuf = false;      // dftl: keep the last translation page read from flash in controller SRAM, so back-to-back
+                                  // misses (and write-backs) on the same page cost one flash read (sequential runs no longer pay per entry)
     u64 bitmap_cache_bytes = 32768; // mu: bitmap (invalid-extent) cache
     int mu_parts = 8;             // mu: logical address space partitions (each has its own update block)
     int mu_max_extent = 128;      // mu: max extent length (pages)
@@ -109,6 +126,9 @@ struct Stats {
     u64 n_greedy = 0, greedy_fold_pages = 0, greedy_copy_pages = 0, n_forced_fold = 0;
     u64 n_eager = 0, eager_fill = 0;
     u64 frag_folded = 0, frag_freed = 0;   // fine pages retired by an explicit fold vs. for free (refold / overwrite)
+    u64 fine_host_new = 0, fine_host_ow = 0, uni_host = 0;
+    u64 fine_peak = 0;
+    u64 n_evict_fold = 0;                    // cuckoo2: folds forced by a full bucket pair (the table is the DRAM budget)                       // max fine-resident valid pages, sampled at each fine block allocation // host pages entering the fine pool as a new fragment vs. overwriting a fine-resident page
     u64 host_fine = 0, host_coarse = 0;  // host pages by tier
     u64 n_unfold = 0, unfold_pages = 0; std::vector<u64> d_unfold;
     u64 n_budget_fold = 0, n_gcfold = 0;
@@ -134,6 +154,10 @@ struct Sim {
     u64 NIU;        // number of IUs
     int P, U;
     int fine_quota_blocks;
+    // adapt=1 state: canonical quota vs. uniform-mode quota (all spare OP), absorption window counters
+    int fine_quota_base = 0, fine_quota_uni = 0; bool uni = false;
+    u64 aw_new = 0, aw_ow = 0, n_mode_switch = 0;
+    int cc_eff() const { return uni ? 0 : c.coarse_class; }
 
     // maps
     std::vector<u32> coarse_map;   // IU -> extent start ppn
@@ -210,6 +234,21 @@ struct Sim {
         if (c.mode == "proposed") {
             fine_quota_blocks = std::max(1, (int)(NB * c.fine_quota));
             if (c.fine_extra) NB += fine_quota_blocks;   // fine tier is extra physical space
+            fine_quota_base = fine_quota_blocks;
+            {   // uniform-mode quota: every block not needed for the logical data, the GC reserve and the
+                // four open frontiers (host/GC x fine/coarse) -- geometry only, no tuning constant
+                int data_blocks = (int)((L + P - 1) / P);
+                fine_quota_uni = std::max(fine_quota_base, NB - data_blocks - c.T - (c.uni_onefront ? 3 : 4) - 1);
+            }
+            if (c.fine_index == "cuckoo2") {
+                if (c.unfold != "off") DIE("cuckoo2 does not support unfold");
+                double ent = 4 + 4 + (!c.rec_block && (c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0);
+                double fine_bytes = c.map_budget * (double)L * 4 - (double)(L / U) * 4;
+                if (fine_bytes < 4 * ent * 16) DIE("map_budget %.4f leaves no room for the fine table (coarse map alone is %.4f of the page map)", c.map_budget, 1.0 / U);
+                ct_nb = (u64)(fine_bytes / (4 * ent)); ct.assign(ct_nb * 4, NONE); ct_on = true;
+                fprintf(stderr, "[cfg] cuckoo2 fine table: %llu buckets x 4 = %llu entries (%.2f MiB), budget %.4f of page map\n",
+                        (unsigned long long)ct_nb, (unsigned long long)(ct_nb * 4), ct_nb * 4 * ent / (1 << 20), c.map_budget);
+            }
             if (c.fine_cap == "ram") {
                 ram_cap = true; fine_quota_blocks = NB;    // no block quota
                 fine_budget = c.fine_budget_bytes ? (double)c.fine_budget_bytes : 0.10 * (double)L * 4.0 - (double)NIU * 4.0;
@@ -226,7 +265,7 @@ struct Sim {
         NP = (u64)NB * P;
         coarse_map.assign(NIU, NONE);
         bccls.assign(NB + 1, 0);
-        fbirth.assign(NB + 1, 0);
+        fbirth.assign(NB + 1, 0); bhost.assign(NB + 1, 0);
         if (is_pg()) { pmap.assign(L, NONE); cmt_cap = (u64)(c.cache_bytes * HASH_LF / 8.0); }
         if (is_sb()) { sb_wtime.assign(L, ~0ull); sb_birth.assign(NB + 1, 0); sb_class.assign(NB + 1, 1); }
         fine_idx.assign(NIU, -1);
@@ -246,12 +285,14 @@ struct Sim {
     // ------------------------------------------------------------------ helpers
     inline int blk_of(u32 ppn) const { return (int)(ppn / P); }
     inline int popc(u32 x) const { return __builtin_popcount(x); }
-    bool is_pg() const { return c.mode == "page4k" || c.mode == "dftl" || c.mode == "sepbit"; }
+    bool is_pg() const { return c.mode == "page4k" || c.mode == "dftl" || c.mode == "sepbit" || c.mode == "leaftl"; }
+    bool is_lf() const { return c.mode == "leaftl"; }
     bool is_sb() const { return c.mode == "sepbit"; }
 
     // ---- DFTL (Gupta et al., ASPLOS'09) cached page mapping (CFTL's write path is identical): tier-2 translation pages (1024 entries) in flash, CMT in RAM (LRU).
     static const int TP_ENTRIES = 1024;
     u64 cmt_cap = 0;
+    u64 tp_buf = ~0ull;                                         // dftl_tpbuf: translation page currently held in SRAM
     std::list<u64> cmt_lru;                                     // front = MRU
     std::unordered_map<u64, std::pair<std::list<u64>::iterator, bool>> cmt;  // lpn -> (lru pos, dirty)
     void cmt_evict_one() {
@@ -260,7 +301,9 @@ struct Sim {
         if (!dirty) return;
         // batch update: write back the translation page, cleaning every cached dirty entry of the same page
         u64 tp = victim / TP_ENTRIES;
-        st.read_map++; st.prog[S_MAP]++; st.map_flush++;
+        if (!c.dftl_tpbuf || tp != tp_buf) st.read_map++;
+        if (c.dftl_tpbuf) tp_buf = tp;
+        st.prog[S_MAP]++; st.map_flush++;
         for (u64 l = tp * TP_ENTRIES; l < (tp + 1) * TP_ENTRIES; ++l) { auto j = cmt.find(l); if (j != cmt.end()) j->second.second = false; }
     }
     // mapping update for lpn on a host write (DFTL: miss -> read translation page, insert; dirty)
@@ -268,8 +311,11 @@ struct Sim {
         if (c.mode != "dftl") return;
         auto it = cmt.find(lpn);
         if (it != cmt.end()) { cmt_lru.erase(it->second.first); cmt_lru.push_front(lpn); it->second = {cmt_lru.begin(), true}; return; }
-        st.map_miss++; st.read_map++;
+        st.map_miss++;
+        u64 tp = lpn / TP_ENTRIES;
+        if (!c.dftl_tpbuf || tp != tp_buf) st.read_map++;
         while (cmt.size() >= cmt_cap) cmt_evict_one();
+        if (c.dftl_tpbuf) tp_buf = tp;
         cmt_lru.push_front(lpn); cmt[lpn] = {cmt_lru.begin(), true};
     }
     // GC relocation: cached entries are updated in place; others update their translation pages in batch
@@ -282,6 +328,246 @@ struct Sim {
     }
     void cmt_gc_flush() { for (u64 tp : gc_tps) { (void)tp; st.read_map++; st.prog[S_MAP]++; st.map_flush++; } gc_tps.clear(); }
 
+
+    // ---- LeaFTL (Sun et al., ASPLOS'23; port of platformxlab/LeaFTL wiscsim/learnedftl.py).
+    // Page-level log-structured data layout (shared frontiers / greedy GC). The L2P table is a set of learned
+    // segments per 256-LPN frame: greedy PLR with error bound gamma over (lpn, ppn) pairs that were allocated in
+    // LPN-sorted batches. Frames are cached in DRAM (LRU, budget = cache_bytes, memory per the artifact's formula:
+    // single point 5 B, consecutive 8 B, non-consecutive 8 B + 1 B per bitmap run boundary; +4 B per frame);
+    // evicted dirty frames cost one translation-page program, touching a flash-resident frame costs one flash read.
+    // Differences from the artifact, all in LeaFTL's favour or neutral: shadowed segment coverage is removed at
+    // insert time (always-compacted table), clean evictions are free, write-path mispredictions are not charged,
+    // and GC relearns relocated pages (the artifact never updates the learned table on GC).
+    static const int LF_FRAME = 256;
+    struct LSeg { u32 x1, x2; double k, b; bool accurate, consec; u64 cov[4]; };
+    struct LFrame { std::vector<LSeg> segs; bool resident = false, dirty = false, partial = false; std::list<u64>::iterator lru; double mem = 0; };
+    std::unordered_map<u64, LFrame> lframes;
+    std::list<u64> lf_lru;                      // resident frames, front = MRU
+    double lf_cached = 0;                       // bytes of resident frames
+    std::vector<u32> lf_stage; std::unordered_set<u32> lf_stage_set;
+    u64 lf_mispredict = 0, lf_lookups = 0;
+    static double f16(double v) { if (v == 0) return 0; int e; double m = std::frexp(v, &e); return std::ldexp(std::nearbyint(std::ldexp(m, 11)), e - 11); }
+    static bool cov_get(const u64* c, int i) { return (c[i >> 6] >> (i & 63)) & 1; }
+    static int cov_first(const u64* c) { for (int w = 0; w < 4; ++w) if (c[w]) return w * 64 + __builtin_ctzll(c[w]); return -1; }
+    static int cov_last(const u64* c) { for (int w = 3; w >= 0; --w) if (c[w]) return w * 64 + 63 - __builtin_clzll(c[w]); return -1; }
+    static double seg_mem(const LSeg& g, u64 base) {
+        if (g.x1 == g.x2) return 1 + 4;                    // SUBLPN(1) + PPN(4)
+        if (g.consec) return 1 + 4 + 2 + 1;                // + float16 slope + length
+        int lo = (int)(g.x1 - base), hi = (int)(g.x2 - base), bnd = 0;
+        for (int i = lo + 1; i < hi; ++i) if (cov_get(g.cov, i) != cov_get(g.cov, i - 1)) bnd++;
+        return 1 + 4 + 2 + 1 + bnd;
+    }
+    // greedy PLR, same state machine as the artifact's PLR.process/build_segment
+    struct PL { double k, b; };
+    static PL pl_from(double x1, double y1, double x2, double y2) { double k = (y2 - y1) / (x2 - x1); return {k, y1 - k * x1}; }
+    void lf_emit(std::vector<LSeg>& out, const std::vector<std::pair<u64,u64>>& pts, int state, double k, double b, u64 base) {
+        LSeg g; g.x1 = (u32)pts.front().first; g.x2 = (u32)pts.back().first;
+        if (state == 1) { g.k = 1; g.b = (double)pts[0].second - (double)pts[0].first; } else { g.k = k; g.b = b; }
+        g.accurate = true; g.consec = true;
+        std::memset(g.cov, 0, sizeof g.cov);
+        for (size_t i = 0; i < pts.size(); ++i) {
+            if (std::llround((double)pts[i].first * g.k + g.b) != (long long)pts[i].second) g.accurate = false;
+            if (i >= 2 && pts[i].first - pts[i-1].first != pts[1].first - pts[0].first) g.consec = false;
+            int r = (int)(pts[i].first - base); g.cov[r >> 6] |= 1ull << (r & 63);
+        }
+        out.push_back(g);
+    }
+    std::vector<LSeg> lf_learn(const std::vector<std::pair<u64,u64>>& pts, u64 base) {
+        std::vector<LSeg> out; std::vector<std::pair<u64,u64>> cur;
+        const double gm = c.leaftl_gamma;
+        int state = 0; double s0x = 0, s0y = 0, sx = 0, sy = 0; PL lo{0,0}, up{0,0};
+        for (auto& p : pts) {
+            double x = (double)p.first, y = (double)p.second;
+            if (state == 0) { s0x = x; s0y = y; state = 1; }
+            else if (state == 1) {
+                lo = pl_from(s0x, s0y + gm, x, y - gm); up = pl_from(s0x, s0y - gm, x, y + gm);
+                sx = (lo.b - up.b) / (up.k - lo.k); sy = (up.k * lo.b - lo.k * up.b) / (up.k - lo.k);   // intersection(rho_upper, rho_lower)
+                state = 2;
+            } else {
+                bool out_of = !(y > lo.k * x + lo.b) || !(y < up.k * x + up.b);
+                if (out_of) {
+                    double k = f16((lo.k + up.k) / 2.0);
+                    lf_emit(out, cur, 2, k, -sx * k + sy, base);
+                    cur.clear(); s0x = x; s0y = y; state = 1;
+                } else {
+                    if (y + gm < up.k * x + up.b) up = pl_from(sx, sy, x, y + gm);
+                    if (y - gm > lo.k * x + lo.b) lo = pl_from(sx, sy, x, y - gm);
+                }
+            }
+            cur.push_back(p);
+        }
+        if (state == 1) lf_emit(out, cur, 1, 0, 0, base);
+        else if (state == 2) { double k = f16((lo.k + up.k) / 2.0); lf_emit(out, cur, 2, k, -sx * k + sy, base); }
+        return out;
+    }
+    void lf_set_mem(LFrame& f, u64 fno) {
+        double m = 4; u64 base = fno * LF_FRAME;
+        for (auto& g : f.segs) m += seg_mem(g, base);
+        if (f.resident) lf_cached += m - f.mem;
+        f.mem = m;
+    }
+    void lf_make_resident(u64 fno, LFrame& f, bool load) {
+        if (f.resident) { lf_lru.erase(f.lru); lf_lru.push_front(fno); f.lru = lf_lru.begin(); return; }
+        if (load) { st.map_miss++; st.read_map++; f.partial = false; }
+        else if (!f.segs.empty()) f.partial = true;          // update without loading: merged (read) at eviction
+        f.resident = true; lf_lru.push_front(fno); f.lru = lf_lru.begin(); lf_cached += f.mem;
+    }
+    void lf_enforce() {
+        while (lf_cached > (double)c.cache_bytes && lf_lru.size() > 1) {
+            u64 v = lf_lru.back(); lf_lru.pop_back();
+            LFrame& f = lframes[v];
+            if (f.dirty) { if (f.partial) st.read_map++; st.prog[S_MAP]++; st.map_flush++; }
+            f.resident = false; f.dirty = false; f.partial = false; lf_cached -= f.mem;
+        }
+    }
+    // mapping lookup needed to invalidate a page's previous copy (write path) or serve a read
+    void lf_touch_lookup(u64 lpn) {
+        u64 fno = lpn / LF_FRAME; LFrame& f = lframes[fno];
+        lf_lookups++;
+        if (!f.resident) lf_make_resident(fno, f, true);
+        else {
+            if (f.partial) { st.map_miss++; st.read_map++; f.partial = false; }   // merge with the flash copy
+            lf_make_resident(fno, f, false);
+        }
+    }
+    void lf_insert(const std::vector<std::pair<u64,u64>>& pairs) {   // pairs sorted by lpn, all current
+        size_t i = 0;
+        while (i < pairs.size()) {
+            u64 fno = pairs[i].first / LF_FRAME; size_t j = i;
+            while (j < pairs.size() && pairs[j].first / LF_FRAME == fno) ++j;
+            std::vector<std::pair<u64,u64>> pts(pairs.begin() + i, pairs.begin() + j);
+            std::vector<LSeg> ns = lf_learn(pts, fno * LF_FRAME);
+            LFrame& f = lframes[fno];
+            lf_make_resident(fno, f, false);
+            u64 nc[4] = {0, 0, 0, 0};
+            for (auto& g : ns) for (int w = 0; w < 4; ++w) nc[w] |= g.cov[w];
+            std::vector<LSeg> keep; keep.reserve(f.segs.size() + ns.size());
+            for (auto& g : ns) keep.push_back(g);
+            for (auto& g : f.segs) {                            // older segments lose the coverage the new ones shadow
+                for (int w = 0; w < 4; ++w) g.cov[w] &= ~nc[w];
+                int a = cov_first(g.cov); if (a < 0) continue;
+                g.x1 = (u32)(fno * LF_FRAME + a); g.x2 = (u32)(fno * LF_FRAME + cov_last(g.cov));
+                keep.push_back(g);
+            }
+            f.segs.swap(keep); f.dirty = true;
+            lf_set_mem(f, fno);
+            i = j;
+        }
+        lf_enforce();
+    }
+    void lf_flush_stage() {
+        if (lf_stage.empty()) return;
+        std::sort(lf_stage.begin(), lf_stage.end());
+        std::vector<std::pair<u64,u64>> pairs; pairs.reserve(lf_stage.size());
+        for (u32 lpn : lf_stage) {
+            if (pmap[lpn] != NONE) lf_touch_lookup(lpn);
+            page_write(lpn, S_HOST);
+            pairs.push_back({lpn, pmap[lpn]});
+        }
+        lf_stage.clear(); lf_stage_set.clear();
+        std::vector<std::pair<u64,u64>> cur;                    // GC inside the batch may have moved (and relearned) some pages
+        for (auto& p : pairs) if (pmap[p.first] == p.second) cur.push_back(p);
+        lf_insert(cur);
+    }
+    void lf_host(u64 lpn) {
+        if (lf_stage_set.count((u32)lpn)) lf_flush_stage();    // never absorb a rewrite inside the sort batch
+        lf_stage.push_back((u32)lpn); lf_stage_set.insert((u32)lpn);
+        if ((int)lf_stage.size() >= c.leaftl_batch) lf_flush_stage();
+    }
+    // predicted PPN for lpn (verification / read path); returns NONE if not covered
+    u64 lf_predict(u64 lpn, bool* accurate) {
+        u64 fno = lpn / LF_FRAME; auto it = lframes.find(fno);
+        if (it == lframes.end()) return NONE;
+        int r = (int)(lpn - fno * LF_FRAME);
+        for (auto& g : it->second.segs) if (cov_get(g.cov, r)) { *accurate = g.accurate; return (u64)std::llround((double)lpn * g.k + g.b); }
+        return NONE;
+    }
+    void lf_verify() {
+        u64 bad = 0, miss = 0, approx = 0;
+        for (u64 l = 0; l < L; ++l) {
+            if (pmap[l] == NONE) continue;
+            bool acc = true; u64 pr = lf_predict(l, &acc);
+            if (pr == NONE) miss++;
+            else if (pr != pmap[l]) { if (acc) bad++; else approx++; }
+        }
+        if (bad || miss) DIE("leaftl verify: %llu wrong accurate predictions, %llu uncovered LPNs", (unsigned long long)bad, (unsigned long long)miss);
+        fprintf(stderr, "[verify] leaftl ok: approx-mispredict=%llu frames=%zu resident=%zu cached=%.2f MiB\n",
+                (unsigned long long)approx, lframes.size(), lf_lru.size(), lf_cached / (1 << 20));
+    }
+
+    // adapt=1: after each canonical fine-pool turnover of host fine pages, pick the mode by majority rule
+    void adapt_tick(bool ow) {
+        if (ow) aw_ow++; else aw_new++;
+        if (aw_ow + aw_new < (u64)fine_quota_base * P) return;
+        // adapt=1: majority rule (absorbs less than half); adapt=2: absorbs no more than a random cache of the
+        // fine pool's size would under uniform writes (expected absorption = pool pages / logical pages)
+        bool u = c.adapt == 2 ? (double)aw_ow * (double)L < (double)(aw_ow + aw_new) * (double)fine_quota_base * P
+                              : 2 * aw_ow < aw_ow + aw_new;
+        aw_ow = aw_new = 0;
+        if (u == uni) return;
+        uni = u; n_mode_switch++;
+        fine_quota_blocks = uni ? fine_quota_uni : fine_quota_base;
+        if (uni && c.uni_onefront && fgf.blk >= 0) {   // fine GC copies join the host frontier: release the GC frontier block
+            for (int j = fgf.next; j < P; ++j) p2l[(u32)fgf.blk * P + j] = NONE;
+            fgf.blk = -1; fgf.next = 0;
+        }
+        if (uni)   // close the age-cascade frontiers: their unwritten tails become ordinary garbage, not stuck OP
+            for (int i = 0; i < MAXCC; ++i) if (ccf[i].blk >= 0) {
+                for (int j = ccf[i].next; j < P; ++j) p2l[(u32)ccf[i].blk * P + j] = NONE;
+                ccf[i].blk = -1; ccf[i].next = 0;
+            }
+    }
+
+    // ---- fine_index=cuckoo2: the fine map as a statically sized 2-choice, 4-way bucketized cuckoo table of page
+    // entries without kicks. Lookup / insert / delete touch at most the two candidate buckets (2 DRAM accesses);
+    // when both are full, the cheapest IU among their 8 entries is folded back to its coarse chunk (evicted).
+    bool ct_on = false; u64 ct_nb = 0; std::vector<u32> ct;
+    static u64 ct_mix(u64 x) { x ^= x >> 33; x *= 0xff51afd7ed558ccdULL; x ^= x >> 33; x *= 0xc4ceb9fe1a85ec53ULL; x ^= x >> 33; return x; }
+    u64 ct_b1(u64 lpn) const { return ct_mix(lpn) % ct_nb; }
+    u64 ct_b2(u64 lpn) const { u64 b = ct_mix(lpn ^ 0x9E3779B97F4A7C15ULL) % ct_nb; return b == ct_b1(lpn) ? (b + 1) % ct_nb : b; }
+    int ct_free_in(u64 b) const { for (int k = 0; k < 4; ++k) if (ct[b * 4 + k] == NONE) return k; return -1; }
+    int ct_load(u64 b) const { int n = 0; for (int k = 0; k < 4; ++k) n += ct[b * 4 + k] != NONE; return n; }
+    bool ct_room(u64 lpn) const { return ct_free_in(ct_b1(lpn)) >= 0 || ct_free_in(ct_b2(lpn)) >= 0; }
+    void ct_insert(u64 lpn) {
+        u64 a = ct_b1(lpn), b = ct_b2(lpn); u64 t = ct_load(a) <= ct_load(b) ? a : b;
+        int k = ct_free_in(t); if (k < 0) { t = (t == a) ? b : a; k = ct_free_in(t); }
+        if (k < 0) DIE("cuckoo2: insert without room (lpn %llu)", (unsigned long long)lpn);
+        ct[t * 4 + k] = (u32)lpn;
+    }
+    void ct_remove(u64 lpn) {
+        for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) if (ct[b * 4 + k] == (u32)lpn) { ct[b * 4 + k] = NONE; return; }
+        DIE("cuckoo2: remove of absent lpn %llu", (unsigned long long)lpn);
+    }
+    // make room for a NEW fine page of cur_iu before the host write enters the fine pool
+    void ct_ensure(u64 lpn) {
+        if (!ct_on) return;
+        u64 cur_iu = lpn / U; int32_t fi = fine_idx[cur_iu];
+        if (fi >= 0 && (fbitmap[fi] >> (lpn % U) & 1)) return;           // overwrite of a resident page: no new entry
+        for (int tries = 0; !ct_room(lpn); ++tries) {
+            if (tries > 16) DIE("cuckoo2: cannot make room for lpn %llu", (unsigned long long)lpn);
+            u64 best = ~0ull; int bd = -1; u64 bl = ~0ull;
+            for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) {
+                u32 e = ct[b * 4 + k]; if (e == NONE) continue;
+                u64 iu = e / U; if (iu == cur_iu) continue;
+                int32_t f2 = fine_idx[iu]; if (f2 < 0) continue;
+                int d = popc(fbitmap[f2]);                                   // most fragments first (cheapest fold), then coldest
+                u64 rc = c.rec_block ? host_birth(f2) : flast[f2];
+                if (d > bd || (d == bd && rc < bl)) { bd = d; bl = rc; best = iu; }
+            }
+            if (best == ~0ull) DIE("cuckoo2: both buckets hold only the IU being written");
+            st.n_evict_fold++;
+            fold(best, false);
+        }
+    }
+
+    std::vector<uint8_t> bhost;   // fine block opened as the host frontier
+    // rec_block: latest birth of a host-frontier fine block holding one of the IU's fragments (0 = none)
+    u64 host_birth(int32_t fi) const {
+        u64 m = 0; u32 bm = fbitmap[fi];
+        while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; int b = blk_of(fslot[(u64)fi * U + off]); if (bhost[b] && fbirth[b] > m) m = fbirth[b]; }
+        return m;
+    }
+    double cuckoo_entry() const { return 4 + 4 + (!c.rec_block && (c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0); }
     int32_t fine_get(u64 iu) const { return fine_idx[iu]; }
     int32_t fine_get_or_create(u64 iu) {
         int32_t i = fine_idx[iu];
@@ -295,6 +581,7 @@ struct Sim {
     void fine_release(u64 iu) {
         int32_t i = fine_idx[iu];
         if (i < 0) return;
+        if (ct_on) { u32 bm = fbitmap[i]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; ct_remove(iu * U + off); } }
         fine_idx[iu] = -1;
         fbitmap[i] = 0;
         fpool_free.push_back(i);
@@ -310,6 +597,10 @@ struct Sim {
         st.erases++;
     }
 
+    void sample_fine_peak() {
+        u64 fv = 0; for (int b = 0; b < NB; ++b) if (btag[b] == B_FINE) fv += bvalid[b];
+        if (fv > st.fine_peak) st.fine_peak = fv;
+    }
     int pop_free(Tag t) {
         if (freelist.empty()) DIE("free list exhausted (T=%d too small?)", c.T);
         int b = freelist.back(); freelist.pop_back();
@@ -386,7 +677,7 @@ struct Sim {
                     }
                     // A fine reclaim/shrink is in flight and will return a block when it completes:
                     // draw on the reserve instead of waiting for GC that cannot progress.
-                    if ((useless || stall > 56) && (in_shrink || in_fine_reclaim) && !freelist.empty()) break;
+                    if ((useless || stall > 56) && (in_shrink || in_fine_reclaim) && freelist.size() > 1) break;   // keep the last block: a nested coarse GC needs it
                     if (stall > 64) DIE("GC makes no progress: coarse tier over-committed (free=%zu fine=%d coarse=%d quota=%d NB=%d). Try fine_extra=1 or smaller fine_quota.", freelist.size(), fine_blocks, coarse_blocks, fine_quota_blocks, NB);
                 }
                 else stall = 0;
@@ -397,19 +688,25 @@ struct Sim {
 
     // get one page slot on the fine frontier
     u32 fine_alloc_page(bool gc = false) {
-        Frontier& f = mixed ? ((gc && c.gc_frontier) ? cgf : cf) : ((gc && c.gc_frontier) ? fgf : ff);
-        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(mixed ? B_COARSE : B_FINE); f.next = 0; fbirth[f.blk] = fine_clock; }
+        if (c.mode == "proposed" && !mixed && !ram_cap) { Frontier& g = (gc && c.gc_frontier) ? fgf : ff; if (g.blk < 0 || g.next == P) sample_fine_peak(); }
+        bool sep = gc && c.gc_frontier && !(uni && c.uni_onefront);
+        Frontier& f = mixed ? ((gc && c.gc_frontier) ? cgf : cf) : (sep ? fgf : ff);
+        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(mixed ? B_COARSE : B_FINE); f.next = 0; fbirth[f.blk] = fine_clock; bhost[f.blk] = (&f == &ff); }
         return (u32)f.blk * P + f.next++;
     }
     // get U consecutive slots on the coarse frontier
     u32 coarse_alloc_extent(bool gc = false, int cls = 0) {
-        int ccls = std::min(cls, std::min(c.coarse_class, MAXCC));
+        int ccls = std::min(cls, std::min(cc_eff(), MAXCC));
         Frontier* fp = (gc && c.gc_frontier) ? (ccls > 0 ? &ccf[ccls - 1] : &cgf) : &cf;
         // Cascade fallback: opening an extra class frontier must not drain the GC reserve --
         // reroute to the shared GC frontier (or any open class frontier) instead of dying.
         if (ccls > 0 && (fp->blk < 0 || P - fp->next < U) && freelist.size() <= 1) {
             if (cgf.blk >= 0 && P - cgf.next >= U) { fp = &cgf; }
             else { for (int i = 0; i < MAXCC; ++i) if (ccf[i].blk >= 0 && P - ccf[i].next >= U) { fp = &ccf[i]; break; } }
+        } else if (fp == &cgf && (cgf.blk < 0 || P - cgf.next < U) && in_cgc && freelist.empty()) {
+            // ... and symmetrically, as a last resort: inside coarse GC with no free block left, a full shared
+            // GC frontier spills into an open class frontier instead of popping an empty free list.
+            for (int i = 0; i < MAXCC; ++i) if (ccf[i].blk >= 0 && P - ccf[i].next >= U) { fp = &ccf[i]; break; }
         }
         Frontier& f = *fp;
         if (f.blk >= 0 && P - f.next < U) { for (int i = f.next; i < P; ++i) p2l[(u32)f.blk * P + i] = NONE; f.next = P; }  // mixed: chunk must not straddle
@@ -450,8 +747,10 @@ struct Sim {
         if (fbitmap[fi] & bit) {
             u32 old = fslot[(u64)fi * U + off];
             bvalid[blk_of(old)]--;
-            if (src == S_HOST) st.frag_freed++;
+            if (src == S_HOST) { st.frag_freed++; st.fine_host_ow++; if (c.adapt) adapt_tick(true); }
         } else {
+            if (src == S_HOST) { st.fine_host_new++; if (c.adapt) adapt_tick(false); }
+            if (ct_on) ct_insert(lpn);
             if (coarse_map[iu] != NONE) bvalid[blk_of(coarse_map[iu])]--;  // superseded in extent
             int od = popc(fbitmap[fi]);
             fbitmap[fi] |= bit;
@@ -498,7 +797,7 @@ struct Sim {
         // Age cascade: only untouched survivors of coarse GC advance a class; host writes,
         // refolds and folds carry fresh content and restart at class 0/1.
         int cls = 0;
-        if (c.coarse_class > 0 && src != S_HOST) cls = (src == S_CGC_CLEAN) ? cgc_cls + 1 : 1;
+        if (cc_eff() > 0 && src != S_HOST) cls = (src == S_CGC_CLEAN) ? cgc_cls + 1 : 1;
         u32 ppn = coarse_alloc_extent(src != S_HOST, cls);
         install_extent(iu, ppn, src, nprog_src, src2);
     }
@@ -657,7 +956,7 @@ struct Sim {
               st.age_hist[bk]++; if ((double)popc(fbitmap[fi]) * victim_v > (double)U * (P - victim_v)) st.age_hist_fold[bk]++; }
             // Parameter-free (fold_tau < 0): cold iff the IU was never rewritten while this block lived.
             // The block's own residence time is the pool's natural turnover clock, so no constant is needed.
-            bool cold = c.fold_tau < 0 ? (flast[fi] <= fbirth[b])
+            bool cold = c.fold_tau < 0 ? (c.rec_block ? host_birth(fi) <= fbirth[b] : flast[fi] <= fbirth[b])
                                        : (double)(fine_clock - flast[fi]) >= c.fold_tau * (double)fine_quota_blocks * P;
             bool do_fold;
             if (c.fine_policy == "cost" || c.fine_policy == "cost_cold") {
@@ -744,7 +1043,7 @@ struct Sim {
     // CoarseGC(block): victim = min valid coarse block (or cost-benefit with cgc_vict=cb)
     void coarse_gc() {
         in_cgc = true;
-        int b = c.cgc_vict == "cb" ? pick_victim_cb() : pick_victim(B_COARSE);
+        int b = (c.cgc_vict == "cb" && !uni) ? pick_victim_cb() : pick_victim(B_COARSE);
         if (b < 0) DIE("no coarse victim (free=%zu fine=%d coarse=%d)", freelist.size(), fine_blocks, coarse_blocks);
         st.n_cgc++; st.cgc_valid_sum += bvalid[b];
         cgc_cls = bccls[b];
@@ -879,6 +1178,21 @@ struct Sim {
         }
         st.n_pgc++; st.pgc_valid_sum += bvalid[b];
         u32 base = (u32)b * P;
+        if (is_lf()) {   // valid pages found via OOB/validity bitmap, rewritten in LPN order and relearned
+            std::vector<u32> lp;
+            for (int s = 0; s < P; ++s) { u32 ppn = base + s; u32 lpn = p2l[ppn]; if (lpn != NONE && pmap[lpn] == ppn) lp.push_back(lpn); }
+            if (c.leaftl_gcsort) std::sort(lp.begin(), lp.end());
+            std::vector<std::pair<u64,u64>> pairs;
+            for (u32 lpn : lp) { st.read_gc_copy++; page_write(lpn, S_PGC); pairs.push_back({lpn, pmap[lpn]}); }
+            if (bvalid[b] != 0) DIE("page_gc left valid=%d", bvalid[b]);
+            erase_block(b);
+            in_cgc = false;
+            std::vector<std::pair<u64,u64>> cur;
+            for (auto& p : pairs) if (pmap[p.first] == p.second) cur.push_back(p);
+            if (!c.leaftl_gcsort) std::sort(cur.begin(), cur.end());
+            lf_insert(cur);
+            return;
+        }
         for (int s = 0; s < P && bvalid[b] > 0; ++s) {
             u32 ppn = base + s; u32 lpn = p2l[ppn];
             if (lpn == NONE || pmap[lpn] != ppn) continue;
@@ -896,15 +1210,17 @@ struct Sim {
         st.host_pages += n; req_id++;
         u64 end = lpn + n;
         if (is_pg()) {
-            for (u64 p = lpn; p < end; ++p) page_write(p, S_HOST);
+            if (is_lf()) { for (u64 p = lpn; p < end; ++p) lf_host(p); }
+            else for (u64 p = lpn; p < end; ++p) page_write(p, S_HOST);
         } else if (c.mode == "proposed" || c.mode == "mixed") {
+            if (uni) st.uni_host += n;
             u64 cur = lpn;
             while (cur < end) {
                 if (cur % U == 0 && cur + U <= end) {
                     u64 iu = cur / U;
                     if (c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_quota_blocks) {
                         // hot (fine-resident) IU fully overwritten: keep it page-mapped instead of re-chunking
-                        for (int i = 0; i < U; ++i) fine_write(cur + i, S_HOST);
+                        for (int i = 0; i < U; ++i) { ct_ensure(cur + i); fine_write(cur + i, S_HOST); }
                     } else coarse_write(iu, S_HOST);
                     cur += U;
                 }
@@ -914,7 +1230,7 @@ struct Sim {
                     int n = (int)(e - cur);
                     bool keep_fine = c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_quota_blocks;
                     if (!keep_fine && c.eager_u != 0 && eager_worth(iu, cur, n)) { eager_write(iu, cur, n); cur = e; }
-                    else { while (cur < e) { fine_write(cur, S_HOST); cur++; } }
+                    else { while (cur < e) { ct_ensure(cur); fine_write(cur, S_HOST); cur++; } }
                 }
             }
         } else if (c.mode == "iu_rmw") {
@@ -941,6 +1257,7 @@ struct Sim {
     }
 
     void verify() {
+        if (is_lf()) lf_flush_stage();
         // recompute valid counts from maps and compare
         std::vector<int32_t> v(NB, 0);
         u64 fine_valid = 0;
@@ -952,6 +1269,11 @@ struct Sim {
             else if (coarse_map[iu] != NONE) v[blk_of(coarse_map[iu] + off)]++;
         }
         for (int b = 0; b < NB; ++b) if (v[b] != bvalid[b]) DIE("verify: block %d tag=%d computed=%d tracked=%d", b, btag[b], v[b], bvalid[b]);
+        if (ct_on) {   // table <-> fine pool consistency: every fine page has exactly one entry, nothing else does
+            u64 used = 0; for (u32 e : ct) if (e != NONE) { used++; int32_t f = fine_idx[e / U]; if (f < 0 || !(fbitmap[f] >> (e % U) & 1)) DIE("verify: cuckoo2 stale entry %u", e); }
+            if (used != fine_valid) DIE("verify: cuckoo2 has %llu entries, fine pool %llu pages", (unsigned long long)used, (unsigned long long)fine_valid);
+        }
+        if (is_lf()) lf_verify();
         fprintf(stderr, "[verify] ok. fine_valid_pages=%llu fine_blocks=%d coarse_blocks=%d free=%zu\n",
                 (unsigned long long)fine_valid, fine_blocks, coarse_blocks, freelist.size());
         int hist[11] = {};
@@ -995,7 +1317,8 @@ struct Sim {
         printf("],\n  \"d_hist_refold\": [");
         for (int d = 0; d <= U; ++d) printf("%s%llu", d ? "," : "", (unsigned long long)st.d_refold[d]);
         printf("],\n");
-        { u64 fine_ius = 0, fine_pages = 0; for (u64 i = 0; i < NIU; ++i) if (fine_idx[i] >= 0) { fine_ius++; fine_pages += popc(fbitmap[fine_idx[i]]); }
+        { u64 fine_ius = 0, fine_pages = 0, fdh[33] = {0}; for (u64 i = 0; i < NIU; ++i) if (fine_idx[i] >= 0) { int dd = popc(fbitmap[fine_idx[i]]); fine_ius++; fine_pages += dd; fdh[dd]++; }
+          printf("  \"fine_d_hist_end\": ["); for (int dd = 0; dd <= U; ++dd) printf("%s%llu", dd ? "," : "", (unsigned long long)fdh[dd]); printf("],\n");
           printf("  \"fine_ius_end\": %llu, \"fine_pages_end\": %llu,\n", (unsigned long long)fine_ius, (unsigned long long)fine_pages);
           // RAM model (measured end state). PPN = 4B. Hash-managed maps: (key+value)/0.7.
           double mem = 0, a = 0, b2 = 0, c2 = 0;
@@ -1005,6 +1328,9 @@ struct Sim {
           else if (c.mode == "sepbit") { a = (double)L * 4; b2 = (double)L * 4; c2 = (double)NB * 9; mem = a + b2 + c2; }
           else if (c.mode == "dftl") { a = hash_bytes((double)cmt.size(), 8); b2 = (double)(L / TP_ENTRIES) * 4; mem = a + b2; }
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
+          else if (is_lf()) { a = lf_cached; b2 = (double)((L + LF_FRAME - 1) / LF_FRAME) * 4; mem = a + b2; }   // resident frames + GTD
+          else if (ct_on) { a = (double)NIU * 4; c2 = (double)ct_nb * 4 * cuckoo_entry(); mem = a + c2; }
+          else if (c.fine_index == "cuckoo") { a = (double)NIU * 4; c2 = (double)fine_pages * cuckoo_entry() / 0.95; mem = a + c2; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
         { printf("  \"vblk_age_mean_turnovers\": %.4f, \"vblk_age_hist\": [",
@@ -1013,6 +1339,16 @@ struct Sim {
         { printf("  \"age_turnovers\": ["); for (int i=0;i<7;++i) printf("%s%llu", i?",":"", (unsigned long long)st.age_hist[i]);
           printf("], \"age_turnovers_costfold\": ["); for (int i=0;i<7;++i) printf("%s%llu", i?",":"", (unsigned long long)st.age_hist_fold[i]); printf("],\n"); }
         printf("  \"host_fine\": %llu, \"host_coarse\": %llu,\n", (unsigned long long)st.host_fine, (unsigned long long)st.host_coarse);
+        printf("  \"fine_host_new\": %llu, \"fine_host_ow\": %llu, \"fine_pages_peak\": %llu,\n", (unsigned long long)st.fine_host_new, (unsigned long long)st.fine_host_ow, (unsigned long long)st.fine_peak);
+        if (ct_on) { u64 used = 0; for (u32 e : ct) used += e != NONE;
+            printf("  \"cuckoo2\": {\"entries\": %llu, \"used_end\": %llu, \"evict_folds\": %llu},\n", (unsigned long long)ct.size(), (unsigned long long)used, (unsigned long long)st.n_evict_fold); }
+        if (c.mode == "proposed" && c.fine_index == "cuckoo")
+            printf("  \"mem_cuckoo_peak\": %.0f,\n", (double)NIU * 4 + (double)st.fine_peak * cuckoo_entry() / 0.95);
+        if (c.adapt) printf("  \"adapt\": {\"switches\": %llu, \"uni_host_frac\": %.4f, \"quota_base\": %d, \"quota_uni\": %d, \"uni_at_end\": %d},\n",
+                            (unsigned long long)n_mode_switch, st.host_pages ? (double)st.uni_host / st.host_pages : 0.0, fine_quota_base, fine_quota_uni, (int)uni);
+        if (is_lf()) { double full = 0; u64 nseg = 0, nacc = 0, ncons = 0; for (auto& kv : lframes) { full += kv.second.mem; for (auto& g : kv.second.segs) { nseg++; nacc += g.accurate; ncons += g.consec; } }
+          printf("  \"leaftl\": {\"full_table_bytes\": %.0f, \"segments\": %llu, \"accurate\": %llu, \"consecutive\": %llu, \"frames\": %zu, \"lookups\": %llu, \"gamma\": %g, \"batch\": %d},\n",
+                 full, (unsigned long long)nseg, (unsigned long long)nacc, (unsigned long long)ncons, lframes.size(), (unsigned long long)lf_lookups, c.leaftl_gamma, c.leaftl_batch); }
         printf("  \"fine_blocks_end\": %d, \"coarse_blocks_end\": %d, \"free_end\": %zu, \"f_end\": %.4f\n", fine_blocks, coarse_blocks, freelist.size(), (double)fine_blocks / NB);
         printf("}\n");
     }
@@ -1781,8 +2117,10 @@ struct Runner {
 
     void run() {
         if (!c.trace_file.empty()) {
+            if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); }
             if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
             run_trace();
+            if (tracef) fclose(tracef);
             return;
         }
         build_workload();
@@ -1869,6 +2207,15 @@ int main(int argc, char** argv) {
         else if (k == "last_hot_frac") c.last_hot_frac = atof(v.c_str());
         else if (k == "last_fixed_caps") c.last_fixed_caps = atoi(v.c_str()) != 0;
         else if (k == "cache_bytes") c.cache_bytes = parse_bytes(v);
+        else if (k == "dftl_tpbuf") c.dftl_tpbuf = atoi(v.c_str()) != 0;
+        else if (k == "adapt") c.adapt = atoi(v.c_str());
+        else if (k == "fine_index") c.fine_index = v;
+        else if (k == "map_budget") c.map_budget = atof(v.c_str());
+        else if (k == "rec_block") c.rec_block = atoi(v.c_str());
+        else if (k == "uni_onefront") c.uni_onefront = atoi(v.c_str());
+        else if (k == "leaftl_gamma") c.leaftl_gamma = atof(v.c_str());
+        else if (k == "leaftl_batch") c.leaftl_batch = atoi(v.c_str());
+        else if (k == "leaftl_gcsort") c.leaftl_gcsort = atoi(v.c_str()) != 0;
         else if (k == "bitmap_cache_bytes") c.bitmap_cache_bytes = parse_bytes(v);
         else if (k == "mu_parts") c.mu_parts = atoi(v.c_str());
         else if (k == "mu_max_extent") c.mu_max_extent = atoi(v.c_str());

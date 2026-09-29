@@ -6,6 +6,7 @@
 //   stride=S   the input replicates every request at offsets off + i*S (make_*x_*.py);
 //              keep only the first copy (off < S). 0 = no replication.
 //   unscale=N  the input multiplied both offset and length by N (scale_ssdtrace.py); divide back.
+//   reads=1    also emit reads (remapped; reads outside write-touched regions are dropped)
 //   region=R   touched R-byte regions (default 1 MiB) are packed densely in address order, so
 //              offsets inside a region, IU alignment and adjacency of touched regions are kept
 //              while the untouched address space is dropped. Device capacity = #regions * R.
@@ -21,14 +22,15 @@
 
 using u64 = uint64_t;
 
-struct Args { std::string in, out; u64 stride = 0, unscale = 1, region = 1ull << 20; };
+struct Args { std::string in, out; u64 stride = 0, unscale = 1, region = 1ull << 20; bool reads = false; };
 
-static bool next_write(FILE* f, const Args& a, u64& off, u64& len) {
+static bool next_io(FILE* f, const Args& a, u64& off, u64& len, bool want_reads, char* opc) {
     char line[256];
     while (fgets(line, sizeof line, f)) {
         char op[8]; long long o, l;
         if (sscanf(line, "%*[^,],%7[^,],%lld,%lld", op, &o, &l) != 3) continue;
-        if (op[0] != 'W' || l <= 0) continue;
+        if (l <= 0 || !(op[0] == 'W' || (want_reads && op[0] == 'R'))) continue;
+        *opc = op[0];
         if (a.stride && (u64)o >= a.stride) continue;  // replica
         off = (u64)o / a.unscale; len = (u64)l / a.unscale;
         if (len == 0) continue;
@@ -36,6 +38,7 @@ static bool next_write(FILE* f, const Args& a, u64& off, u64& len) {
     }
     return false;
 }
+static bool next_write(FILE* f, const Args& a, u64& off, u64& len) { char c; return next_io(f, a, off, len, false, &c); }
 
 int main(int argc, char** argv) {
     if (argc < 3) { fprintf(stderr, "usage: trace_prep in out [stride=] [unscale=] [region=]\n"); return 1; }
@@ -45,6 +48,7 @@ int main(int argc, char** argv) {
         if (!strncmp(s, "stride=", 7)) a.stride = strtoull(s + 7, nullptr, 10);
         else if (!strncmp(s, "unscale=", 8)) a.unscale = strtoull(s + 8, nullptr, 10);
         else if (!strncmp(s, "region=", 7)) a.region = strtoull(s + 7, nullptr, 10);
+        else if (!strncmp(s, "reads=", 6)) a.reads = atoi(s + 6) != 0;
         else { fprintf(stderr, "bad arg %s\n", s); return 1; }
     }
     const u64 PG = 4096;
@@ -93,11 +97,19 @@ int main(int argc, char** argv) {
     FILE* o = fopen(a.out.c_str(), "w");
     if (!f || !o) { perror("pass2"); return 1; }
     static char obuf[1 << 20]; setvbuf(o, obuf, _IOFBF, sizeof obuf);
-    while (next_write(f, a, off, len)) {
-        u64 r = off / a.region;
+    char opc; u64 nreads = 0, dropped = 0;
+    while (next_io(f, a, off, len, a.reads, &opc)) {
+        u64 r = off / a.region, r1 = (off + len - 1) / a.region;
+        if (opc == 'R') {                                   // reads: only inside regions that writes touched
+            bool ok = r1 < remap.size();
+            for (u64 q = r; ok && q <= r1; ++q) ok = remap[q] != ~0ull && remap[q] == remap[r] + (q - r);
+            if (!ok) { dropped++; continue; }
+            nreads++;
+        }
         u64 noff = remap[r] * a.region + off % a.region;   // touched regions are contiguous in rank, so spans stay contiguous
-        fprintf(o, "0,W,%llu,%llu\n", (unsigned long long)noff, (unsigned long long)len);
+        fprintf(o, "0,%c,%llu,%llu\n", opc, (unsigned long long)noff, (unsigned long long)len);
     }
+    if (a.reads) fprintf(stderr, "reads kept %llu, dropped (outside written regions) %llu\n", (unsigned long long)nreads, (unsigned long long)dropped);
     fclose(f); fclose(o);
 
     u64 cap = nreg * a.region;
