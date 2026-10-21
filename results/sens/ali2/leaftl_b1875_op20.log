@@ -1,0 +1,11 @@
+[cfg] mode=leaftl L=90015232 pages (343.4 GB) NP=107898880 NB=410 P=263168 U=16 OP=0.200 fine_quota=410 blocks (extra=1) T=2 zipf=0.00
+[phase] seq fill
+[trace] /home/sejun000/traces_dm/ali2.csv: 977076849 write pages (3727.3 GiB, 10.85x device), warmup 50.0%
+[verify] leaftl ok: approx-mispredict=7 frames=351622 resident=351622 cached=15.42 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=408 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 12 151 124 97 24
+[trace] warmup done (488538483 pages), reset stats
+[trace] dense space: 351622 MiB regions (343.4 GiB), device utilization 100.0%
+[verify] leaftl ok: approx-mispredict=10 frames=351622 resident=351622 cached=16.75 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=408 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 3 161 128 116 0

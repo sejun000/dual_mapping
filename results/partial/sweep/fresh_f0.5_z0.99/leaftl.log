@@ -1,0 +1,10 @@
+[cfg] mode=leaftl L=10798160 pages (41.2 GB) NP=11554048 NB=373 P=30976 U=16 OP=0.070 fine_quota=373 blocks (extra=1) T=2 zipf=0.99
+[phase] seq fill
+[phase] aging 8.00x
+[verify] leaftl ok: approx-mispredict=91 frames=21091 resident=8655 cached=7.72 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=371 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 79 106 58 37 37 19 14 11 10
+[phase] reset stats, measure 1.00x
+[verify] leaftl ok: approx-mispredict=88 frames=21091 resident=8654 cached=7.72 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=371 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 78 102 64 43 31 18 15 10 10

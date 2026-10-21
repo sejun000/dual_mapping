@@ -1,0 +1,129 @@
+SPILL READ-PROMOTION (2026-10-19)  --  chosen default: spill_rp=1 spill_rp_clean=1 (no rate guard)
+
+Variants (ftlsim, all default off; BASE = spill=2, 12.5 % mapping DRAM, host reads replayed with dram_stats=1):
+  rpK      spill_rp=K: a host read of a spilled IU un-spills it after its FTP read (pointers back into the cuckoo table,
+           exactly the host-write un-spill; a full bucket pair spills the usual candidate, spill=2 group spill). No data
+           moves. K=1 every read; K>=2 on the K-th read since the spill (ceil(log2 K)-bit counter taken from the 4 B coarse
+           entry -> no extra DRAM; consecutive page lookups of one IU count once).
+  rpKrR    + spill_rp_rate=R: promotions may spend <= R FTP programs per 1000 host write pages (token bucket).
+  rpcK     + spill_rp_clean=1: a read-promoted IU keeps its FTP image valid ("clean", 1 more coarse-entry bit). Evicting a
+           clean IU just drops its table entries and sets the spilled bit (no FTP read / program / group spill); any change
+           of its fragments (host write, fold/refold, fine-GC copy) makes it dirty. Spilling evictions prefer clean IUs.
+
+Result (details below):
+  * plain promotion barely helps: SPFresh map reads -5..-8 %, and K=1 costs +0.20 FTP programs per host write page
+    (0.477 -> 0.680, WAF +1.4 %). Rate guards / K>=2 cut the cost but not the reads. SPFresh reads are near-uniform over
+    ~328K IUs (top 80K IUs = 47 % of reads; every read IU is also written), and the table holds only about half of the
+    fragment-bearing IUs, so promote-then-group-spill mostly churns.
+  * clean promotion (rpc1): SPFresh map reads per host read 0.2046 -> 0.1190 (-42 %), WAF +0.12 %, FTP programs per host
+    write page 0.477 -> 0.476 (17.3M promotions, 10.1M later re-evicted clean with no FTP I/O, 4.3M dirtied by writes /
+    GC; promotions spent only 0.25M FTP programs = 0.034 per host write page, offset by fewer group spills elsewhere).
+    YCSB-A WAF 6.728 -> 6.729 (the spill WAF gain is kept), map reads -9 %; YCSB-B -32 %; TPC-C -25 %; YCSB-F -9 % at
+    +0.45 % WAF (rpc4 on the same trace: -0.43 %; run-to-run policy noise of this size is common in this matrix).
+    ali3, f73, f37 never spill at this budget: identical to BASE.
+  * Why clean helps the reads too: clean evictions remove one IU's entries instead of a spill=2 group, so the table keeps
+    more IUs resident (spilled IUs at the end 89.5K -> 41.2K on SPFresh) and read-hot IUs stay.
+  * Remaining SPFresh map reads: 89 % of reads that hit a spilled IU target a chunk page, not a fragment (BASE
+    reads_spilled_frag / reads_spilled = 3.7M / 34.2M); a per-IU fragment summary would avoid them, but a 16-bit bitmap
+    does not fit the coarse entry (SPFresh: 19-bit chunk index + 3 flag bits leave 10 bits). Not evaluated here.
+  * ycsbc_d_t64 / ycsbe_d_t64 have no captured block trace (only NVMeVirt app runs exist), so ycsbfstd_d_t64 is used as
+    the third YCSB trace.
+  * NVMeVirt parity (harness, READS=1) is bit-identical for every variant incl. SPFresh, see dm/NOTES_proposed.md.
+  * Jobs: jobs1.txt (base rp1 rp2 rp4), jobs2.txt (rate guards), jobs3.txt (clean); run.sh, gen.py, summarize.py.
+    ftlsim.bin = ftlsim/ftlsim.cpp with spill_rp (jobs1/2 ran on the build before spill_rp_clean existed; for those
+    options both builds give identical output, checked on rand4k).
+
+spill read-promotion (ftlsim spill_rp=K [spill_rp_rate=R]) vs BASE = V3 + spill=2 + dram_stats=1 at map_budget 0.125
+(results/coarse_gc/base_params.txt + workloads.txt geometry; host reads replayed). ycsbc_d_t64 / ycsbe_d_t64 have no captured
+block trace (only NVMeVirt app runs exist), so ycsbfstd_d_t64 is the third YCSB trace. f73/f37 (synthetic, one read probe per
+write request) never spill at this budget: spill_rp must be (and is) a no-op there.
+Columns: WAF (programs / submitted host page) and change vs base; map = FTP programs per submitted host write page (prog map, in WAF);
+ftpW = same from the spill counters; rpW = FTP programs spent inside read-promotions per host write page; mr/rd = flash map reads
+per host read page (incl. the FTP read-modify-writes of promotions) and change vs base; spl = fraction of host reads that hit a
+spilled IU; prom/k, rpR/k = promotions and promotion FTP reads per 1000 host reads; spill/k = spill events per 1000 host write pages;
+sp_end = spilled IUs at the end.
+workload        variant        WAF    dWAF    map/h   ftpW/h    rpW/h    mr/rd      dmr     spl   prom/k    rpR/k spill/k  sp_end
+spfresh         base        14.026  +0.00%   0.4772   0.4772   0.0000   0.2046    +0.0%  0.2330    0.000    0.000   33.13   89514
+spfresh         rp1         14.224  +1.41%   0.6798   0.6798   0.1840   0.1928    -5.8%  0.1844  184.422    8.925  227.68   77903
+spfresh         rp2         14.091  +0.46%   0.5685   0.5685   0.0828   0.1943    -5.1%  0.2042   89.628    3.947  120.96   82930
+spfresh         rp4         14.092  +0.47%   0.5131   0.5131   0.0339   0.1919    -6.2%  0.2107   39.037    1.567   68.84   68441
+spfresh         rp1r20      14.110  +0.59%   0.5194   0.5194   0.0167   0.1986    -2.9%  0.2230   22.151    0.776   54.81   66442
+spfresh         rp1r50      14.101  +0.53%   0.5469   0.5469   0.0317   0.1881    -8.0%  0.2076   38.753    1.492   72.06   72337
+spfresh         rp1r100     14.105  +0.56%   0.5535   0.5535   0.0559   0.1885    -7.8%  0.2032   63.295    2.654   97.43   74946
+spfresh         rp2r50      14.105  +0.56%   0.5069   0.5069   0.0288   0.1888    -7.7%  0.2085   35.397    1.333   66.01   69909
+spfresh         rpc1        14.043  +0.12%   0.4757   0.4757   0.0341   0.1190   -41.8%  0.1177  117.753    1.532   56.82   41159
+spfresh         rpc2        14.009  -0.13%   0.4815   0.4815   0.0239   0.1387   -32.2%  0.1473   64.366    1.064   50.56   63856
+spfresh         rpc4        14.023  -0.02%   0.4820   0.4820   0.0140   0.1575   -23.0%  0.1735   31.719    0.617   43.78   63346
+
+ycsba_d_t64     base         6.728  +0.00%   0.0235   0.0235   0.0000   0.0263    +0.0%  0.0648    0.000    0.000    2.55   42906
+ycsba_d_t64     rp1          6.725  -0.04%   0.0241   0.0241   0.0004   0.0249    -5.1%  0.0251   25.116    0.390    3.30   49991
+ycsba_d_t64     rp2          6.717  -0.16%   0.0239   0.0239   0.0001   0.0262    -0.4%  0.0544    5.961    0.085    2.71   42235
+ycsba_d_t64     rp4          6.711  -0.25%   0.0237   0.0237   0.0000   0.0263    +0.3%  0.0644    0.385    0.006    2.57   44371
+ycsba_d_t64     rp1r20       6.725  -0.04%   0.0241   0.0241   0.0004   0.0249    -5.1%  0.0251   25.116    0.390    3.30   49991
+ycsba_d_t64     rp1r50       6.725  -0.04%   0.0241   0.0241   0.0004   0.0249    -5.1%  0.0251   25.116    0.390    3.30   49991
+ycsba_d_t64     rp1r100      6.725  -0.04%   0.0241   0.0241   0.0004   0.0249    -5.1%  0.0251   25.116    0.390    3.30   49991
+ycsba_d_t64     rp2r50       6.717  -0.16%   0.0239   0.0239   0.0001   0.0262    -0.4%  0.0544    5.961    0.085    2.71   42235
+ycsba_d_t64     rpc1         6.729  +0.02%   0.0232   0.0232   0.0003   0.0238    -9.4%  0.0241   24.059    0.285    2.93   49471
+ycsba_d_t64     rpc2         6.745  +0.26%   0.0233   0.0233   0.0001   0.0256    -2.4%  0.0533    5.833    0.076    2.62   48638
+ycsba_d_t64     rpc4         6.714  -0.21%   0.0237   0.0237   0.0000   0.0263    +0.0%  0.0642    0.385    0.005    2.56   47725
+
+ycsbb_d_t64     base         6.376  +0.00%   0.0316   0.0316   0.0000   0.0441    +0.0%  0.1200    0.000    0.000    3.34   48467
+ycsbb_d_t64     rp1          6.378  +0.02%   0.0328   0.0328   0.0038   0.0386   -12.5%  0.0390   39.023    1.006    8.49   46698
+ycsbb_d_t64     rp2          6.376  -0.00%   0.0313   0.0313   0.0016   0.0414    -6.2%  0.0803   18.043    0.394    5.52   47466
+ycsbb_d_t64     rp4          6.376  -0.00%   0.0313   0.0313   0.0005   0.0431    -2.3%  0.1067    6.069    0.118    4.00   47737
+ycsbb_d_t64     rp1r20       6.378  +0.02%   0.0326   0.0326   0.0036   0.0386   -12.5%  0.0407   37.978    0.967    8.36   46326
+ycsbb_d_t64     rp1r50       6.378  +0.02%   0.0328   0.0328   0.0038   0.0386   -12.5%  0.0390   38.989    1.005    8.49   47026
+ycsbb_d_t64     rp1r100      6.378  +0.02%   0.0328   0.0328   0.0038   0.0386   -12.5%  0.0390   39.023    1.006    8.49   46698
+ycsbb_d_t64     rp2r50       6.376  -0.00%   0.0313   0.0313   0.0016   0.0414    -6.2%  0.0803   18.043    0.394    5.52   47466
+ycsbb_d_t64     rpc1         6.372  -0.07%   0.0271   0.0271   0.0018   0.0300   -32.0%  0.0307   30.720    0.401    5.03   44715
+ycsbb_d_t64     rpc2         6.374  -0.04%   0.0289   0.0289   0.0011   0.0368   -16.6%  0.0717   16.037    0.234    4.29   46377
+ycsbb_d_t64     rpc4         6.375  -0.02%   0.0305   0.0305   0.0004   0.0415    -5.9%  0.1028    5.827    0.096    3.69   47443
+
+ycsbfstd_d_t64  base         6.784  +0.00%   0.0217   0.0217   0.0000   0.0240    +0.0%  0.0599    0.000    0.000    2.40   40908
+ycsbfstd_d_t64  rp1          6.764  -0.30%   0.0221   0.0221   0.0004   0.0227    -5.2%  0.0229   22.944    0.333    3.09   51367
+ycsbfstd_d_t64  rp2          6.792  +0.11%   0.0218   0.0218   0.0001   0.0238    -1.0%  0.0500    5.407    0.073    2.55   43439
+ycsbfstd_d_t64  rp4          6.773  -0.17%   0.0218   0.0218   0.0000   0.0239    -0.3%  0.0590    0.352    0.005    2.41   45794
+ycsbfstd_d_t64  rp1r20       6.764  -0.30%   0.0221   0.0221   0.0004   0.0227    -5.2%  0.0229   22.944    0.333    3.09   51367
+ycsbfstd_d_t64  rp1r50       6.764  -0.30%   0.0221   0.0221   0.0004   0.0227    -5.2%  0.0229   22.944    0.333    3.09   51367
+ycsbfstd_d_t64  rp1r100      6.764  -0.30%   0.0221   0.0221   0.0004   0.0227    -5.2%  0.0229   22.944    0.333    3.09   51367
+ycsbfstd_d_t64  rp2r50       6.792  +0.11%   0.0218   0.0218   0.0001   0.0238    -1.0%  0.0500    5.407    0.073    2.55   43439
+ycsbfstd_d_t64  rpc1         6.815  +0.45%   0.0215   0.0215   0.0003   0.0218    -9.0%  0.0221   22.087    0.253    2.76   47658
+ycsbfstd_d_t64  rpc2         6.782  -0.03%   0.0214   0.0214   0.0001   0.0234    -2.5%  0.0492    5.324    0.067    2.47   44129
+ycsbfstd_d_t64  rpc4         6.755  -0.43%   0.0218   0.0218   0.0000   0.0239    -0.3%  0.0591    0.355    0.005    2.41   42856
+
+tpcc_d_t64      base         2.763  +0.00%   0.0035   0.0035   0.0000   0.0064    +0.0%  0.0433    0.000    0.000    0.52   14926
+tpcc_d_t64      rp1          2.763  -0.01%   0.0034   0.0034   0.0001   0.0053   -17.9%  0.0073    7.351    0.048    0.61   14753
+tpcc_d_t64      rp2          2.763  -0.00%   0.0034   0.0034   0.0000   0.0060    -7.2%  0.0293    2.896    0.019    0.56   14713
+tpcc_d_t64      rp4          2.763  -0.00%   0.0035   0.0035   0.0000   0.0063    -1.4%  0.0406    0.638    0.005    0.53   14850
+tpcc_d_t64      rp1r20       2.763  -0.01%   0.0034   0.0034   0.0001   0.0053   -17.9%  0.0073    7.351    0.048    0.61   14753
+tpcc_d_t64      rp1r50       2.763  -0.01%   0.0034   0.0034   0.0001   0.0053   -17.9%  0.0073    7.351    0.048    0.61   14753
+tpcc_d_t64      rp1r100      2.763  -0.01%   0.0034   0.0034   0.0001   0.0053   -17.9%  0.0073    7.351    0.048    0.61   14753
+tpcc_d_t64      rp2r50       2.763  -0.00%   0.0034   0.0034   0.0000   0.0060    -7.2%  0.0293    2.896    0.019    0.56   14713
+tpcc_d_t64      rpc1         2.762  -0.01%   0.0032   0.0032   0.0001   0.0048   -24.9%  0.0068    6.762    0.028    0.56   14756
+tpcc_d_t64      rpc2         2.763  -0.01%   0.0034   0.0034   0.0000   0.0057   -11.4%  0.0290    2.820    0.014    0.54   14632
+tpcc_d_t64      rpc4         2.763  -0.00%   0.0035   0.0035   0.0000   0.0062    -3.1%  0.0408    0.622    0.004    0.53   14973
+
+ali3            base         3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+ali3            rp1          3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+ali3            rp2          3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+ali3            rp4          3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+ali3            rpc1         3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+ali3            rpc2         3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+ali3            rpc4         3.358  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+
+f73             base        12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f73             rp1         12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f73             rp2         12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f73             rp4         12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f73             rpc1        12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f73             rpc2        12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f73             rpc4        12.433  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+
+f37             base        11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f37             rp1         11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f37             rp2         11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f37             rp4         11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f37             rpc1        11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f37             rpc2        11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+f37             rpc4        11.772  +0.00%   0.0000   0.0000   0.0000   0.0000    +0.0%  0.0000    0.000    0.000    0.00       0
+

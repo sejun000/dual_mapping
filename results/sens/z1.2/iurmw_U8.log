@@ -1,0 +1,8 @@
+[cfg] mode=iu_rmw L=16777216 pages (64.0 GB) NP=17940480 NB=365 P=49152 U=8 OP=0.070 fine_quota=365 blocks (extra=1) T=2 zipf=1.20
+[phase] seq fill
+[phase] aging 8.00x
+[verify] ok. fine_valid_pages=0 fine_blocks=0 coarse_blocks=363 free=2
+[verify] block valid histogram (deciles 0..100%): 1 0 0 1 0 0 0 0 0 360 1
+[phase] reset stats, measure 1.00x
+[verify] ok. fine_valid_pages=0 fine_blocks=0 coarse_blocks=363 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 1 0 0 0 0 0 0 361 0

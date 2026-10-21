@@ -1,0 +1,33 @@
+Running as unit: dmapp-filebench-156598.service; invocation ID: 527b4e5376994e31bc0dde4d694602c1
+Filebench Version 1.5-alpha3
+0.000: Allocated 329MB of shared memory
+0.000: Failed to open cvar directory around line 1
+0.001: File-server 75% Version 3.0 personality successfully loaded
+0.001: Populating and pre-allocating filesets
+0.065: bigfileset populated: 195441 files, avg. dir. width = 20, avg. dir. depth = 4.1, 0 leafdirs, 24430.125MB total size
+0.065: Removing bigfileset tree (if exists)
+0.068: Pre-allocating directories in bigfileset tree
+0.237: Pre-allocating files in bigfileset tree
+12.355: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+12.355: Population and pre-allocation of filesets completed
+14.251: prefill sync and cache drop done
+14.251: Attempting to create fileset more than once, ignoring
+14.251: Starting 1 filereader instances
+15.255: Running...
+615.292: Run took 600 seconds...
+615.295: Per-Operation Breakdown
+statfile1            692431ops     1154ops/s   0.0mb/s    0.019ms/op [0.001ms - 374.952ms]
+deletefile1          692431ops     1154ops/s   0.0mb/s    4.217ms/op [0.014ms - 613.087ms]
+closefile3           692438ops     1154ops/s   0.0mb/s    0.001ms/op [0.000ms - 0.033ms]
+readfile1            692438ops     1154ops/s 150.8mb/s    4.559ms/op [0.016ms - 614.039ms]
+openfile2            692448ops     1154ops/s   0.0mb/s    0.026ms/op [0.002ms - 374.862ms]
+closefile2           692448ops     1154ops/s   0.0mb/s    0.002ms/op [0.001ms - 19.528ms]
+fsyncappend1         692448ops     1154ops/s   0.0mb/s    9.419ms/op [0.001ms - 614.358ms]
+appendfilerand1      692461ops     1154ops/s   9.0mb/s    5.685ms/op [0.001ms - 613.554ms]
+openfile1            692461ops     1154ops/s   0.0mb/s    0.025ms/op [0.002ms - 374.853ms]
+closefile1           692461ops     1154ops/s   0.0mb/s    0.001ms/op [0.001ms - 0.030ms]
+fsyncfile1           692461ops     1154ops/s   0.0mb/s   17.198ms/op [0.175ms - 615.120ms]
+wrtfile1             692481ops     1154ops/s 144.3mb/s    0.148ms/op [0.049ms - 534.369ms]
+createfile1          692481ops     1154ops/s   0.0mb/s    1.915ms/op [0.012ms - 570.397ms]
+615.295: IO Summary: 9001888 ops 15002.227 ops/s 1154/2308 rd/wr 304.1mb/s 3.324ms/op
+615.295: Shutting down processes

@@ -1,0 +1,205 @@
+WAF (programs / submitted host pages). prop = current proposed (V3 + onefront_fix=1 pool_cap=4, fold on eviction);
+s1 = spill=1 (spill the victim IU), s2 = spill=2 (spill every table-resident IU of the victim FTP), +r1 = fold_on_read=1,
++r2/+r3/+r4 = fold_on_read=2 (only if >= 2 fragments) / 3 (on the 2nd read hit) / 4 (only if write-cold: no fragment in a host fine block younger than one pool turnover). prop/page4k/dftl/leaftl from results/sim_budget (same arguments).
+prop_1.0 = map_budget 1.0 (no evictions; the upper bound spill aims at).
+workload         budget     prop       s1       s2    s1+r1    s1+r2    s1+r3    s1+r4 prop_1.0   page4k     dftl   leaftl
+ycsba_d_t64       0.125    8.167    6.771    6.728    7.155    7.155    7.173    6.895    6.708    4.847    5.042    4.987
+ycsba_d_t64      0.1875    6.845    6.702    6.692    6.736        -    6.686    6.723    6.708    4.847    5.040    4.912
+ycsbb_d_t64       0.125    7.394    6.420    6.376    7.193    7.193    7.209    6.784    6.345    4.614    4.823    4.874
+ycsbb_d_t64      0.1875    6.421    6.349    6.351    6.385        -    6.367    6.377    6.345    4.614    4.811    4.784
+ycsbfstd_d_t64    0.125    8.123    6.839    6.784    7.258    7.258    7.236    6.977    6.777    4.806    4.992    4.968
+ycsbfstd_d_t64   0.1875    6.894    6.797    6.779    6.767        -    6.784    6.797    6.777    4.806    4.990    4.896
+tpcc_d_t64        0.125    2.907    2.767    2.763    2.787    2.787    2.860    2.791    2.759    2.390    2.427    2.330
+tpcc_d_t64       0.1875    2.802    2.759    2.759    2.791        -    2.792    2.758    2.759    2.390    2.424    2.330
+fio_randwrite_d   0.125   15.743   11.496   11.214   11.496        -   11.496        -   11.134    5.479    5.652    5.863
+fio_randwrite_d  0.1875   11.434   11.213   11.209   11.213        -   11.213        -   11.134    5.479    5.646    5.817
+fileserverfs      0.125    5.697    5.697    5.697    5.697        -    5.697        -    5.697    5.965    6.160    5.978
+fileserverfs     0.1875    5.697    5.697    5.697    5.697        -    5.697        -    5.697    5.965    6.145    5.978
+ali3              0.125    3.358    3.358    3.358    3.358        -    3.358        -    3.358    3.987    3.994    3.843
+spfresh           0.125   20.575   14.520   14.026   20.420   20.211   19.273   14.520   13.694    7.567    9.564   11.606
+
+WAF breakdown (programs per submitted host page)
+ycsba_d_t64       0.125 prop   host 0.81 finegc 0.69 fold 0.38 cgc_clean 4.74 cgc_refold 1.54 map 0.000 rmw 0.012 pgc 0.00
+ycsba_d_t64       0.125 s1     host 0.81 finegc 0.52 fold 0.10 cgc_clean 3.63 cgc_refold 1.65 map 0.068 rmw 0.002 pgc 0.00
+ycsba_d_t64       0.125 s2     host 0.81 finegc 0.52 fold 0.10 cgc_clean 3.63 cgc_refold 1.65 map 0.024 rmw 0.002 pgc 0.00
+ycsba_d_t64       0.125 s1+r1  host 0.81 finegc 0.42 fold 0.15 cgc_clean 4.05 cgc_refold 1.67 map 0.050 rmw 0.002 pgc 0.00
+ycsba_d_t64       0.125 s1+r3  host 0.81 finegc 0.42 fold 0.15 cgc_clean 4.07 cgc_refold 1.68 map 0.049 rmw 0.002 pgc 0.00
+ycsba_d_t64       0.125 s1+r4  host 0.81 finegc 0.47 fold 0.11 cgc_clean 3.78 cgc_refold 1.66 map 0.060 rmw 0.002 pgc 0.00
+ycsba_d_t64      0.1875 prop   host 0.81 finegc 0.50 fold 0.09 cgc_clean 3.77 cgc_refold 1.67 map 0.000 rmw 0.002 pgc 0.00
+ycsba_d_t64      0.1875 s1     host 0.81 finegc 0.52 fold 0.09 cgc_clean 3.61 cgc_refold 1.65 map 0.007 rmw 0.002 pgc 0.00
+ycsba_d_t64      0.1875 s2     host 0.81 finegc 0.52 fold 0.10 cgc_clean 3.61 cgc_refold 1.65 map 0.007 rmw 0.002 pgc 0.00
+ycsba_d_t64      0.1875 s1+r1  host 0.81 finegc 0.51 fold 0.09 cgc_clean 3.66 cgc_refold 1.66 map 0.006 rmw 0.002 pgc 0.00
+ycsba_d_t64      0.1875 s1+r3  host 0.81 finegc 0.51 fold 0.09 cgc_clean 3.60 cgc_refold 1.66 map 0.006 rmw 0.002 pgc 0.00
+ycsba_d_t64      0.1875 s1+r4  host 0.81 finegc 0.52 fold 0.10 cgc_clean 3.64 cgc_refold 1.65 map 0.007 rmw 0.002 pgc 0.00
+ycsbb_d_t64       0.125 prop   host 0.81 finegc 0.60 fold 0.35 cgc_clean 3.99 cgc_refold 1.63 map 0.000 rmw 0.004 pgc 0.00
+ycsbb_d_t64       0.125 s1     host 0.81 finegc 0.50 fold 0.08 cgc_clean 3.30 cgc_refold 1.66 map 0.076 rmw 0.001 pgc 0.00
+ycsbb_d_t64       0.125 s2     host 0.81 finegc 0.50 fold 0.08 cgc_clean 3.30 cgc_refold 1.66 map 0.032 rmw 0.001 pgc 0.00
+ycsbb_d_t64       0.125 s1+r1  host 0.81 finegc 0.45 fold 0.25 cgc_clean 3.94 cgc_refold 1.70 map 0.039 rmw 0.002 pgc 0.00
+ycsbb_d_t64       0.125 s1+r3  host 0.81 finegc 0.45 fold 0.25 cgc_clean 3.95 cgc_refold 1.69 map 0.040 rmw 0.002 pgc 0.00
+ycsbb_d_t64       0.125 s1+r4  host 0.81 finegc 0.42 fold 0.13 cgc_clean 3.67 cgc_refold 1.70 map 0.056 rmw 0.002 pgc 0.00
+ycsbb_d_t64      0.1875 prop   host 0.81 finegc 0.48 fold 0.08 cgc_clean 3.37 cgc_refold 1.68 map 0.000 rmw 0.001 pgc 0.00
+ycsbb_d_t64      0.1875 s1     host 0.81 finegc 0.50 fold 0.08 cgc_clean 3.30 cgc_refold 1.66 map 0.004 rmw 0.001 pgc 0.00
+ycsbb_d_t64      0.1875 s2     host 0.81 finegc 0.50 fold 0.08 cgc_clean 3.30 cgc_refold 1.66 map 0.006 rmw 0.001 pgc 0.00
+ycsbb_d_t64      0.1875 s1+r1  host 0.81 finegc 0.48 fold 0.08 cgc_clean 3.34 cgc_refold 1.66 map 0.003 rmw 0.001 pgc 0.00
+ycsbb_d_t64      0.1875 s1+r3  host 0.81 finegc 0.49 fold 0.08 cgc_clean 3.32 cgc_refold 1.67 map 0.003 rmw 0.001 pgc 0.00
+ycsbb_d_t64      0.1875 s1+r4  host 0.81 finegc 0.50 fold 0.08 cgc_clean 3.32 cgc_refold 1.67 map 0.004 rmw 0.001 pgc 0.00
+ycsbfstd_d_t64    0.125 prop   host 0.81 finegc 0.71 fold 0.38 cgc_clean 4.69 cgc_refold 1.52 map 0.000 rmw 0.012 pgc 0.00
+ycsbfstd_d_t64    0.125 s1     host 0.81 finegc 0.49 fold 0.09 cgc_clean 3.74 cgc_refold 1.65 map 0.063 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64    0.125 s2     host 0.81 finegc 0.49 fold 0.09 cgc_clean 3.72 cgc_refold 1.65 map 0.022 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64    0.125 s1+r1  host 0.81 finegc 0.42 fold 0.14 cgc_clean 4.17 cgc_refold 1.67 map 0.047 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64    0.125 s1+r3  host 0.81 finegc 0.42 fold 0.14 cgc_clean 4.15 cgc_refold 1.66 map 0.048 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64    0.125 s1+r4  host 0.81 finegc 0.45 fold 0.10 cgc_clean 3.89 cgc_refold 1.66 map 0.056 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64   0.1875 prop   host 0.81 finegc 0.48 fold 0.08 cgc_clean 3.85 cgc_refold 1.66 map 0.000 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64   0.1875 s1     host 0.81 finegc 0.49 fold 0.08 cgc_clean 3.76 cgc_refold 1.65 map 0.006 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64   0.1875 s2     host 0.81 finegc 0.49 fold 0.09 cgc_clean 3.73 cgc_refold 1.65 map 0.006 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64   0.1875 s1+r1  host 0.81 finegc 0.48 fold 0.09 cgc_clean 3.73 cgc_refold 1.65 map 0.006 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64   0.1875 s1+r3  host 0.81 finegc 0.49 fold 0.09 cgc_clean 3.74 cgc_refold 1.65 map 0.006 rmw 0.002 pgc 0.00
+ycsbfstd_d_t64   0.1875 s1+r4  host 0.81 finegc 0.49 fold 0.09 cgc_clean 3.75 cgc_refold 1.65 map 0.006 rmw 0.002 pgc 0.00
+tpcc_d_t64        0.125 prop   host 0.60 finegc 0.22 fold 0.12 cgc_clean 1.52 cgc_refold 0.43 map 0.000 rmw 0.014 pgc 0.00
+tpcc_d_t64        0.125 s1     host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.44 cgc_refold 0.42 map 0.008 rmw 0.011 pgc 0.00
+tpcc_d_t64        0.125 s2     host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.44 cgc_refold 0.42 map 0.004 rmw 0.011 pgc 0.00
+tpcc_d_t64        0.125 s1+r1  host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.45 cgc_refold 0.42 map 0.007 rmw 0.011 pgc 0.00
+tpcc_d_t64        0.125 s1+r3  host 0.60 finegc 0.19 fold 0.11 cgc_clean 1.52 cgc_refold 0.43 map 0.006 rmw 0.011 pgc 0.00
+tpcc_d_t64        0.125 s1+r4  host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.46 cgc_refold 0.43 map 0.008 rmw 0.011 pgc 0.00
+tpcc_d_t64       0.1875 prop   host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.48 cgc_refold 0.43 map 0.000 rmw 0.011 pgc 0.00
+tpcc_d_t64       0.1875 s1     host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.44 cgc_refold 0.42 map 0.000 rmw 0.011 pgc 0.00
+tpcc_d_t64       0.1875 s2     host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.44 cgc_refold 0.42 map 0.000 rmw 0.011 pgc 0.00
+tpcc_d_t64       0.1875 s1+r1  host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.47 cgc_refold 0.42 map 0.000 rmw 0.011 pgc 0.00
+tpcc_d_t64       0.1875 s1+r3  host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.47 cgc_refold 0.42 map 0.000 rmw 0.011 pgc 0.00
+tpcc_d_t64       0.1875 s1+r4  host 0.60 finegc 0.18 fold 0.11 cgc_clean 1.44 cgc_refold 0.42 map 0.000 rmw 0.011 pgc 0.00
+fio_randwrite_d   0.125 prop   host 1.00 finegc 2.75 fold 1.47 cgc_clean 3.13 cgc_refold 7.37 map 0.000 rmw 0.012 pgc 0.00
+fio_randwrite_d   0.125 s1     host 1.00 finegc 1.22 fold 0.21 cgc_clean 1.80 cgc_refold 7.04 map 0.225 rmw 0.000 pgc 0.00
+fio_randwrite_d   0.125 s2     host 1.00 finegc 1.21 fold 0.21 cgc_clean 1.75 cgc_refold 7.01 map 0.032 rmw 0.000 pgc 0.00
+fio_randwrite_d   0.125 s1+r1  host 1.00 finegc 1.22 fold 0.21 cgc_clean 1.80 cgc_refold 7.04 map 0.225 rmw 0.000 pgc 0.00
+fio_randwrite_d   0.125 s1+r3  host 1.00 finegc 1.22 fold 0.21 cgc_clean 1.80 cgc_refold 7.04 map 0.225 rmw 0.000 pgc 0.00
+fio_randwrite_d   0.125 s1+r4  -
+fio_randwrite_d  0.1875 prop   host 1.00 finegc 1.05 fold 0.28 cgc_clean 1.92 cgc_refold 7.18 map 0.000 rmw 0.004 pgc 0.00
+fio_randwrite_d  0.1875 s1     host 1.00 finegc 1.23 fold 0.22 cgc_clean 1.72 cgc_refold 7.00 map 0.038 rmw 0.000 pgc 0.00
+fio_randwrite_d  0.1875 s2     host 1.00 finegc 1.25 fold 0.23 cgc_clean 1.74 cgc_refold 6.98 map 0.013 rmw 0.000 pgc 0.00
+fio_randwrite_d  0.1875 s1+r1  host 1.00 finegc 1.23 fold 0.22 cgc_clean 1.72 cgc_refold 7.00 map 0.038 rmw 0.000 pgc 0.00
+fio_randwrite_d  0.1875 s1+r3  host 1.00 finegc 1.23 fold 0.22 cgc_clean 1.72 cgc_refold 7.00 map 0.038 rmw 0.000 pgc 0.00
+fio_randwrite_d  0.1875 s1+r4  -
+fileserverfs      0.125 prop   host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs      0.125 s1     host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs      0.125 s2     host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs      0.125 s1+r1  host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs      0.125 s1+r3  host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs      0.125 s1+r4  -
+fileserverfs     0.1875 prop   host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs     0.1875 s1     host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs     0.1875 s2     host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs     0.1875 s1+r1  host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs     0.1875 s1+r3  host 1.00 finegc 0.12 fold 0.08 cgc_clean 4.20 cgc_refold 0.30 map 0.000 rmw 0.000 pgc 0.00
+fileserverfs     0.1875 s1+r4  -
+ali3              0.125 prop   host 0.84 finegc 0.06 fold 0.02 cgc_clean 2.40 cgc_refold 0.04 map 0.000 rmw 0.000 pgc 0.00
+ali3              0.125 s1     host 0.84 finegc 0.06 fold 0.02 cgc_clean 2.40 cgc_refold 0.04 map 0.000 rmw 0.000 pgc 0.00
+ali3              0.125 s2     host 0.84 finegc 0.06 fold 0.02 cgc_clean 2.40 cgc_refold 0.04 map 0.000 rmw 0.000 pgc 0.00
+ali3              0.125 s1+r1  host 0.84 finegc 0.06 fold 0.02 cgc_clean 2.40 cgc_refold 0.04 map 0.000 rmw 0.000 pgc 0.00
+ali3              0.125 s1+r3  host 0.84 finegc 0.06 fold 0.02 cgc_clean 2.40 cgc_refold 0.04 map 0.000 rmw 0.000 pgc 0.00
+ali3              0.125 s1+r4  -
+spfresh           0.125 prop   host 1.00 finegc 1.90 fold 1.76 cgc_clean 7.23 cgc_refold 8.68 map 0.000 rmw 0.002 pgc 0.00
+spfresh           0.125 s1     host 1.00 finegc 1.63 fold 0.27 cgc_clean 2.79 cgc_refold 8.08 map 0.738 rmw 0.000 pgc 0.00
+spfresh           0.125 s2     host 1.00 finegc 1.61 fold 0.26 cgc_clean 2.70 cgc_refold 7.98 map 0.477 rmw 0.004 pgc 0.00
+spfresh           0.125 s1+r1  host 1.00 finegc 1.99 fold 1.61 cgc_clean 6.82 cgc_refold 8.73 map 0.269 rmw 0.001 pgc 0.00
+spfresh           0.125 s1+r3  host 1.00 finegc 1.27 fold 1.41 cgc_clean 6.51 cgc_refold 8.80 map 0.273 rmw 0.002 pgc 0.00
+spfresh           0.125 s1+r4  host 1.00 finegc 1.63 fold 0.27 cgc_clean 2.79 cgc_refold 8.08 map 0.738 rmw 0.000 pgc 0.00
+
+Reads (dram_stats replay of the trace reads): host_reads = mapped-path host read pages (not served by the write buffer);
+spilled = fraction of host reads that hit a spilled IU; ftp = fraction that issued an FTP flash read (SRAM FTP buffer misses);
+frag = of the spilled hits, fraction whose page is a fragment (a per-IU bitmap would save the rest); mr/rd = flash map reads per host read.
+Events per 1000 submitted host pages: spills, un-spills; ftpR/ftpW = FTP reads / programs per host page; rfold = read-triggered folds.
+workload         budget var       host_rd  spilled      ftp   frag    mr/rd  spill/k   unsp/k  ftpR/h  ftpW/h  rfold/k rfprog/h  sp_end
+ycsba_d_t64       0.125 s1       98387182   0.0394   0.0157  0.388   0.0157    43.87     9.97  0.0960  0.0679     0.00   0.0000   17293
+ycsba_d_t64       0.125 s2       98387182   0.0648   0.0263  0.258   0.0263     2.55    17.50  0.0602  0.0235     0.00   0.0000   42906
+ycsba_d_t64       0.125 s1+r1    98387182   0.0085   0.0084  0.409   0.0084    35.69     5.67  0.0664  0.0496     5.82   1.9497   18416
+ycsba_d_t64       0.125 s1+r3    98387182   0.0171   0.0084  0.410   0.0084    35.49     5.64  0.0662  0.0493     5.83   1.8517   16268
+ycsba_d_t64       0.125 s1+r2    98387182   0.0085   0.0084  0.409   0.0084    35.69     5.67  0.0664  0.0496     5.82   1.9497   18416
+ycsba_d_t64       0.125 s1+r4    98387182   0.0275   0.0127  0.430   0.0127    40.54     8.36  0.0840  0.0602     2.05   0.7990   18820
+ycsba_d_t64       0.125 dftl     98387182                            0.2861   (DFTL, dram_stats run: WAF 5.045)
+ycsba_d_t64      0.1875 s1       98387182   0.0025   0.0008  0.745   0.0008     3.44     0.50  0.0081  0.0067     0.00   0.0000    2633
+ycsba_d_t64      0.1875 s2       98387182   0.0122   0.0047  0.349   0.0047     0.51     3.65  0.0132  0.0065     0.00   0.0000   22601
+ycsba_d_t64      0.1875 s1+r1    98387182   0.0006   0.0006  0.659   0.0006     3.37     0.32  0.0067  0.0059     0.39   0.1967    2583
+ycsba_d_t64      0.1875 s1+r3    98387182   0.0012   0.0006  0.652   0.0006     3.43     0.34  0.0069  0.0060     0.41   0.1218    2603
+ycsba_d_t64      0.1875 s1+r4    98387182   0.0022   0.0008  0.798   0.0008     3.46     0.48  0.0079  0.0066     0.10   0.0281    3540
+ycsbb_d_t64       0.125 s1      177872141   0.0621   0.0225  0.421   0.0225    46.75    16.74  0.1618  0.0756     0.00   0.0000   17181
+ycsbb_d_t64       0.125 s2      177872141   0.1200   0.0441  0.267   0.0441     3.34    30.18  0.1844  0.0316     0.00   0.0000   48467
+ycsbb_d_t64       0.125 s1+r1   177872141   0.0046   0.0045  0.438   0.0045    28.90     3.94  0.0548  0.0394    13.13   3.1171    7623
+ycsbb_d_t64       0.125 s1+r3   177872141   0.0093   0.0046  0.439   0.0046    29.18     4.00  0.0554  0.0398    13.23   3.1056    8345
+ycsbb_d_t64       0.125 s1+r2   177872141   0.0046   0.0045  0.438   0.0045    28.90     3.94  0.0548  0.0394    13.13   3.1171    7623
+ycsbb_d_t64       0.125 s1+r4   177872141   0.0375   0.0139  0.512   0.0139    37.82    11.73  0.1106  0.0561     4.59   1.5569   15732
+ycsbb_d_t64       0.125 dftl    177872141                            0.3894   (DFTL, dram_stats run: WAF 4.847)
+ycsbb_d_t64      0.1875 s1      177872141   0.0018   0.0006  0.687   0.0006     2.35     0.50  0.0068  0.0045     0.00   0.0000     620
+ycsbb_d_t64      0.1875 s2      177872141   0.0182   0.0060  0.384   0.0060     0.47     5.18  0.0269  0.0060     0.00   0.0000   12717
+ycsbb_d_t64      0.1875 s1+r1   177872141   0.0003   0.0003  0.686   0.0003     2.27     0.21  0.0040  0.0035     0.72   0.2639     447
+ycsbb_d_t64      0.1875 s1+r3   177872141   0.0005   0.0002  0.700   0.0002     2.23     0.20  0.0040  0.0035     0.69   0.3162     554
+ycsbb_d_t64      0.1875 s1+r4   177872141   0.0014   0.0005  0.757   0.0005     2.28     0.43  0.0060  0.0041     0.19   0.0794     499
+ycsbfstd_d_t64    0.125 s1       94444000   0.0357   0.0141  0.390   0.0141    41.12     9.02  0.0885  0.0629     0.00   0.0000   15088
+ycsbfstd_d_t64    0.125 s2       94444000   0.0599   0.0240  0.256   0.0240     2.40    16.13  0.0553  0.0217     0.00   0.0000   40908
+ycsbfstd_d_t64    0.125 s1+r1    94444000   0.0079   0.0078  0.412   0.0078    33.91     5.34  0.0633  0.0474     5.31   1.8146   16521
+ycsbfstd_d_t64    0.125 s1+r3    94444000   0.0158   0.0078  0.411   0.0078    34.06     5.39  0.0635  0.0475     5.30   1.8600   17460
+ycsbfstd_d_t64    0.125 s1+r2    94444000   0.0079   0.0078  0.412   0.0078    33.91     5.34  0.0633  0.0474     5.31   1.8146   16521
+ycsbfstd_d_t64    0.125 s1+r4    94444000   0.0252   0.0115  0.439   0.0115    37.91     7.61  0.0777  0.0560     1.81   0.9155   16030
+ycsbfstd_d_t64    0.125 dftl     94444000                            0.2808   (DFTL, dram_stats run: WAF 4.994)
+ycsbfstd_d_t64   0.1875 s1       94444000   0.0020   0.0007  0.741   0.0007     3.08     0.42  0.0072  0.0060     0.00   0.0000    2694
+ycsbfstd_d_t64   0.1875 s2       94444000   0.0111   0.0043  0.349   0.0043     0.49     3.27  0.0121  0.0061     0.00   0.0000   19126
+ycsbfstd_d_t64   0.1875 s1+r1    94444000   0.0005   0.0005  0.681   0.0005     3.17     0.31  0.0065  0.0058     0.36   0.1870    2687
+ycsbfstd_d_t64   0.1875 s1+r3    94444000   0.0010   0.0005  0.687   0.0005     3.11     0.30  0.0064  0.0057     0.35   0.1467    2489
+ycsbfstd_d_t64   0.1875 s1+r4    94444000   0.0017   0.0007  0.800   0.0007     3.05     0.40  0.0070  0.0059     0.09   0.0357     738
+tpcc_d_t64        0.125 s1       17459941   0.0193   0.0030  0.948   0.0030     6.05     1.29  0.0109  0.0080     0.00   0.0000    1825
+tpcc_d_t64        0.125 s2       17459941   0.0433   0.0064  0.591   0.0064     0.52     3.65  0.0097  0.0035     0.00   0.0000   14926
+tpcc_d_t64        0.125 s1+r1    17459941   0.0018   0.0015  0.902   0.0015     5.54     0.72  0.0087  0.0071     0.83   0.1172    2077
+tpcc_d_t64        0.125 s1+r3    17459941   0.0034   0.0014  0.910   0.0014     5.01     0.65  0.0078  0.0064     0.77   0.1207    1796
+tpcc_d_t64        0.125 s1+r2    17459941   0.0018   0.0015  0.902   0.0015     5.54     0.72  0.0087  0.0071     0.83   0.1172    2077
+tpcc_d_t64        0.125 s1+r4    17459941   0.0170   0.0027  0.961   0.0027     5.97     1.17  0.0105  0.0078     0.05   0.0084    2180
+tpcc_d_t64        0.125 dftl     17459941                            0.1544   (DFTL, dram_stats run: WAF 2.426)
+tpcc_d_t64       0.1875 s1       17459941   0.0001   0.0000  0.998   0.0000     0.05     0.01  0.0001  0.0001     0.00   0.0000       1
+tpcc_d_t64       0.1875 s2       17459941   0.0033   0.0003  0.679   0.0003     0.03     0.17  0.0004  0.0002     0.00   0.0000      56
+tpcc_d_t64       0.1875 s1+r1    17459941   0.0000   0.0000  1.000   0.0000     0.04     0.00  0.0001  0.0001     0.01   0.0001       0
+tpcc_d_t64       0.1875 s1+r3    17459941   0.0000   0.0000  1.000   0.0000     0.04     0.00  0.0001  0.0000     0.01   0.0001       1
+tpcc_d_t64       0.1875 s1+r4    17459941   0.0001   0.0000  0.996   0.0000     0.05     0.00  0.0001  0.0001     0.00   0.0000       0
+fio_randwrite_d   0.125 s1              0   0.0000   0.0000  0.000   0.0000   193.75    38.43  0.2888  0.2248     0.00   0.0000   38657
+fio_randwrite_d   0.125 s2              0   0.0000   0.0000  0.000   0.0000     8.93    87.07  0.0798  0.0322     0.00   0.0000   99521
+fio_randwrite_d   0.125 s1+r1           0   0.0000   0.0000  0.000   0.0000   193.75    38.43  0.2888  0.2248     0.00   0.0000   38657
+fio_randwrite_d   0.125 s1+r3           0   0.0000   0.0000  0.000   0.0000   193.75    38.43  0.2888  0.2248     0.00   0.0000   38657
+fio_randwrite_d   0.125 dftl            0                            0.0000   (DFTL, dram_stats run: WAF 5.652)
+fio_randwrite_d  0.1875 s1              0   0.0000   0.0000  0.000   0.0000    23.43     4.86  0.0437  0.0378     0.00   0.0000    3855
+fio_randwrite_d  0.1875 s2              0   0.0000   0.0000  0.000   0.0000     3.64    35.92  0.0311  0.0132     0.00   0.0000   38145
+fio_randwrite_d  0.1875 s1+r1           0   0.0000   0.0000  0.000   0.0000    23.43     4.86  0.0437  0.0378     0.00   0.0000    3855
+fio_randwrite_d  0.1875 s1+r3           0   0.0000   0.0000  0.000   0.0000    23.43     4.86  0.0437  0.0378     0.00   0.0000    3855
+fileserverfs      0.125 s1       71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs      0.125 s2       71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs      0.125 s1+r1    71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs      0.125 s1+r3    71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs      0.125 dftl     71064758                            0.0756   (DFTL, dram_stats run: WAF 6.190)
+fileserverfs     0.1875 s1       71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs     0.1875 s2       71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs     0.1875 s1+r1    71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+fileserverfs     0.1875 s1+r3    71064758   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+ali3              0.125 s1        8784156   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+ali3              0.125 s2        8784156   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+ali3              0.125 s1+r1     8784156   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+ali3              0.125 s1+r3     8784156   0.0000   0.0000  0.000   0.0000     0.00     0.00  0.0000  0.0000     0.00   0.0000       0
+ali3              0.125 dftl      8784156                            0.0038   (DFTL, dram_stats run: WAF 3.994)
+spfresh           0.125 s1      146657812   0.1071   0.0954  0.175   0.0954   316.61   108.27  2.7680  0.7380     0.00   0.0000   30449
+spfresh           0.125 s2      146657812   0.2330   0.2046  0.109   0.2046    33.13   254.56  4.8169  0.4772     0.00   0.0000   89514
+spfresh           0.125 s1+r1   146657812   0.0051   0.0051  0.201   0.0051   135.57    10.52  0.3402  0.2689   100.80  14.7492    1570
+spfresh           0.125 s1+r3   146657812   0.0100   0.0094  0.189   0.0094   146.16    17.02  0.4612  0.2733    88.40  13.7930    3464
+spfresh           0.125 s1+r2   146657812   0.0070   0.0067  0.168   0.0067   139.03    12.12  0.3893  0.2763    97.86  14.2629    2248
+spfresh           0.125 s1+r4   146657812   0.1071   0.0954  0.175   0.0954   316.61   108.27  2.7680  0.7380     0.00   0.0000   30449
+spfresh           0.125 dftl    146657812                            0.8004   (DFTL, dram_stats run: WAF 9.753)
+
+DRAM split (bytes): coarse map / GTD / cuckoo table, budget
+ali3              0.125 coarse 3636572 + GTD 56824 (14206 FTPs x 4 B) + table 3579744 = 7273140 <= 7273144; chunk index 20 bits + 2 flag bits
+fileserverfs      0.125 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 2657344 = 5399068 <= 5399080; chunk index 20 bits + 2 flag bits
+fileserverfs     0.1875 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 5356896 = 8098620 <= 8098620; chunk index 20 bits + 2 flag bits
+fio_randwrite_d   0.125 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 2657344 = 5399068 <= 5399080; chunk index 20 bits + 2 flag bits
+fio_randwrite_d  0.1875 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 5356896 = 8098620 <= 8098620; chunk index 20 bits + 2 flag bits
+spfresh           0.125 coarse 1316304 + GTD 20568 (5142 FTPs x 4 B) + table 1295712 = 2632584 <= 2632608; chunk index 19 bits + 2 flag bits
+tpcc_d_t64        0.125 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 2657344 = 5399068 <= 5399080; chunk index 20 bits + 2 flag bits
+tpcc_d_t64       0.1875 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 5356896 = 8098620 <= 8098620; chunk index 20 bits + 2 flag bits
+ycsba_d_t64       0.125 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 2657344 = 5399068 <= 5399080; chunk index 20 bits + 2 flag bits
+ycsba_d_t64      0.1875 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 5356896 = 8098620 <= 8098620; chunk index 20 bits + 2 flag bits
+ycsbb_d_t64       0.125 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 2657344 = 5399068 <= 5399080; chunk index 20 bits + 2 flag bits
+ycsbb_d_t64      0.1875 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 5356896 = 8098620 <= 8098620; chunk index 20 bits + 2 flag bits
+ycsbfstd_d_t64    0.125 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 2657344 = 5399068 <= 5399080; chunk index 20 bits + 2 flag bits
+ycsbfstd_d_t64   0.1875 coarse 2699540 + GTD 42184 (10546 FTPs x 4 B) + table 5356896 = 8098620 <= 8098620; chunk index 20 bits + 2 flag bits

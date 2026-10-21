@@ -1,0 +1,104 @@
+[20:35:45] === fio_randwrite_d_page4k_20261008T203545Z -> /home/sejun000/dual_mapping/results/apps_capture/fio_randwrite_d/page4k
+[20:35:45] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[20:35:45] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[20:35:46] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[20:35:51] [blkcap] blktrace pid 2131298 on /dev/nvme3n1 -> /mnt/nvme_mounted/dm_apptrace/fio_randwrite_d (-b 128 -n 256), live after 5 probe batch(es)
+[20:35:51] [blkcap] marker dm_blkcap_start (ok)
+[20:35:51] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[20:35:52] ext4 capacity (used+avail) 40987148288 B, util 0%
+[20:35:52] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[20:35:52] [ballast] none: used=28672 + pending=32212254720 already >= 72% of 40987148288
+[20:35:53] [blkcap] marker dm_measure_start (ok)
+[20:35:59] measurement start utilisation=0% (window 0-100)
+[20:35:59] [fio] prefill 30720 MiB
+[20:36:14] [blkcap] marker dm_measure_prefill_done (ok)
+[20:36:14] [fio] df util after prefill 78% (window 69-82)
+[20:36:14] [fio] randwrite 300s, 16 psync jobs, fdatasync=0
+[20:41:24] [blkcap] marker dm_measure_end (ok)
+[20:41:27] [blkcap] stopped; Total:              55918788 events (dropped 0),  2621194 KiB data
+case=/home/sejun000/dual_mapping/results/apps_capture/fio_randwrite_d/page4k
+workload=fio_randwrite_d
+policy=page4k
+status=DONE
+start_util_pct=6.99536e-05
+end_util_pct=78.5916
+measure_util_pct=78
+ext4_write_kbytes_delta=275618868
+blk_read_ios=21
+blk_write_ios=55911985
+blk_read_bytes=86016
+blk_write_bytes=282233720832
+blk_avg_write_req_kb=4.92951
+dev_read_lat_ms_avg=0.238095
+dev_write_lat_ms_avg=1.81422
+write_qd_max=768
+blk_read_lat_us_p50=nan
+blk_read_lat_us_p90=nan
+blk_read_lat_us_p99=nan
+blk_read_lat_us_p99.9=nan
+blk_read_lat_us_p99.99=nan
+blk_write_lat_us_mean=2169.1
+blk_write_lat_us_p50=84.188
+blk_write_lat_us_p90=484.894
+blk_write_lat_us_p99=67984.5
+blk_write_lat_us_p99.9=73072
+blk_write_lat_us_p99.99=131698
+app_write_bytes=260730253312
+fs_waf=0.958918
+dev_host_write_pages=68904717
+dev_host_read_pages=21
+dev_nand_progs=113252490
+dev_waf=1.64361
+dev_waf_gc=0.643612
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=44347874
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=3294
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+devmeas_host_write_pages=61039803
+devmeas_host_read_pages=0
+devmeas_nand_progs=105387594
+devmeas_waf=1.72654
+devmeas_waf_gc=0.72654
+devmeas_waf_rmw=0
+devmeas_waf_fold=0
+devmeas_waf_map=0
+devmeas_waf_other=0
+devmeas_nand_reads=44347874
+devmeas_map_reads_per_host_page=0
+devmeas_map_reads_per_host_read=nan
+devmeas_erases=3294
+devmeas_map_miss=0
+devmeas_mapping_mem_bytes_end=43192640
+blkmeas_read_ios=0
+blkmeas_write_ios=55789070
+blkmeas_read_bytes=0
+blkmeas_write_bytes=250019033088
+blkmeas_avg_write_req_kb=4.37647
+total_waf=1.65561
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7741935616
+memcg_events_high=107477
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=0
+throughput=201139
+throughput_unit=IOPS
+fio_write_iops=201139
+fio_write_MBps=785.698
+app_write_lat_ms_avg=0.0792002
+fio_write_clat_us_p50=44.288
+fio_write_clat_us_p90=66.048
+fio_write_clat_us_p95=75.264
+fio_write_clat_us_p99=89.6
+fio_write_clat_us_p99.9=1613.82
+fio_write_clat_us_p99.99=202375
+app_write_lat_ms_p99=0.0896
+app_write_lat_ms_max=354.371
+[20:42:16] === fio_randwrite_d_page4k_20261008T203545Z status DONE

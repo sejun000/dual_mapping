@@ -1,0 +1,19 @@
+=== dftl params='cache_bytes=17669736,dftl_tpbuf=1'
+[263204.702215] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=17669736,dftl_tpbuf=1": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[263204.702215] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=17669736,dftl_tpbuf=1": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+randwrite 4K QD32: IOPS=13896 BW=54.3 MiB/s  clat p50=128.5us p99=261.1us p99.9=16908.3us
+device WAF during randwrite = 10.288 (host pages 47119296, NAND programs 484745265)
+=== leaftl params='cache_bytes=17669736'
+[266649.333226] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[266649.333226] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+randwrite 4K QD32: IOPS=8588 BW=33.5 MiB/s  clat p50=333.8us p99=10682.4us p99.9=102236.2us
+device WAF during randwrite = 11.734 (host pages 47119296, NAND programs 552899507)
+=== mu params='cache_bytes=17669736'
+[272267.878680] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[272267.878680] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+randwrite 4K QD32: IOPS=4830 BW=18.9 MiB/s  clat p50=276.5us p99=440.3us p99.9=128450.6us
+device WAF during randwrite = 22.898 (host pages 47119296, NAND programs 1078926441)
+[282065.860059] NVMeVirt: [dm final] policy=mu L=23559648 NB=373 P=67584 submitted=70678944 host=70678421 prog=1102486588 (host 70678421 gc 700306230 rmw 0 fold 0 map 331501937 other 0) WAFx1000=15598 reads(host 807 gc 700306230 rmw 0 fold 0 map 331506250) host_read_pages=1345 erases=11119 map_miss=331506250 mem=17702877

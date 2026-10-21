@@ -1,0 +1,1587 @@
+Mon Oct  5 10:55:25 AM UTC 2026 queue_trace: waiting for queue5.sh
+Tue Oct  6 11:19:21 AM UTC 2026 queue_trace: waiting for queue5.sh
+Tue Oct  6 11:19:21 AM UTC 2026 queue5 done, device idle
+Tue Oct  6 11:19:21 AM UTC 2026 trace spfresh: capacity 21480079360 B, memmap_size=21822M
+=== page4k params=''
+[444960.608990] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21566324736 B (20567 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[444960.608990] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 11.5s; device 20.09 GiB; write turnovers 2.80; warm-up ends after op 156304721
+trace_replay: precondition 20.09 GiB in 9.2s (2229 MiB/s)
+trace_replay:   4.9% of ops, phase 1, 60s
+trace_replay:   9.2% of ops, phase 1, 120s
+trace_replay:  13.3% of ops, phase 1, 180s
+trace_replay:  17.4% of ops, phase 1, 240s
+trace_replay:  21.5% of ops, phase 1, 300s
+trace_replay:  25.5% of ops, phase 1, 360s
+trace_replay:  29.7% of ops, phase 1, 420s
+trace_replay:  33.8% of ops, phase 1, 480s
+trace_replay:  38.1% of ops, phase 1, 540s
+trace_replay:  42.1% of ops, phase 1, 600s
+trace_replay:  46.1% of ops, phase 1, 660s
+trace_replay:  50.2% of ops, phase 1, 720s
+trace_replay: warm-up done after 156304722 ops in 722.6s
+trace_replay:  54.3% of ops, phase 2, 780s
+trace_replay:  58.2% of ops, phase 2, 840s
+trace_replay:  62.2% of ops, phase 2, 900s
+trace_replay:  66.3% of ops, phase 2, 960s
+trace_replay:  70.2% of ops, phase 2, 1020s
+trace_replay:  74.3% of ops, phase 2, 1080s
+trace_replay:  78.3% of ops, phase 2, 1140s
+trace_replay:  82.3% of ops, phase 2, 1200s
+trace_replay:  86.3% of ops, phase 2, 1260s
+trace_replay:  90.2% of ops, phase 2, 1320s
+trace_replay:  94.4% of ops, phase 2, 1380s
+trace_replay:  98.6% of ops, phase 2, 1440s
+trace_replay: done in 1470.9s (measured 739.0s: 208456 IOPS, reads 146671413 p99 325us, writes 7382719 p99 156us)
+page4k    IOPS=  208456 (R   198466 W    9990; R  775.3 W   39.0 MiB/s) WAF= 7.614 mapR/pg=0.000 | read_us p50=116 p99=325 p99.9=439 p99.99=217580 max=296175 | write_us p50=49 p99=156 p99.9=183 p99.99=8946 max=15841 | 0.41h
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[446446.086607] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21566324736 B (20567 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[446446.086607] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 10.1s; device 20.09 GiB; write turnovers 2.80; warm-up ends after op 156304721
+trace_replay: precondition 20.09 GiB in 9.2s (2228 MiB/s)
+trace_replay:   4.9% of ops, phase 1, 60s
+trace_replay:   8.7% of ops, phase 1, 120s
+trace_replay:  12.2% of ops, phase 1, 180s
+trace_replay:  15.7% of ops, phase 1, 240s
+trace_replay:  19.1% of ops, phase 1, 300s
+trace_replay:  22.6% of ops, phase 1, 360s
+trace_replay:  26.1% of ops, phase 1, 420s
+trace_replay:  29.8% of ops, phase 1, 480s
+trace_replay:  33.3% of ops, phase 1, 540s
+trace_replay:  37.1% of ops, phase 1, 600s
+trace_replay:  40.6% of ops, phase 1, 660s
+trace_replay:  44.0% of ops, phase 1, 720s
+trace_replay:  47.5% of ops, phase 1, 780s
+trace_replay: warm-up done after 156304722 ops in 830.8s
+trace_replay:  50.9% of ops, phase 2, 840s
+trace_replay:  54.4% of ops, phase 2, 901s
+trace_replay:  57.8% of ops, phase 2, 961s
+trace_replay:  61.1% of ops, phase 2, 1021s
+trace_replay:  64.6% of ops, phase 2, 1081s
+trace_replay:  68.1% of ops, phase 2, 1141s
+trace_replay:  71.5% of ops, phase 2, 1201s
+trace_replay:  74.8% of ops, phase 2, 1261s
+trace_replay:  78.4% of ops, phase 2, 1321s
+trace_replay:  81.8% of ops, phase 2, 1381s
+trace_replay:  85.3% of ops, phase 2, 1442s
+trace_replay:  88.7% of ops, phase 2, 1502s
+trace_replay:  92.2% of ops, phase 2, 1562s
+trace_replay:  96.2% of ops, phase 2, 1622s
+trace_replay:  99.6% of ops, phase 2, 1682s
+trace_replay: done in 1698.4s (measured 858.3s: 179494 IOPS, reads 146671413 p99 343us, writes 7382719 p99 160us)
+proposed  IOPS=  179494 (R   170892 W    8602; R  667.5 W   33.6 MiB/s) WAF=13.972 mapR/pg=0.000 | read_us p50=117 p99=343 p99.9=490 p99.99=414188 max=577552 | write_us p50=49 p99=160 p99.9=186 p99.99=37618 max=43077 | 0.47h
+=== dftl params='cache_bytes=3948912,dftl_tpbuf=1'
+[448160.391044] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=3948912,dftl_tpbuf=1": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21566324736 B (20567 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[448160.391044] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=3948912,dftl_tpbuf=1": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 10.1s; device 20.09 GiB; write turnovers 2.80; warm-up ends after op 156304721
+trace_replay: precondition 20.09 GiB in 9.4s (2177 MiB/s)
+trace_replay:   2.4% of ops, phase 1, 60s
+trace_replay:   4.7% of ops, phase 1, 120s
+trace_replay:   6.8% of ops, phase 1, 180s
+trace_replay:   8.8% of ops, phase 1, 240s
+trace_replay:  10.7% of ops, phase 1, 300s
+trace_replay:  12.5% of ops, phase 1, 360s
+trace_replay:  14.3% of ops, phase 1, 420s
+trace_replay:  16.0% of ops, phase 1, 480s
+trace_replay:  17.5% of ops, phase 1, 540s
+trace_replay:  19.2% of ops, phase 1, 600s
+trace_replay:  20.8% of ops, phase 1, 660s
+trace_replay:  22.3% of ops, phase 1, 720s
+trace_replay:  23.8% of ops, phase 1, 780s
+trace_replay:  25.3% of ops, phase 1, 840s
+trace_replay:  26.9% of ops, phase 1, 900s
+trace_replay:  28.5% of ops, phase 1, 960s
+trace_replay:  29.9% of ops, phase 1, 1021s
+trace_replay:  31.4% of ops, phase 1, 1081s
+trace_replay:  32.8% of ops, phase 1, 1141s
+trace_replay:  34.3% of ops, phase 1, 1201s
+trace_replay:  36.1% of ops, phase 1, 1261s
+trace_replay:  37.6% of ops, phase 1, 1321s
+trace_replay:  39.0% of ops, phase 1, 1381s
+trace_replay:  40.4% of ops, phase 1, 1441s
+trace_replay:  41.9% of ops, phase 1, 1501s
+trace_replay:  43.2% of ops, phase 1, 1561s
+trace_replay:  44.7% of ops, phase 1, 1621s
+trace_replay:  46.0% of ops, phase 1, 1681s
+trace_replay:  47.5% of ops, phase 1, 1741s
+trace_replay:  49.0% of ops, phase 1, 1801s
+trace_replay:  50.3% of ops, phase 1, 1861s
+trace_replay: warm-up done after 156304722 ops in 1862.3s
+trace_replay:  51.7% of ops, phase 2, 1921s
+trace_replay:  53.2% of ops, phase 2, 1982s
+trace_replay:  54.6% of ops, phase 2, 2042s
+trace_replay:  56.0% of ops, phase 2, 2102s
+trace_replay:  57.4% of ops, phase 2, 2163s
+trace_replay:  58.8% of ops, phase 2, 2223s
+trace_replay:  60.1% of ops, phase 2, 2283s
+trace_replay:  61.4% of ops, phase 2, 2343s
+trace_replay:  62.8% of ops, phase 2, 2403s
+trace_replay:  64.1% of ops, phase 2, 2463s
+trace_replay:  65.5% of ops, phase 2, 2523s
+trace_replay:  66.9% of ops, phase 2, 2583s
+trace_replay:  68.3% of ops, phase 2, 2643s
+trace_replay:  69.7% of ops, phase 2, 2704s
+trace_replay:  71.1% of ops, phase 2, 2764s
+trace_replay:  72.5% of ops, phase 2, 2824s
+trace_replay:  73.8% of ops, phase 2, 2884s
+trace_replay:  75.1% of ops, phase 2, 2944s
+trace_replay:  76.4% of ops, phase 2, 3004s
+trace_replay:  77.8% of ops, phase 2, 3065s
+trace_replay:  79.2% of ops, phase 2, 3125s
+trace_replay:  80.6% of ops, phase 2, 3185s
+trace_replay:  81.9% of ops, phase 2, 3245s
+trace_replay:  83.3% of ops, phase 2, 3305s
+trace_replay:  84.6% of ops, phase 2, 3365s
+trace_replay:  85.9% of ops, phase 2, 3425s
+trace_replay:  87.2% of ops, phase 2, 3485s
+trace_replay:  88.6% of ops, phase 2, 3545s
+trace_replay:  90.0% of ops, phase 2, 3605s
+trace_replay:  91.4% of ops, phase 2, 3665s
+trace_replay:  92.7% of ops, phase 2, 3726s
+trace_replay:  94.1% of ops, phase 2, 3786s
+trace_replay:  95.9% of ops, phase 2, 3846s
+trace_replay:  97.3% of ops, phase 2, 3906s
+trace_replay:  98.5% of ops, phase 2, 3966s
+trace_replay:  99.8% of ops, phase 2, 4026s
+trace_replay: done in 4042.9s (measured 2171.1s: 70958 IOPS, reads 146671413 p99 748us, writes 7382719 p99 94us)
+dftl      IOPS=   70958 (R    67557 W    3400; R  263.9 W   13.3 MiB/s) WAF= 9.696 mapR/pg=0.876 | read_us p50=345 p99=748 p99.9=944 p99.99=891290 max=1418358 | write_us p50=45 p99=94 p99.9=127 p99.99=33489 max=44058 | 1.12h
+=== leaftl params='cache_bytes=3948912'
+[452219.139702] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=3948912": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21566324736 B (20567 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[452219.139702] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=3948912": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 10.1s; device 20.09 GiB; write turnovers 2.80; warm-up ends after op 156304721
+trace_replay: precondition 20.09 GiB in 9.2s (2238 MiB/s)
+trace_replay:   4.8% of ops, phase 1, 60s
+trace_replay:   8.9% of ops, phase 1, 120s
+trace_replay:  11.4% of ops, phase 1, 180s
+trace_replay:  13.4% of ops, phase 1, 240s
+trace_replay:  15.3% of ops, phase 1, 300s
+trace_replay:  16.9% of ops, phase 1, 360s
+trace_replay:  18.6% of ops, phase 1, 420s
+trace_replay:  20.1% of ops, phase 1, 480s
+trace_replay:  21.5% of ops, phase 1, 540s
+trace_replay:  22.9% of ops, phase 1, 600s
+trace_replay:  24.3% of ops, phase 1, 660s
+trace_replay:  25.7% of ops, phase 1, 720s
+trace_replay:  27.2% of ops, phase 1, 780s
+trace_replay:  28.8% of ops, phase 1, 840s
+trace_replay:  30.1% of ops, phase 1, 900s
+trace_replay:  31.6% of ops, phase 1, 960s
+trace_replay:  32.7% of ops, phase 1, 1020s
+trace_replay:  34.1% of ops, phase 1, 1080s
+trace_replay:  36.1% of ops, phase 1, 1140s
+trace_replay:  37.5% of ops, phase 1, 1200s
+trace_replay:  38.7% of ops, phase 1, 1260s
+trace_replay:  39.9% of ops, phase 1, 1321s
+trace_replay:  41.3% of ops, phase 1, 1381s
+trace_replay:  42.7% of ops, phase 1, 1441s
+trace_replay:  44.0% of ops, phase 1, 1501s
+trace_replay:  45.4% of ops, phase 1, 1561s
+trace_replay:  46.8% of ops, phase 1, 1621s
+trace_replay:  48.0% of ops, phase 1, 1681s
+trace_replay:  49.2% of ops, phase 1, 1741s
+trace_replay: warm-up done after 156304722 ops in 1792.8s
+trace_replay:  50.5% of ops, phase 2, 1801s
+trace_replay:  51.8% of ops, phase 2, 1861s
+trace_replay:  53.1% of ops, phase 2, 1921s
+trace_replay:  54.4% of ops, phase 2, 1981s
+trace_replay:  55.6% of ops, phase 2, 2041s
+trace_replay:  56.7% of ops, phase 2, 2101s
+trace_replay:  58.0% of ops, phase 2, 2162s
+trace_replay:  59.3% of ops, phase 2, 2222s
+trace_replay:  60.6% of ops, phase 2, 2282s
+trace_replay:  61.9% of ops, phase 2, 2342s
+trace_replay:  62.9% of ops, phase 2, 2402s
+trace_replay:  64.1% of ops, phase 2, 2462s
+trace_replay:  65.4% of ops, phase 2, 2522s
+trace_replay:  66.7% of ops, phase 2, 2582s
+trace_replay:  68.0% of ops, phase 2, 2642s
+trace_replay:  69.1% of ops, phase 2, 2702s
+trace_replay:  70.2% of ops, phase 2, 2763s
+trace_replay:  71.6% of ops, phase 2, 2823s
+trace_replay:  72.8% of ops, phase 2, 2883s
+trace_replay:  74.1% of ops, phase 2, 2943s
+trace_replay:  75.1% of ops, phase 2, 3003s
+trace_replay:  76.3% of ops, phase 2, 3064s
+trace_replay:  77.6% of ops, phase 2, 3124s
+trace_replay:  78.9% of ops, phase 2, 3184s
+trace_replay:  80.1% of ops, phase 2, 3244s
+trace_replay:  81.2% of ops, phase 2, 3304s
+trace_replay:  82.4% of ops, phase 2, 3364s
+trace_replay:  83.7% of ops, phase 2, 3424s
+trace_replay:  84.9% of ops, phase 2, 3484s
+trace_replay:  86.0% of ops, phase 2, 3544s
+trace_replay:  87.2% of ops, phase 2, 3604s
+trace_replay:  88.4% of ops, phase 2, 3664s
+trace_replay:  89.7% of ops, phase 2, 3724s
+trace_replay:  90.9% of ops, phase 2, 3784s
+trace_replay:  92.0% of ops, phase 2, 3844s
+trace_replay:  93.3% of ops, phase 2, 3905s
+trace_replay:  94.8% of ops, phase 2, 3965s
+trace_replay:  96.5% of ops, phase 2, 4026s
+trace_replay:  97.7% of ops, phase 2, 4086s
+trace_replay:  98.9% of ops, phase 2, 4146s
+trace_replay:  99.9% of ops, phase 2, 4206s
+trace_replay: done in 4217.1s (measured 2415.1s: 63789 IOPS, reads 146671413 p99 739us, writes 7382719 p99 156us)
+leaftl    IOPS=   63789 (R    60732 W    3057; R  237.2 W   11.9 MiB/s) WAF=11.556 mapR/pg=0.799 | read_us p50=296 p99=739 p99.9=1298 p99.99=1094713 max=2139395 | write_us p50=60 p99=156 p99.9=9142 p99.99=324010 max=387482 | 1.17h
+=== fast params=''
+[456449.650048] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21529362432 B (20532 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[456449.650048] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 10.1s; device 20.05 GiB; write turnovers 2.81; warm-up ends after op 156304721
+trace_replay: precondition 20.05 GiB in 9.2s (2228 MiB/s)
+trace_replay:   4.9% of ops, phase 1, 60s
+trace_replay:   8.8% of ops, phase 1, 120s
+trace_replay:  12.0% of ops, phase 1, 180s
+trace_replay:  15.7% of ops, phase 1, 240s
+trace_replay:  18.9% of ops, phase 1, 301s
+trace_replay:  22.4% of ops, phase 1, 361s
+trace_replay:  25.6% of ops, phase 1, 421s
+trace_replay:  29.2% of ops, phase 1, 481s
+trace_replay:  32.6% of ops, phase 1, 543s
+trace_replay:  36.6% of ops, phase 1, 603s
+trace_replay:  40.0% of ops, phase 1, 663s
+trace_replay:  43.2% of ops, phase 1, 723s
+trace_replay:  46.8% of ops, phase 1, 783s
+trace_replay:  50.0% of ops, phase 1, 843s
+trace_replay: warm-up done after 156304722 ops in 852.2s
+trace_replay:  53.3% of ops, phase 2, 903s
+trace_replay:  56.5% of ops, phase 2, 964s
+trace_replay:  59.8% of ops, phase 2, 1024s
+trace_replay:  63.0% of ops, phase 2, 1084s
+trace_replay:  66.5% of ops, phase 2, 1144s
+trace_replay:  69.8% of ops, phase 2, 1205s
+trace_replay:  73.1% of ops, phase 2, 1265s
+trace_replay:  76.3% of ops, phase 2, 1326s
+trace_replay:  79.7% of ops, phase 2, 1386s
+trace_replay:  83.2% of ops, phase 2, 1446s
+trace_replay:  86.4% of ops, phase 2, 1506s
+trace_replay:  89.8% of ops, phase 2, 1566s
+trace_replay:  93.0% of ops, phase 2, 1626s
+trace_replay:  96.8% of ops, phase 2, 1686s
+trace_replay: done in 1751.9s (measured 890.3s: 173028 IOPS, reads 146671413 p99 325us, writes 7382719 p99 168us)
+fast      IOPS=  173028 (R   164736 W    8292; R  643.5 W   32.4 MiB/s) WAF=15.834 mapR/pg=0.000 | read_us p50=116 p99=325 p99.9=445 p99.99=132383 max=2704499 | write_us p50=51 p99=168 p99.9=920 p99.99=32571 max=118676 | 0.49h
+=== mu params='cache_bytes=3948912'
+[458217.377836] NVMeVirt: dm_ftl policy=mu params="cache_bytes=3948912": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21566324736 B (20567 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[458217.377836] NVMeVirt: dm_ftl policy=mu params="cache_bytes=3948912": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 10.1s; device 20.09 GiB; write turnovers 2.80; warm-up ends after op 156304721
+trace_replay: precondition 20.09 GiB in 9.2s (2228 MiB/s)
+trace_replay:   5.0% of ops, phase 1, 60s
+trace_replay:   7.6% of ops, phase 1, 120s
+trace_replay:   9.7% of ops, phase 1, 180s
+trace_replay:  11.4% of ops, phase 1, 240s
+trace_replay:  13.0% of ops, phase 1, 300s
+trace_replay:  14.3% of ops, phase 1, 360s
+trace_replay:  15.7% of ops, phase 1, 421s
+trace_replay:  16.9% of ops, phase 1, 481s
+trace_replay:  18.1% of ops, phase 1, 541s
+trace_replay:  19.2% of ops, phase 1, 601s
+trace_replay:  20.5% of ops, phase 1, 661s
+trace_replay:  21.5% of ops, phase 1, 721s
+trace_replay:  22.4% of ops, phase 1, 781s
+trace_replay:  23.5% of ops, phase 1, 845s
+trace_replay:  24.3% of ops, phase 1, 905s
+trace_replay:  25.4% of ops, phase 1, 965s
+trace_replay:  26.4% of ops, phase 1, 1025s
+trace_replay:  27.4% of ops, phase 1, 1090s
+trace_replay:  28.6% of ops, phase 1, 1150s
+trace_replay:  29.3% of ops, phase 1, 1210s
+trace_replay:  30.3% of ops, phase 1, 1270s
+trace_replay:  31.3% of ops, phase 1, 1330s
+trace_replay:  32.1% of ops, phase 1, 1390s
+trace_replay:  33.2% of ops, phase 1, 1455s
+trace_replay:  33.9% of ops, phase 1, 1515s
+trace_replay:  35.4% of ops, phase 1, 1575s
+trace_replay:  36.8% of ops, phase 1, 1638s
+trace_replay:  37.7% of ops, phase 1, 1698s
+trace_replay:  38.6% of ops, phase 1, 1765s
+trace_replay:  39.7% of ops, phase 1, 1828s
+trace_replay:  40.8% of ops, phase 1, 1888s
+trace_replay:  41.5% of ops, phase 1, 1949s
+trace_replay:  42.5% of ops, phase 1, 2009s
+trace_replay:  43.6% of ops, phase 1, 2071s
+trace_replay:  44.2% of ops, phase 1, 2131s
+trace_replay:  45.4% of ops, phase 1, 2193s
+trace_replay:  46.2% of ops, phase 1, 2253s
+trace_replay:  47.2% of ops, phase 1, 2313s
+trace_replay:  48.3% of ops, phase 1, 2373s
+trace_replay:  49.0% of ops, phase 1, 2434s
+trace_replay:  50.0% of ops, phase 1, 2494s
+trace_replay: warm-up done after 156304722 ops in 2519.9s
+trace_replay:  50.7% of ops, phase 2, 2554s
+trace_replay:  51.8% of ops, phase 2, 2614s
+trace_replay:  52.6% of ops, phase 2, 2674s
+trace_replay:  53.4% of ops, phase 2, 2734s
+trace_replay:  54.4% of ops, phase 2, 2795s
+trace_replay:  55.0% of ops, phase 2, 2856s
+trace_replay:  56.1% of ops, phase 2, 2917s
+trace_replay:  56.7% of ops, phase 2, 2978s
+trace_replay:  57.7% of ops, phase 2, 3038s
+trace_replay:  58.5% of ops, phase 2, 3098s
+trace_replay:  59.4% of ops, phase 2, 3160s
+trace_replay:  60.3% of ops, phase 2, 3220s
+trace_replay:  60.9% of ops, phase 2, 3281s
+trace_replay:  61.9% of ops, phase 2, 3345s
+trace_replay:  62.7% of ops, phase 2, 3405s
+trace_replay:  63.8% of ops, phase 2, 3465s
+trace_replay:  64.3% of ops, phase 2, 3527s
+trace_replay:  65.3% of ops, phase 2, 3588s
+trace_replay:  66.1% of ops, phase 2, 3648s
+trace_replay:  66.9% of ops, phase 2, 3708s
+trace_replay:  67.7% of ops, phase 2, 3768s
+trace_replay:  68.6% of ops, phase 2, 3828s
+trace_replay:  69.3% of ops, phase 2, 3888s
+trace_replay:  70.1% of ops, phase 2, 3950s
+trace_replay:  71.0% of ops, phase 2, 4010s
+trace_replay:  71.6% of ops, phase 2, 4070s
+trace_replay:  72.5% of ops, phase 2, 4130s
+trace_replay:  73.3% of ops, phase 2, 4201s
+trace_replay:  74.5% of ops, phase 2, 4271s
+trace_replay:  75.2% of ops, phase 2, 4331s
+trace_replay:  76.2% of ops, phase 2, 4407s
+trace_replay:  77.2% of ops, phase 2, 4475s
+trace_replay:  77.9% of ops, phase 2, 4535s
+trace_replay:  78.9% of ops, phase 2, 4604s
+trace_replay:  79.6% of ops, phase 2, 4664s
+trace_replay:  80.5% of ops, phase 2, 4726s
+trace_replay:  81.2% of ops, phase 2, 4786s
+trace_replay:  82.2% of ops, phase 2, 4847s
+trace_replay:  82.8% of ops, phase 2, 4909s
+trace_replay:  83.7% of ops, phase 2, 4971s
+trace_replay:  84.4% of ops, phase 2, 5031s
+trace_replay:  85.3% of ops, phase 2, 5091s
+trace_replay:  86.1% of ops, phase 2, 5151s
+trace_replay:  86.8% of ops, phase 2, 5213s
+trace_replay:  87.4% of ops, phase 2, 5273s
+trace_replay:  88.4% of ops, phase 2, 5333s
+trace_replay:  89.0% of ops, phase 2, 5393s
+trace_replay:  89.9% of ops, phase 2, 5453s
+trace_replay:  91.0% of ops, phase 2, 5513s
+trace_replay:  91.5% of ops, phase 2, 5575s
+trace_replay:  92.4% of ops, phase 2, 5635s
+trace_replay:  93.2% of ops, phase 2, 5695s
+trace_replay:  94.1% of ops, phase 2, 5755s
+trace_replay:  95.5% of ops, phase 2, 5815s
+trace_replay:  96.4% of ops, phase 2, 5875s
+trace_replay:  97.4% of ops, phase 2, 5945s
+trace_replay:  97.8% of ops, phase 2, 6009s
+trace_replay:  98.3% of ops, phase 2, 6072s
+trace_replay:  99.1% of ops, phase 2, 6132s
+trace_replay:  99.9% of ops, phase 2, 6204s
+trace_replay: done in 6219.8s (measured 3690.6s: 41743 IOPS, reads 146671413 p99 825us, writes 7382719 p99 87us)
+mu        IOPS=   41742 (R    39742 W    2000; R  155.2 W    7.8 MiB/s) WAF=30.107 mapR/pg=1.197 | read_us p50=353 p99=825 p99.9=1258 p99.99=1228931 max=19923420 | write_us p50=41 p99=87 p99.9=130 p99.99=122421 max=294259 | 1.73h
+=== iurmw params=''
+[464450.387848] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21566324736 B (20567 MiB); trace spfresh: /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv, capacity 21480079360 B; QD32; max 5h
+[464450.387848] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=15104 pages, logical 5265216 pages (20567 MiB), physical 22007 MiB
+trace: {'sample': '500/1000', 'kept_regions': 20485, 'capacity_gib': 20.0, 'write_gib': 56.33, 'read_gib': 1127.6, 'writes': 14765438, 'reads': 295593416, 'turnovers': 2.82}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 310358854 ops (14765438 writes 56.3 GiB, 295593416 reads 1127.6 GiB) loaded in 10.1s; device 20.09 GiB; write turnovers 2.80; warm-up ends after op 156304721
+trace_replay: precondition 20.09 GiB in 9.2s (2228 MiB/s)
+trace_replay:   4.5% of ops, phase 1, 60s
+trace_replay:   5.8% of ops, phase 1, 120s
+trace_replay:   7.1% of ops, phase 1, 180s
+trace_replay:   7.8% of ops, phase 1, 240s
+trace_replay:   9.1% of ops, phase 1, 300s
+trace_replay:  10.4% of ops, phase 1, 360s
+trace_replay:  11.1% of ops, phase 1, 420s
+trace_replay:  12.4% of ops, phase 1, 480s
+trace_replay:  13.7% of ops, phase 1, 540s
+trace_replay:  14.3% of ops, phase 1, 600s
+trace_replay:  15.7% of ops, phase 1, 660s
+trace_replay:  16.9% of ops, phase 1, 721s
+trace_replay:  17.5% of ops, phase 1, 781s
+trace_replay:  18.9% of ops, phase 1, 841s
+trace_replay:  19.9% of ops, phase 1, 901s
+trace_replay:  20.9% of ops, phase 1, 961s
+trace_replay:  22.1% of ops, phase 1, 1021s
+trace_replay:  22.9% of ops, phase 1, 1081s
+trace_replay:  23.9% of ops, phase 1, 1141s
+trace_replay:  25.2% of ops, phase 1, 1201s
+trace_replay:  25.9% of ops, phase 1, 1261s
+trace_replay:  27.3% of ops, phase 1, 1321s
+trace_replay:  28.6% of ops, phase 1, 1382s
+trace_replay:  29.4% of ops, phase 1, 1442s
+trace_replay:  30.5% of ops, phase 1, 1502s
+trace_replay:  31.8% of ops, phase 1, 1562s
+trace_replay:  32.6% of ops, phase 1, 1622s
+trace_replay:  33.7% of ops, phase 1, 1682s
+trace_replay:  35.8% of ops, phase 1, 1742s
+trace_replay:  36.9% of ops, phase 1, 1802s
+trace_replay:  38.0% of ops, phase 1, 1862s
+trace_replay:  39.1% of ops, phase 1, 1922s
+trace_replay:  39.8% of ops, phase 1, 1982s
+trace_replay:  40.9% of ops, phase 1, 2042s
+trace_replay:  42.1% of ops, phase 1, 2102s
+trace_replay:  42.7% of ops, phase 1, 2162s
+trace_replay:  43.9% of ops, phase 1, 2223s
+trace_replay:  45.0% of ops, phase 1, 2283s
+trace_replay:  45.7% of ops, phase 1, 2343s
+trace_replay:  47.1% of ops, phase 1, 2403s
+trace_replay:  47.8% of ops, phase 1, 2463s
+trace_replay:  48.9% of ops, phase 1, 2523s
+trace_replay:  50.0% of ops, phase 1, 2583s
+trace_replay: warm-up done after 156304722 ops in 2615.8s
+trace_replay:  50.6% of ops, phase 2, 2643s
+trace_replay:  51.8% of ops, phase 2, 2703s
+trace_replay:  52.9% of ops, phase 2, 2763s
+trace_replay:  53.6% of ops, phase 2, 2823s
+trace_replay:  54.7% of ops, phase 2, 2883s
+trace_replay:  55.9% of ops, phase 2, 2943s
+trace_replay:  56.5% of ops, phase 2, 3003s
+trace_replay:  57.7% of ops, phase 2, 3063s
+trace_replay:  58.9% of ops, phase 2, 3123s
+trace_replay:  59.6% of ops, phase 2, 3184s
+trace_replay:  60.7% of ops, phase 2, 3244s
+trace_replay:  61.5% of ops, phase 2, 3304s
+trace_replay:  62.5% of ops, phase 2, 3364s
+trace_replay:  63.7% of ops, phase 2, 3424s
+trace_replay:  64.4% of ops, phase 2, 3484s
+trace_replay:  65.5% of ops, phase 2, 3544s
+trace_replay:  66.6% of ops, phase 2, 3604s
+trace_replay:  67.3% of ops, phase 2, 3664s
+trace_replay:  68.4% of ops, phase 2, 3724s
+trace_replay:  69.6% of ops, phase 2, 3784s
+trace_replay:  70.2% of ops, phase 2, 3844s
+trace_replay:  71.4% of ops, phase 2, 3904s
+trace_replay:  72.6% of ops, phase 2, 3965s
+trace_replay:  73.3% of ops, phase 2, 4025s
+trace_replay:  74.5% of ops, phase 2, 4085s
+trace_replay:  75.5% of ops, phase 2, 4145s
+trace_replay:  76.3% of ops, phase 2, 4205s
+trace_replay:  77.5% of ops, phase 2, 4265s
+trace_replay:  78.2% of ops, phase 2, 4326s
+trace_replay:  79.3% of ops, phase 2, 4386s
+trace_replay:  80.4% of ops, phase 2, 4446s
+trace_replay:  81.2% of ops, phase 2, 4506s
+trace_replay:  82.3% of ops, phase 2, 4566s
+trace_replay:  83.4% of ops, phase 2, 4626s
+trace_replay:  84.1% of ops, phase 2, 4686s
+trace_replay:  85.3% of ops, phase 2, 4746s
+trace_replay:  86.5% of ops, phase 2, 4806s
+trace_replay:  87.1% of ops, phase 2, 4866s
+trace_replay:  88.4% of ops, phase 2, 4926s
+trace_replay:  89.5% of ops, phase 2, 4986s
+trace_replay:  90.2% of ops, phase 2, 5046s
+trace_replay:  91.4% of ops, phase 2, 5107s
+trace_replay:  92.1% of ops, phase 2, 5167s
+trace_replay:  93.3% of ops, phase 2, 5227s
+trace_replay:  95.3% of ops, phase 2, 5287s
+trace_replay:  96.6% of ops, phase 2, 5347s
+trace_replay:  97.7% of ops, phase 2, 5407s
+trace_replay:  98.9% of ops, phase 2, 5467s
+trace_replay:  99.6% of ops, phase 2, 5527s
+trace_replay: done in 5564.0s (measured 2938.9s: 52420 IOPS, reads 146671413 p99 1511us, writes 7382719 p99 2957us)
+iurmw     IOPS=   52420 (R    49908 W    2512; R  195.0 W    9.8 MiB/s) WAF=126.499 mapR/pg=0.000 | read_us p50=154 p99=1511 p99.9=256377 p99.99=290456 max=295912 | write_us p50=47 p99=2957 p99.9=5882 p99.99=6373 max=20214 | 1.55h
+[464447.819023] NVMeVirt: [dm final] policy=mu L=5265216 NB=373 P=15104 submitted=20030654 host=20030627 prog=375757902 (host 20030627 gc 250293388 rmw 0 fold 0 map 105433887 other 0) WAFx1000=18759 reads(host 295570104 gc 250293388 rmw 0 fold 0 map 312709985) host_read_pages=295594137 erases=17662 map_miss=312709985 mem=3982053
+[470025.034340] NVMeVirt: [dm final] policy=iurmw L=5265216 NB=373 P=15104 submitted=20030654 host=20030627 prog=1741726368 (host 20030627 gc 1518888048 rmw 202807693 fold 0 map 0 other 0) WAFx1000=86953 reads(host 295570104 gc 1518888048 rmw 202807693 fold 0 map 0) host_read_pages=295594137 erases=114945 map_miss=0 mem=1316304
+Tue Oct  6 06:17:06 PM UTC 2026 trace spfresh done
+# spfresh: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=  208456 (R   198466 W    9990; R  775.3 W   39.0 MiB/s) WAF= 7.614 mapR/pg=0.000 | read_us p50=116 p99=325 p99.9=439 p99.99=217580 max=296175 | write_us p50=49 p99=156 p99.9=183 p99.99=8946 max=15841 | 0.41h
+proposed  IOPS=  179494 (R   170892 W    8602; R  667.5 W   33.6 MiB/s) WAF=13.972 mapR/pg=0.000 | read_us p50=117 p99=343 p99.9=490 p99.99=414188 max=577552 | write_us p50=49 p99=160 p99.9=186 p99.99=37618 max=43077 | 0.47h
+dftl      IOPS=   70958 (R    67557 W    3400; R  263.9 W   13.3 MiB/s) WAF= 9.696 mapR/pg=0.876 | read_us p50=345 p99=748 p99.9=944 p99.99=891290 max=1418358 | write_us p50=45 p99=94 p99.9=127 p99.99=33489 max=44058 | 1.12h
+leaftl    IOPS=   63789 (R    60732 W    3057; R  237.2 W   11.9 MiB/s) WAF=11.556 mapR/pg=0.799 | read_us p50=296 p99=739 p99.9=1298 p99.99=1094713 max=2139395 | write_us p50=60 p99=156 p99.9=9142 p99.99=324010 max=387482 | 1.17h
+fast      IOPS=  173028 (R   164736 W    8292; R  643.5 W   32.4 MiB/s) WAF=15.834 mapR/pg=0.000 | read_us p50=116 p99=325 p99.9=445 p99.99=132383 max=2704499 | write_us p50=51 p99=168 p99.9=920 p99.99=32571 max=118676 | 0.49h
+mu        IOPS=   41742 (R    39742 W    2000; R  155.2 W    7.8 MiB/s) WAF=30.107 mapR/pg=1.197 | read_us p50=353 p99=825 p99.9=1258 p99.99=1228931 max=19923420 | write_us p50=41 p99=87 p99.9=130 p99.99=122421 max=294259 | 1.73h
+iurmw     IOPS=   52420 (R    49908 W    2512; R  195.0 W    9.8 MiB/s) WAF=126.499 mapR/pg=0.000 | read_us p50=154 p99=1511 p99.9=256377 p99.99=290456 max=295912 | write_us p50=47 p99=2957 p99.9=5882 p99.99=6373 max=20214 | 1.55h
+Tue Oct  6 06:17:06 PM UTC 2026 trace kv_w1: capacity 43654316032 B, memmap_size=44575M
+=== page4k params=''
+[470025.959184] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43863769088 B (41831 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[470025.959184] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.85 GiB; write turnovers 9.82; warm-up ends after op 679694
+trace_replay: precondition 40.85 GiB in 18.7s (2233 MiB/s)
+trace_replay:   9.4% of ops, phase 1, 60s
+trace_replay:  15.2% of ops, phase 1, 120s
+trace_replay:  21.0% of ops, phase 1, 180s
+trace_replay:  27.1% of ops, phase 1, 240s
+trace_replay:  32.2% of ops, phase 1, 300s
+trace_replay:  37.8% of ops, phase 1, 360s
+trace_replay: warm-up done after 679695 ops in 413.3s
+trace_replay:  42.8% of ops, phase 2, 420s
+trace_replay:  48.1% of ops, phase 2, 481s
+trace_replay:  53.3% of ops, phase 2, 541s
+trace_replay:  58.7% of ops, phase 2, 601s
+trace_replay:  63.9% of ops, phase 2, 661s
+trace_replay:  70.9% of ops, phase 2, 721s
+trace_replay:  76.1% of ops, phase 2, 781s
+trace_replay:  81.3% of ops, phase 2, 841s
+trace_replay:  86.7% of ops, phase 2, 901s
+trace_replay:  93.7% of ops, phase 2, 961s
+trace_replay: done in 1002.4s (measured 570.2s: 1662 IOPS, reads 806662 p99 231211us, writes 140946 p99 237502us)
+page4k    IOPS=    1662 (R     1415 W     247; R 1073.9 W  360.4 MiB/s) WAF= 3.255 mapR/pg=0.000 | read_us p50=8815 p99=231211 p99.9=253231 p99.99=315621 max=325642 | write_us p50=10322 p99=237502 p99.9=296747 p99.99=319816 max=326346 | 0.28h
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[471031.988498] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43863769088 B (41831 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[471031.988498] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.85 GiB; write turnovers 9.82; warm-up ends after op 679694
+trace_replay: precondition 40.85 GiB in 18.7s (2233 MiB/s)
+trace_replay:   9.3% of ops, phase 1, 60s
+trace_replay:  14.7% of ops, phase 1, 120s
+trace_replay:  20.2% of ops, phase 1, 180s
+trace_replay:  25.2% of ops, phase 1, 240s
+trace_replay:  30.8% of ops, phase 1, 300s
+trace_replay:  35.1% of ops, phase 1, 360s
+trace_replay:  40.4% of ops, phase 1, 420s
+trace_replay: warm-up done after 679695 ops in 442.5s
+trace_replay:  45.8% of ops, phase 2, 480s
+trace_replay:  50.4% of ops, phase 2, 540s
+trace_replay:  55.1% of ops, phase 2, 600s
+trace_replay:  59.9% of ops, phase 2, 660s
+trace_replay:  65.3% of ops, phase 2, 720s
+trace_replay:  71.7% of ops, phase 2, 780s
+trace_replay:  76.6% of ops, phase 2, 840s
+trace_replay:  81.3% of ops, phase 2, 900s
+trace_replay:  86.4% of ops, phase 2, 961s
+trace_replay:  91.8% of ops, phase 2, 1021s
+trace_replay: done in 1070.9s (measured 609.6s: 1555 IOPS, reads 806662 p99 290456us, writes 140946 p99 307233us)
+proposed  IOPS=    1555 (R     1323 W     231; R 1004.6 W  337.1 MiB/s) WAF= 3.558 mapR/pg=0.000 | read_us p50=8815 p99=290456 p99.9=426770 p99.99=516948 max=620686 | write_us p50=10322 p99=307233 p99.9=466616 p99.99=523239 max=620686 | 0.30h
+=== dftl params='cache_bytes=8031696,dftl_tpbuf=1'
+[472109.657800] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=8031696,dftl_tpbuf=1": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43863769088 B (41831 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[472109.657800] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=8031696,dftl_tpbuf=1": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.85 GiB; write turnovers 9.82; warm-up ends after op 679694
+trace_replay: precondition 40.85 GiB in 19.3s (2172 MiB/s)
+trace_replay:   9.2% of ops, phase 1, 60s
+trace_replay:  14.9% of ops, phase 1, 120s
+trace_replay:  20.7% of ops, phase 1, 180s
+trace_replay:  26.4% of ops, phase 1, 240s
+trace_replay:  31.7% of ops, phase 1, 300s
+trace_replay:  36.6% of ops, phase 1, 360s
+trace_replay:  41.3% of ops, phase 1, 420s
+trace_replay: warm-up done after 679695 ops in 426.3s
+trace_replay:  47.0% of ops, phase 2, 480s
+trace_replay:  52.1% of ops, phase 2, 540s
+trace_replay:  57.3% of ops, phase 2, 600s
+trace_replay:  62.2% of ops, phase 2, 660s
+trace_replay:  68.6% of ops, phase 2, 720s
+trace_replay:  74.5% of ops, phase 2, 780s
+trace_replay:  79.6% of ops, phase 2, 840s
+trace_replay:  84.9% of ops, phase 2, 900s
+trace_replay:  89.2% of ops, phase 2, 960s
+trace_replay: done in 1032.4s (measured 586.8s: 1615 IOPS, reads 806662 p99 237502us, writes 140946 p99 242745us)
+dftl      IOPS=    1615 (R     1375 W     240; R 1043.6 W  350.2 MiB/s) WAF= 3.255 mapR/pg=0.006 | read_us p50=9077 p99=237502 p99.9=262668 p99.99=324010 max=333988 | write_us p50=10715 p99=242745 p99.9=305136 p99.99=328204 max=334690 | 0.29h
+=== leaftl params='cache_bytes=8031696'
+[473148.936043] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=8031696": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43863769088 B (41831 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[473148.936043] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=8031696": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.85 GiB; write turnovers 9.82; warm-up ends after op 679694
+trace_replay: precondition 40.85 GiB in 18.7s (2236 MiB/s)
+trace_replay:   9.5% of ops, phase 1, 60s
+trace_replay:  15.4% of ops, phase 1, 120s
+trace_replay:  21.2% of ops, phase 1, 180s
+trace_replay:  27.7% of ops, phase 1, 240s
+trace_replay:  32.9% of ops, phase 1, 300s
+trace_replay:  39.1% of ops, phase 1, 360s
+trace_replay: warm-up done after 679695 ops in 399.0s
+trace_replay:  44.5% of ops, phase 2, 420s
+trace_replay:  49.8% of ops, phase 2, 480s
+trace_replay:  55.1% of ops, phase 2, 540s
+trace_replay:  60.3% of ops, phase 2, 600s
+trace_replay:  66.9% of ops, phase 2, 660s
+trace_replay:  73.3% of ops, phase 2, 720s
+trace_replay:  78.8% of ops, phase 2, 781s
+trace_replay:  84.5% of ops, phase 2, 841s
+trace_replay:  89.0% of ops, phase 2, 901s
+trace_replay: done in 973.2s (measured 555.4s: 1706 IOPS, reads 806662 p99 228065us, writes 140946 p99 28377us)
+leaftl    IOPS=    1706 (R     1452 W     254; R 1102.6 W  370.0 MiB/s) WAF= 3.167 mapR/pg=0.000 | read_us p50=9273 p99=228065 p99.9=246940 p99.99=305136 max=322284 | write_us p50=8274 p99=28377 p99.9=204997 p99.99=238551 max=310743 | 0.27h
+=== fast params=''
+[474125.751534] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43788533760 B (41760 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[474125.751534] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.78 GiB; write turnovers 9.84; warm-up ends after op 679694
+trace_replay: precondition 40.78 GiB in 18.7s (2233 MiB/s)
+trace_replay:   3.6% of ops, phase 1, 60s
+trace_replay:   8.8% of ops, phase 1, 120s
+trace_replay:  10.5% of ops, phase 1, 180s
+trace_replay:  13.2% of ops, phase 1, 241s
+trace_replay:  15.6% of ops, phase 1, 301s
+trace_replay:  18.3% of ops, phase 1, 361s
+trace_replay:  20.5% of ops, phase 1, 422s
+trace_replay:  22.2% of ops, phase 1, 482s
+trace_replay:  24.4% of ops, phase 1, 542s
+trace_replay:  26.9% of ops, phase 1, 602s
+trace_replay:  29.3% of ops, phase 1, 662s
+trace_replay:  31.7% of ops, phase 1, 723s
+trace_replay:  33.6% of ops, phase 1, 783s
+trace_replay:  36.0% of ops, phase 1, 843s
+trace_replay:  39.2% of ops, phase 1, 903s
+trace_replay:  40.8% of ops, phase 1, 963s
+trace_replay: warm-up done after 679695 ops in 995.6s
+trace_replay:  43.3% of ops, phase 2, 1023s
+trace_replay:  45.8% of ops, phase 2, 1084s
+trace_replay:  47.6% of ops, phase 2, 1144s
+trace_replay:  49.9% of ops, phase 2, 1204s
+trace_replay:  52.1% of ops, phase 2, 1264s
+trace_replay:  54.1% of ops, phase 2, 1324s
+trace_replay:  56.4% of ops, phase 2, 1385s
+trace_replay:  58.7% of ops, phase 2, 1445s
+trace_replay:  60.8% of ops, phase 2, 1505s
+trace_replay:  63.5% of ops, phase 2, 1566s
+trace_replay:  67.3% of ops, phase 2, 1626s
+trace_replay:  70.2% of ops, phase 2, 1686s
+trace_replay:  73.6% of ops, phase 2, 1746s
+trace_replay:  75.7% of ops, phase 2, 1807s
+trace_replay:  78.5% of ops, phase 2, 1867s
+trace_replay:  80.3% of ops, phase 2, 1928s
+trace_replay:  82.4% of ops, phase 2, 1988s
+trace_replay:  85.5% of ops, phase 2, 2048s
+trace_replay:  87.2% of ops, phase 2, 2108s
+trace_replay:  89.7% of ops, phase 2, 2168s
+trace_replay:  96.9% of ops, phase 2, 2228s
+trace_replay: done in 2257.9s (measured 1243.5s: 762 IOPS, reads 806662 p99 652214us, writes 140946 p99 689963us)
+fast      IOPS=     762 (R      649 W     113; R  492.5 W  165.3 MiB/s) WAF= 8.835 mapR/pg=0.000 | read_us p50=8880 p99=652214 p99.9=878707 p99.99=1103102 max=1183530 | write_us p50=10584 p99=689963 p99.9=941621 p99.99=1103102 max=1157227 | 0.63h
+=== mu params='cache_bytes=8031696'
+[476390.415969] NVMeVirt: dm_ftl policy=mu params="cache_bytes=8031696": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43863769088 B (41831 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[476390.415969] NVMeVirt: dm_ftl policy=mu params="cache_bytes=8031696": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.85 GiB; write turnovers 9.82; warm-up ends after op 679694
+trace_replay: precondition 40.85 GiB in 18.7s (2232 MiB/s)
+trace_replay:   7.7% of ops, phase 1, 60s
+trace_replay:   9.1% of ops, phase 1, 121s
+trace_replay:  10.1% of ops, phase 1, 181s
+trace_replay:  10.9% of ops, phase 1, 241s
+trace_replay:  12.4% of ops, phase 1, 302s
+trace_replay:  14.3% of ops, phase 1, 362s
+trace_replay:  15.4% of ops, phase 1, 422s
+trace_replay:  16.4% of ops, phase 1, 482s
+trace_replay:  18.8% of ops, phase 1, 542s
+trace_replay:  20.2% of ops, phase 1, 602s
+trace_replay:  20.8% of ops, phase 1, 662s
+trace_replay:  21.5% of ops, phase 1, 722s
+trace_replay:  22.4% of ops, phase 1, 783s
+trace_replay:  24.1% of ops, phase 1, 844s
+trace_replay:  25.6% of ops, phase 1, 904s
+trace_replay:  26.5% of ops, phase 1, 965s
+trace_replay:  27.8% of ops, phase 1, 1025s
+trace_replay:  29.2% of ops, phase 1, 1085s
+trace_replay:  31.1% of ops, phase 1, 1146s
+trace_replay:  32.0% of ops, phase 1, 1206s
+trace_replay:  33.0% of ops, phase 1, 1267s
+trace_replay:  33.9% of ops, phase 1, 1327s
+trace_replay:  35.2% of ops, phase 1, 1387s
+trace_replay:  37.5% of ops, phase 1, 1449s
+trace_replay:  39.4% of ops, phase 1, 1511s
+trace_replay:  40.2% of ops, phase 1, 1571s
+trace_replay:  40.7% of ops, phase 1, 1631s
+trace_replay:  41.2% of ops, phase 1, 1692s
+trace_replay: warm-up done after 679695 ops in 1726.2s
+trace_replay:  42.8% of ops, phase 2, 1752s
+trace_replay:  44.3% of ops, phase 2, 1813s
+trace_replay:  45.2% of ops, phase 2, 1873s
+trace_replay:  45.9% of ops, phase 2, 1933s
+trace_replay:  46.8% of ops, phase 2, 1993s
+trace_replay:  47.5% of ops, phase 2, 2054s
+trace_replay:  49.0% of ops, phase 2, 2114s
+trace_replay:  50.2% of ops, phase 2, 2174s
+trace_replay:  51.2% of ops, phase 2, 2235s
+trace_replay:  52.4% of ops, phase 2, 2296s
+trace_replay:  53.4% of ops, phase 2, 2356s
+trace_replay:  54.7% of ops, phase 2, 2416s
+trace_replay:  56.1% of ops, phase 2, 2476s
+trace_replay:  57.8% of ops, phase 2, 2537s
+trace_replay:  59.0% of ops, phase 2, 2597s
+trace_replay:  60.3% of ops, phase 2, 2657s
+trace_replay:  61.7% of ops, phase 2, 2718s
+trace_replay:  63.3% of ops, phase 2, 2778s
+trace_replay:  65.2% of ops, phase 2, 2838s
+trace_replay:  67.9% of ops, phase 2, 2898s
+trace_replay:  69.8% of ops, phase 2, 2958s
+trace_replay:  72.3% of ops, phase 2, 3018s
+trace_replay:  74.0% of ops, phase 2, 3078s
+trace_replay:  75.0% of ops, phase 2, 3139s
+trace_replay:  76.2% of ops, phase 2, 3200s
+trace_replay:  78.2% of ops, phase 2, 3260s
+trace_replay:  79.3% of ops, phase 2, 3321s
+trace_replay:  80.3% of ops, phase 2, 3381s
+trace_replay:  81.1% of ops, phase 2, 3442s
+trace_replay:  82.1% of ops, phase 2, 3502s
+trace_replay:  84.3% of ops, phase 2, 3563s
+trace_replay:  85.2% of ops, phase 2, 3623s
+trace_replay:  85.9% of ops, phase 2, 3683s
+trace_replay:  86.7% of ops, phase 2, 3743s
+trace_replay:  87.6% of ops, phase 2, 3804s
+trace_replay:  88.7% of ops, phase 2, 3865s
+trace_replay:  90.0% of ops, phase 2, 3925s
+trace_replay:  91.5% of ops, phase 2, 3986s
+trace_replay: done in 4048.9s (measured 2303.8s: 411 IOPS, reads 806662 p99 1270874us, writes 140946 p99 1413480us)
+mu        IOPS=     411 (R      350 W      61; R  265.8 W   89.2 MiB/s) WAF=19.659 mapR/pg=0.000 | read_us p50=8880 p99=1270874 p99.9=2172650 p99.99=2810184 max=3924927 | write_us p50=10584 p99=1413480 p99.9=2491417 p99.99=3917480 max=3927002 | 1.12h
+=== iurmw params=''
+[480443.007099] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 43863769088 B (41831 MiB); trace kv_w1: /mnt/nvme_mounted/dm_trace_sampled/kv_w1.csv, capacity 43654316032 B; QD32; max 5h
+[480443.007099] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=30720 pages, logical 10708928 pages (41831 MiB), physical 44760 MiB
+trace: {'sample': '650/1000', 'kept_regions': 41632, 'capacity_gib': 40.66, 'write_gib': 401.35, 'read_gib': 1018.27, 'writes': 266402, 'reads': 1360901, 'turnovers': 9.87}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 1627303 ops (266402 writes 401.4 GiB, 1360901 reads 1018.3 GiB) loaded in 0.1s; device 40.85 GiB; write turnovers 9.82; warm-up ends after op 679694
+trace_replay: precondition 40.85 GiB in 18.7s (2233 MiB/s)
+trace_replay:   9.4% of ops, phase 1, 60s
+trace_replay:  15.2% of ops, phase 1, 120s
+trace_replay:  20.9% of ops, phase 1, 180s
+trace_replay:  26.9% of ops, phase 1, 240s
+trace_replay:  32.1% of ops, phase 1, 300s
+trace_replay:  37.6% of ops, phase 1, 360s
+trace_replay: warm-up done after 679695 ops in 413.7s
+trace_replay:  42.6% of ops, phase 2, 420s
+trace_replay:  47.9% of ops, phase 2, 480s
+trace_replay:  53.2% of ops, phase 2, 540s
+trace_replay:  58.6% of ops, phase 2, 600s
+trace_replay:  63.7% of ops, phase 2, 660s
+trace_replay:  70.5% of ops, phase 2, 720s
+trace_replay:  76.0% of ops, phase 2, 780s
+trace_replay:  81.1% of ops, phase 2, 841s
+trace_replay:  86.6% of ops, phase 2, 901s
+trace_replay:  93.3% of ops, phase 2, 961s
+trace_replay: done in 1004.2s (measured 571.6s: 1658 IOPS, reads 806662 p99 231211us, writes 140946 p99 236454us)
+iurmw     IOPS=    1658 (R     1411 W     247; R 1071.2 W  359.5 MiB/s) WAF= 3.258 mapR/pg=0.000 | read_us p50=8815 p99=231211 p99.9=256377 p99.99=311427 max=315663 | write_us p50=10388 p99=236454 p99.9=296747 p99.99=311427 max=316363 | 0.28h
+[480439.946897] NVMeVirt: [dm final] policy=mu L=10708928 NB=373 P=30720 submitted=115921195 host=115921195 prog=1822712216 (host 115921195 gc 1706791021 rmw 0 fold 0 map 0 other 0) WAFx1000=15723 reads(host 266920551 gc 1706791021 rmw 0 fold 0 map 1511) host_read_pages=266933334 erases=59401 map_miss=1511 mem=8064837
+[481447.838265] NVMeVirt: [dm final] policy=iurmw L=10708928 NB=373 P=30720 submitted=115921195 host=115921195 prog=311322032 (host 115921195 gc 195377520 rmw 23317 fold 0 map 0 other 0) WAFx1000=2685 reads(host 266920552 gc 195377520 rmw 23317 fold 0 map 0) host_read_pages=266933334 erases=9764 map_miss=0 mem=2677232
+Tue Oct  6 09:27:29 PM UTC 2026 trace kv_w1 done
+# kv_w1: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=    1662 (R     1415 W     247; R 1073.9 W  360.4 MiB/s) WAF= 3.255 mapR/pg=0.000 | read_us p50=8815 p99=231211 p99.9=253231 p99.99=315621 max=325642 | write_us p50=10322 p99=237502 p99.9=296747 p99.99=319816 max=326346 | 0.28h
+proposed  IOPS=    1555 (R     1323 W     231; R 1004.6 W  337.1 MiB/s) WAF= 3.558 mapR/pg=0.000 | read_us p50=8815 p99=290456 p99.9=426770 p99.99=516948 max=620686 | write_us p50=10322 p99=307233 p99.9=466616 p99.99=523239 max=620686 | 0.30h
+dftl      IOPS=    1615 (R     1375 W     240; R 1043.6 W  350.2 MiB/s) WAF= 3.255 mapR/pg=0.006 | read_us p50=9077 p99=237502 p99.9=262668 p99.99=324010 max=333988 | write_us p50=10715 p99=242745 p99.9=305136 p99.99=328204 max=334690 | 0.29h
+leaftl    IOPS=    1706 (R     1452 W     254; R 1102.6 W  370.0 MiB/s) WAF= 3.167 mapR/pg=0.000 | read_us p50=9273 p99=228065 p99.9=246940 p99.99=305136 max=322284 | write_us p50=8274 p99=28377 p99.9=204997 p99.99=238551 max=310743 | 0.27h
+fast      IOPS=     762 (R      649 W     113; R  492.5 W  165.3 MiB/s) WAF= 8.835 mapR/pg=0.000 | read_us p50=8880 p99=652214 p99.9=878707 p99.99=1103102 max=1183530 | write_us p50=10584 p99=689963 p99.9=941621 p99.99=1103102 max=1157227 | 0.63h
+mu        IOPS=     411 (R      350 W      61; R  265.8 W   89.2 MiB/s) WAF=19.659 mapR/pg=0.000 | read_us p50=8880 p99=1270874 p99.9=2172650 p99.99=2810184 max=3924927 | write_us p50=10584 p99=1413480 p99.9=2491417 p99.99=3917480 max=3927002 | 1.12h
+iurmw     IOPS=    1658 (R     1411 W     247; R 1071.2 W  359.5 MiB/s) WAF= 3.258 mapR/pg=0.000 | read_us p50=8815 p99=231211 p99.9=256377 p99.99=311427 max=315663 | write_us p50=10388 p99=236454 p99.9=296747 p99.99=311427 max=316363 | 0.28h
+Tue Oct  6 09:27:29 PM UTC 2026 trace ali1: capacity 21726494720 B, memmap_size=22195M
+=== page4k params=''
+[481448.814320] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21931884544 B (20915 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[481448.814320] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.3s; device 20.43 GiB; write turnovers 8.50; warm-up ends after op 4349023
+trace_replay: precondition 20.43 GiB in 9.4s (2233 MiB/s)
+trace_replay:  44.7% of ops, phase 1, 60s
+trace_replay:  57.5% of ops, phase 1, 120s
+trace_replay: warm-up done after 4349024 ops in 130.0s
+trace_replay:  70.4% of ops, phase 2, 180s
+trace_replay:  81.0% of ops, phase 2, 240s
+trace_replay:  88.1% of ops, phase 2, 300s
+trace_replay:  95.5% of ops, phase 2, 360s
+trace_replay: done in 402.8s (measured 263.3s: 11169 IOPS, reads 24393 p99 145228us, writes 2916465 p99 145228us)
+page4k    IOPS=   11169 (R       93 W   11076; R    3.1 W  337.6 MiB/s) WAF= 4.936 mapR/pg=0.000 | read_us p50=450 p99=145228 p99.9=216531 p99.99=227017 max=228225 | write_us p50=240 p99=145228 p99.9=223871 p99.99=255328 max=269609 | 0.11h
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[481854.767676] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21931884544 B (20915 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[481854.767676] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.2s; device 20.43 GiB; write turnovers 8.50; warm-up ends after op 4349023
+trace_replay: precondition 20.43 GiB in 9.4s (2233 MiB/s)
+trace_replay:  46.8% of ops, phase 1, 60s
+trace_replay: warm-up done after 4349024 ops in 110.1s
+trace_replay:  62.0% of ops, phase 2, 120s
+trace_replay:  77.6% of ops, phase 2, 180s
+trace_replay:  87.2% of ops, phase 2, 240s
+trace_replay:  96.2% of ops, phase 2, 300s
+trace_replay: done in 334.1s (measured 214.6s: 13705 IOPS, reads 24393 p99 84673us, writes 2916465 p99 52298us)
+proposed  IOPS=   13705 (R      114 W   13591; R    3.8 W  414.3 MiB/s) WAF= 4.029 mapR/pg=0.000 | read_us p50=458 p99=84672 p99.9=277873 p99.99=284164 max=443492 | write_us p50=246 p99=52298 p99.9=282067 p99.99=391119 max=486005 | 0.09h
+=== dftl params='cache_bytes=4015848,dftl_tpbuf=1'
+[482194.727419] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=4015848,dftl_tpbuf=1": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21931884544 B (20915 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[482194.727419] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=4015848,dftl_tpbuf=1": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.2s; device 20.43 GiB; write turnovers 8.50; warm-up ends after op 4349023
+trace_replay: precondition 20.43 GiB in 9.6s (2190 MiB/s)
+trace_replay:  43.9% of ops, phase 1, 60s
+trace_replay:  56.3% of ops, phase 1, 120s
+trace_replay: warm-up done after 4349024 ops in 138.7s
+trace_replay:  68.2% of ops, phase 2, 180s
+trace_replay:  78.2% of ops, phase 2, 240s
+trace_replay:  85.3% of ops, phase 2, 300s
+trace_replay:  91.2% of ops, phase 2, 360s
+trace_replay:  97.8% of ops, phase 2, 421s
+trace_replay: done in 446.0s (measured 297.6s: 9882 IOPS, reads 24393 p99 163054us, writes 2916465 p99 158859us)
+dftl      IOPS=    9882 (R       82 W    9800; R    2.7 W  298.7 MiB/s) WAF= 5.026 mapR/pg=0.039 | read_us p50=501 p99=163054 p99.9=269484 p99.99=274873 max=274873 | write_us p50=243 p99=158859 p99.9=258474 p99.99=294650 max=331831 | 0.12h
+=== leaftl params='cache_bytes=4015848'
+[482646.532680] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=4015848": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21931884544 B (20915 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[482646.532680] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=4015848": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.2s; device 20.43 GiB; write turnovers 8.50; warm-up ends after op 4349023
+trace_replay: precondition 20.43 GiB in 9.3s (2238 MiB/s)
+trace_replay:  45.3% of ops, phase 1, 60s
+trace_replay:  58.0% of ops, phase 1, 120s
+trace_replay: warm-up done after 4349024 ops in 127.5s
+trace_replay:  70.9% of ops, phase 2, 180s
+trace_replay:  81.6% of ops, phase 2, 240s
+trace_replay:  88.3% of ops, phase 2, 300s
+trace_replay:  95.6% of ops, phase 2, 360s
+trace_replay: done in 402.9s (measured 265.9s: 11058 IOPS, reads 24393 p99 221774us, writes 2916465 p99 110887us)
+leaftl    IOPS=   11058 (R       92 W   10966; R    3.1 W  334.3 MiB/s) WAF= 5.063 mapR/pg=0.000 | read_us p50=2335 p99=221774 p99.9=279970 p99.99=391119 max=396328 | write_us p50=227 p99=110887 p99.9=207094 p99.99=237502 max=261286 | 0.11h
+=== fast params=''
+[483052.676693] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21894266880 B (20880 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[483052.676693] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.2s; device 20.39 GiB; write turnovers 8.52; warm-up ends after op 4349023
+trace_replay: precondition 20.39 GiB in 9.4s (2233 MiB/s)
+trace_replay:  13.9% of ops, phase 1, 60s
+trace_replay:  28.9% of ops, phase 1, 120s
+trace_replay:  39.8% of ops, phase 1, 180s
+trace_replay:  47.2% of ops, phase 1, 240s
+trace_replay:  52.7% of ops, phase 1, 300s
+trace_replay:  58.3% of ops, phase 1, 360s
+trace_replay: warm-up done after 4349024 ops in 372.8s
+trace_replay:  64.8% of ops, phase 2, 420s
+trace_replay:  70.5% of ops, phase 2, 481s
+trace_replay:  76.0% of ops, phase 2, 541s
+trace_replay:  81.1% of ops, phase 2, 601s
+trace_replay:  85.0% of ops, phase 2, 661s
+trace_replay:  88.6% of ops, phase 2, 721s
+trace_replay:  92.2% of ops, phase 2, 781s
+trace_replay:  96.0% of ops, phase 2, 841s
+trace_replay:  99.6% of ops, phase 2, 901s
+trace_replay: done in 913.9s (measured 531.6s: 5532 IOPS, reads 24393 p99 120324us, writes 2916465 p99 194511us)
+fast      IOPS=    5532 (R       46 W    5486; R    1.5 W  167.2 MiB/s) WAF= 9.436 mapR/pg=0.000 | read_us p50=443 p99=120324 p99.9=420479 p99.99=481296 max=511142 | write_us p50=256 p99=194511 p99.9=456131 p99.99=580911 max=743806 | 0.25h
+=== mu params='cache_bytes=4015848'
+[483972.389038] NVMeVirt: dm_ftl policy=mu params="cache_bytes=4015848": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21931884544 B (20915 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[483972.389038] NVMeVirt: dm_ftl policy=mu params="cache_bytes=4015848": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.2s; device 20.43 GiB; write turnovers 8.50; warm-up ends after op 4349023
+trace_replay: precondition 20.43 GiB in 9.4s (2233 MiB/s)
+trace_replay:  20.7% of ops, phase 1, 60s
+trace_replay:  30.1% of ops, phase 1, 121s
+trace_replay:  34.8% of ops, phase 1, 181s
+trace_replay:  38.2% of ops, phase 1, 241s
+trace_replay:  42.8% of ops, phase 1, 301s
+trace_replay:  46.6% of ops, phase 1, 361s
+trace_replay:  48.4% of ops, phase 1, 421s
+trace_replay:  50.2% of ops, phase 1, 481s
+trace_replay:  51.6% of ops, phase 1, 542s
+trace_replay:  53.3% of ops, phase 1, 602s
+trace_replay:  57.3% of ops, phase 1, 662s
+trace_replay: warm-up done after 4349024 ops in 720.0s
+trace_replay:  59.7% of ops, phase 2, 723s
+trace_replay:  62.0% of ops, phase 2, 784s
+trace_replay:  65.2% of ops, phase 2, 845s
+trace_replay:  66.9% of ops, phase 2, 906s
+trace_replay:  68.6% of ops, phase 2, 966s
+trace_replay:  69.3% of ops, phase 2, 1026s
+trace_replay:  70.4% of ops, phase 2, 1086s
+trace_replay:  71.4% of ops, phase 2, 1147s
+trace_replay:  71.8% of ops, phase 2, 1208s
+trace_replay:  72.5% of ops, phase 2, 1268s
+trace_replay:  73.3% of ops, phase 2, 1331s
+trace_replay:  75.5% of ops, phase 2, 1391s
+trace_replay:  77.1% of ops, phase 2, 1452s
+trace_replay:  78.4% of ops, phase 2, 1513s
+trace_replay:  80.1% of ops, phase 2, 1573s
+trace_replay:  81.9% of ops, phase 2, 1633s
+trace_replay:  83.2% of ops, phase 2, 1693s
+trace_replay:  84.5% of ops, phase 2, 1754s
+trace_replay:  85.7% of ops, phase 2, 1814s
+trace_replay:  87.0% of ops, phase 2, 1874s
+trace_replay:  88.3% of ops, phase 2, 1934s
+trace_replay:  90.1% of ops, phase 2, 1994s
+trace_replay:  91.6% of ops, phase 2, 2054s
+trace_replay:  93.1% of ops, phase 2, 2114s
+trace_replay:  94.5% of ops, phase 2, 2175s
+trace_replay:  95.8% of ops, phase 2, 2235s
+trace_replay:  96.8% of ops, phase 2, 2296s
+trace_replay:  97.8% of ops, phase 2, 2356s
+trace_replay:  99.1% of ops, phase 2, 2416s
+trace_replay: done in 2462.4s (measured 1733.0s: 1697 IOPS, reads 24393 p99 568328us, writes 2916465 p99 627048us)
+mu        IOPS=    1697 (R       14 W    1683; R    0.5 W   51.3 MiB/s) WAF=36.626 mapR/pg=0.118 | read_us p50=480 p99=568328 p99.9=1623196 p99.99=2491417 max=3028731 | write_us p50=250 p99=627048 p99.9=1933574 p99.99=3263168 max=4004765 | 0.68h
+=== iurmw params=''
+[486438.026082] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 21931884544 B (20915 MiB); trace ali1: /mnt/nvme_mounted/dm_trace_sampled/ali1.csv, capacity 21726494720 B; QD32; max 5h
+[486438.026082] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=15360 pages, logical 5354464 pages (20915 MiB), physical 22380 MiB
+trace: {'sample': '79/1000', 'kept_regions': 20720, 'capacity_gib': 20.23, 'write_gib': 173.64, 'read_gib': 1.17, 'writes': 7232213, 'reads': 57669, 'turnovers': 8.58}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7289882 ops (7232213 writes 173.6 GiB, 57669 reads 1.2 GiB) loaded in 0.2s; device 20.43 GiB; write turnovers 8.50; warm-up ends after op 4349023
+trace_replay: precondition 20.43 GiB in 9.4s (2233 MiB/s)
+trace_replay:  33.0% of ops, phase 1, 60s
+trace_replay:  47.2% of ops, phase 1, 120s
+trace_replay:  55.9% of ops, phase 1, 180s
+trace_replay: warm-up done after 4349024 ops in 206.2s
+trace_replay:  65.2% of ops, phase 2, 240s
+trace_replay:  73.2% of ops, phase 2, 300s
+trace_replay:  81.0% of ops, phase 2, 360s
+trace_replay:  86.4% of ops, phase 2, 420s
+trace_replay:  91.7% of ops, phase 2, 480s
+trace_replay:  97.4% of ops, phase 2, 540s
+trace_replay: done in 575.7s (measured 360.0s: 8169 IOPS, reads 24393 p99 154665us, writes 2916465 p99 149422us)
+iurmw     IOPS=    8169 (R       68 W    8101; R    2.3 W  246.9 MiB/s) WAF= 6.652 mapR/pg=0.000 | read_us p50=662 p99=154665 p99.9=227017 p99.99=269484 max=271774 | write_us p50=296 p99=149422 p99.9=227017 p99.99=260571 max=291787 | 0.16h
+[486435.479519] NVMeVirt: [dm final] policy=mu L=5354464 NB=373 P=15360 submitted=50872750 host=49821388 prog=1174332779 (host 49821388 gc 1121471150 rmw 0 fold 0 map 3040241 other 0) WAFx1000=23083 reads(host 306798 gc 1121471150 rmw 0 fold 0 map 3044128) host_read_pages=307078 erases=76286 map_miss=3044128 mem=4048989
+[487014.394937] NVMeVirt: [dm final] policy=iurmw L=5354464 NB=373 P=15360 submitted=50872750 host=49821469 prog=245375168 (host 49821469 gc 172706096 rmw 22847603 fold 0 map 0 other 0) WAFx1000=4823 reads(host 306798 gc 172706096 rmw 22847603 fold 0 map 0) host_read_pages=307078 erases=15605 map_miss=0 mem=1338616
+Tue Oct  6 11:00:15 PM UTC 2026 trace ali1 done
+# ali1: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=   11169 (R       93 W   11076; R    3.1 W  337.6 MiB/s) WAF= 4.936 mapR/pg=0.000 | read_us p50=450 p99=145228 p99.9=216531 p99.99=227017 max=228225 | write_us p50=240 p99=145228 p99.9=223871 p99.99=255328 max=269609 | 0.11h
+proposed  IOPS=   13705 (R      114 W   13591; R    3.8 W  414.3 MiB/s) WAF= 4.029 mapR/pg=0.000 | read_us p50=458 p99=84672 p99.9=277873 p99.99=284164 max=443492 | write_us p50=246 p99=52298 p99.9=282067 p99.99=391119 max=486005 | 0.09h
+dftl      IOPS=    9882 (R       82 W    9800; R    2.7 W  298.7 MiB/s) WAF= 5.026 mapR/pg=0.039 | read_us p50=501 p99=163054 p99.9=269484 p99.99=274873 max=274873 | write_us p50=243 p99=158859 p99.9=258474 p99.99=294650 max=331831 | 0.12h
+leaftl    IOPS=   11058 (R       92 W   10966; R    3.1 W  334.3 MiB/s) WAF= 5.063 mapR/pg=0.000 | read_us p50=2335 p99=221774 p99.9=279970 p99.99=391119 max=396328 | write_us p50=227 p99=110887 p99.9=207094 p99.99=237502 max=261286 | 0.11h
+fast      IOPS=    5532 (R       46 W    5486; R    1.5 W  167.2 MiB/s) WAF= 9.436 mapR/pg=0.000 | read_us p50=443 p99=120324 p99.9=420479 p99.99=481296 max=511142 | write_us p50=256 p99=194511 p99.9=456131 p99.99=580911 max=743806 | 0.25h
+mu        IOPS=    1697 (R       14 W    1683; R    0.5 W   51.3 MiB/s) WAF=36.626 mapR/pg=0.118 | read_us p50=480 p99=568328 p99.9=1623196 p99.99=2491417 max=3028731 | write_us p50=250 p99=627048 p99.9=1933574 p99.99=3263168 max=4004765 | 0.68h
+iurmw     IOPS=    8169 (R       68 W    8101; R    2.3 W  246.9 MiB/s) WAF= 6.652 mapR/pg=0.000 | read_us p50=662 p99=154665 p99.9=227017 p99.99=269484 max=271774 | write_us p50=296 p99=149422 p99.9=227017 p99.99=260571 max=291787 | 0.16h
+Tue Oct  6 11:00:15 PM UTC 2026 trace ali3: capacity 59451113472 B, memmap_size=60614M
+=== page4k params=''
+[487015.503367] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59581595648 B (56821 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[487015.503367] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.3s; device 55.49 GiB; write turnovers 3.16; warm-up ends after op 3488284
+trace_replay: precondition 55.49 GiB in 25.4s (2233 MiB/s)
+trace_replay:  25.8% of ops, phase 1, 60s
+trace_replay:  40.9% of ops, phase 1, 120s
+trace_replay: warm-up done after 3488285 ops in 144.7s
+trace_replay:  53.8% of ops, phase 2, 180s
+trace_replay:  69.8% of ops, phase 2, 240s
+trace_replay:  84.7% of ops, phase 2, 300s
+trace_replay:  97.2% of ops, phase 2, 361s
+trace_replay: done in 401.6s (measured 231.3s: 17542 IOPS, reads 470420 p99 3416us, writes 3587706 p99 3105us)
+page4k    IOPS=   17542 (R     2034 W   15508; R  148.5 W  388.6 MiB/s) WAF= 4.012 mapR/pg=0.000 | read_us p50=608 p99=3416 p99.9=412090 p99.99=516948 max=556241 | write_us p50=178 p99=3105 p99.9=414188 p99.99=533725 max=621420 | 0.11h
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[487421.143841] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59581595648 B (56821 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[487421.143841] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.2s; device 55.49 GiB; write turnovers 3.16; warm-up ends after op 3488284
+trace_replay: precondition 55.49 GiB in 25.4s (2233 MiB/s)
+trace_replay:  28.5% of ops, phase 1, 60s
+trace_replay:  44.8% of ops, phase 1, 120s
+trace_replay: warm-up done after 3488285 ops in 123.0s
+trace_replay:  60.6% of ops, phase 2, 180s
+trace_replay:  80.6% of ops, phase 2, 241s
+trace_replay:  96.7% of ops, phase 2, 301s
+trace_replay: done in 343.4s (measured 194.8s: 20831 IOPS, reads 470420 p99 3514us, writes 3587706 p99 3154us)
+proposed  IOPS=   20831 (R     2415 W   18416; R  176.4 W  461.4 MiB/s) WAF= 3.408 mapR/pg=0.000 | read_us p50=612 p99=3514 p99.9=439353 p99.99=698352 max=1258063 | write_us p50=179 p99=3154 p99.9=418382 p99.99=799015 max=1257589 | 0.10h
+=== dftl params='cache_bytes=10909716,dftl_tpbuf=1'
+[487772.073476] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=10909716,dftl_tpbuf=1": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59581595648 B (56821 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[487772.073476] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=10909716,dftl_tpbuf=1": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.2s; device 55.49 GiB; write turnovers 3.16; warm-up ends after op 3488284
+trace_replay: precondition 55.49 GiB in 26.2s (2167 MiB/s)
+trace_replay:  24.8% of ops, phase 1, 60s
+trace_replay:  39.9% of ops, phase 1, 120s
+trace_replay: warm-up done after 3488285 ops in 151.1s
+trace_replay:  52.6% of ops, phase 2, 180s
+trace_replay:  67.3% of ops, phase 2, 240s
+trace_replay:  82.0% of ops, phase 2, 300s
+trace_replay:  94.3% of ops, phase 2, 361s
+trace_replay: done in 419.2s (measured 241.9s: 16779 IOPS, reads 470420 p99 3727us, writes 3587706 p99 3482us)
+dftl      IOPS=   16779 (R     1945 W   14834; R  142.1 W  371.7 MiB/s) WAF= 4.052 mapR/pg=0.009 | read_us p50=653 p99=3727 p99.9=422576 p99.99=572522 max=639273 | write_us p50=180 p99=3482 p99.9=426770 p99.99=564134 max=714035 | 0.12h
+=== leaftl params='cache_bytes=10909716'
+[488198.849273] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=10909716": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59581595648 B (56821 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[488198.849273] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=10909716": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.2s; device 55.49 GiB; write turnovers 3.16; warm-up ends after op 3488284
+trace_replay: precondition 55.49 GiB in 25.4s (2235 MiB/s)
+trace_replay:  26.2% of ops, phase 1, 60s
+trace_replay:  41.1% of ops, phase 1, 120s
+trace_replay: warm-up done after 3488285 ops in 144.0s
+trace_replay:  53.9% of ops, phase 2, 180s
+trace_replay:  69.8% of ops, phase 2, 240s
+trace_replay:  85.1% of ops, phase 2, 300s
+trace_replay:  98.1% of ops, phase 2, 361s
+trace_replay: done in 396.3s (measured 226.8s: 17892 IOPS, reads 470420 p99 363856us, writes 3587706 p99 2204us)
+leaftl    IOPS=   17892 (R     2074 W   15818; R  151.5 W  396.3 MiB/s) WAF= 3.867 mapR/pg=0.000 | read_us p50=764 p99=363856 p99.9=433062 p99.99=551551 max=566929 | write_us p50=167 p99=2204 p99.9=286261 p99.99=424673 max=481826 | 0.11h
+=== fast params=''
+[488599.255400] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59479425024 B (56724 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[488599.255400] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.2s; device 55.39 GiB; write turnovers 3.17; warm-up ends after op 3488284
+trace_replay: precondition 55.39 GiB in 25.4s (2233 MiB/s)
+trace_replay:  17.8% of ops, phase 1, 60s
+trace_replay:  27.4% of ops, phase 1, 120s
+trace_replay:  36.8% of ops, phase 1, 180s
+trace_replay:  44.6% of ops, phase 1, 241s
+trace_replay: warm-up done after 3488285 ops in 247.2s
+trace_replay:  54.3% of ops, phase 2, 301s
+trace_replay:  65.8% of ops, phase 2, 361s
+trace_replay:  76.6% of ops, phase 2, 421s
+trace_replay:  87.1% of ops, phase 2, 482s
+trace_replay:  97.8% of ops, phase 2, 542s
+trace_replay: done in 582.7s (measured 310.0s: 13090 IOPS, reads 470420 p99 97780us, writes 3587706 p99 3662us)
+fast      IOPS=   13090 (R     1517 W   11573; R  110.8 W  290.0 MiB/s) WAF= 5.491 mapR/pg=0.000 | read_us p50=608 p99=97780 p99.9=614466 p99.99=870318 max=1217583 | write_us p50=178 p99=3662 p99.9=533725 p99.99=861930 max=1217280 | 0.16h
+=== mu params='cache_bytes=10909716'
+[489189.449402] NVMeVirt: dm_ftl policy=mu params="cache_bytes=10909716": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59581595648 B (56821 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[489189.449402] NVMeVirt: dm_ftl policy=mu params="cache_bytes=10909716": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.2s; device 55.49 GiB; write turnovers 3.16; warm-up ends after op 3488284
+trace_replay: precondition 55.49 GiB in 25.5s (2233 MiB/s)
+trace_replay:  20.2% of ops, phase 1, 61s
+trace_replay:  25.1% of ops, phase 1, 121s
+trace_replay:  28.0% of ops, phase 1, 182s
+trace_replay:  28.4% of ops, phase 1, 242s
+trace_replay:  30.9% of ops, phase 1, 302s
+trace_replay:  35.5% of ops, phase 1, 363s
+trace_replay:  39.3% of ops, phase 1, 424s
+trace_replay:  41.1% of ops, phase 1, 484s
+trace_replay:  42.0% of ops, phase 1, 544s
+trace_replay:  43.8% of ops, phase 1, 605s
+trace_replay: warm-up done after 3488285 ops in 637.9s
+trace_replay:  48.4% of ops, phase 2, 666s
+trace_replay:  51.5% of ops, phase 2, 726s
+trace_replay:  54.8% of ops, phase 2, 788s
+trace_replay:  59.4% of ops, phase 2, 848s
+trace_replay:  62.5% of ops, phase 2, 908s
+trace_replay:  67.1% of ops, phase 2, 969s
+trace_replay:  70.4% of ops, phase 2, 1029s
+trace_replay:  72.9% of ops, phase 2, 1090s
+trace_replay:  75.3% of ops, phase 2, 1152s
+trace_replay:  79.0% of ops, phase 2, 1212s
+trace_replay:  81.6% of ops, phase 2, 1273s
+trace_replay:  83.3% of ops, phase 2, 1333s
+trace_replay:  85.1% of ops, phase 2, 1393s
+trace_replay:  86.3% of ops, phase 2, 1454s
+trace_replay:  87.4% of ops, phase 2, 1515s
+trace_replay:  88.5% of ops, phase 2, 1575s
+trace_replay:  91.6% of ops, phase 2, 1637s
+trace_replay:  92.9% of ops, phase 2, 1697s
+trace_replay:  93.7% of ops, phase 2, 1757s
+trace_replay:  95.0% of ops, phase 2, 1817s
+trace_replay:  96.0% of ops, phase 2, 1880s
+trace_replay:  96.9% of ops, phase 2, 1940s
+trace_replay:  97.3% of ops, phase 2, 2000s
+trace_replay:  97.6% of ops, phase 2, 2065s
+trace_replay:  97.8% of ops, phase 2, 2126s
+trace_replay:  98.4% of ops, phase 2, 2191s
+trace_replay:  98.7% of ops, phase 2, 2252s
+trace_replay:  99.1% of ops, phase 2, 2313s
+trace_replay:  99.4% of ops, phase 2, 2374s
+trace_replay:  99.5% of ops, phase 2, 2434s
+trace_replay: done in 2491.8s (measured 1828.4s: 2220 IOPS, reads 470420 p99 4997us, writes 3587706 p99 138936us)
+mu        IOPS=    2220 (R      257 W    1962; R   18.8 W   49.2 MiB/s) WAF=41.796 mapR/pg=0.000 | read_us p50=620 p99=4997 p99.9=2759852 p99.99=4311744 max=6440169 | write_us p50=177 p99=138936 p99.9=3514827 p99.99=5452595 max=6729686 | 0.69h
+=== iurmw params=''
+[491685.389743] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 59581595648 B (56821 MiB); trace ali3: /mnt/nvme_mounted/dm_trace_sampled/ali3.csv, capacity 59451113472 B; QD32; max 5h
+[491685.389743] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=41728 pages, logical 14546288 pages (56821 MiB), physical 60799 MiB
+trace: {'sample': '23/1000', 'kept_regions': 56697, 'capacity_gib': 55.37, 'write_gib': 175.58, 'read_gib': 70.73, 'writes': 6544141, 'reads': 1002270, 'turnovers': 3.17}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 7546411 ops (6544141 writes 175.6 GiB, 1002270 reads 70.7 GiB) loaded in 0.2s; device 55.49 GiB; write turnovers 3.16; warm-up ends after op 3488284
+trace_replay: precondition 55.49 GiB in 25.4s (2233 MiB/s)
+trace_replay:  21.3% of ops, phase 1, 60s
+trace_replay:  33.8% of ops, phase 1, 120s
+trace_replay:  43.7% of ops, phase 1, 180s
+trace_replay: warm-up done after 3488285 ops in 191.6s
+trace_replay:  54.0% of ops, phase 2, 240s
+trace_replay:  66.9% of ops, phase 2, 300s
+trace_replay:  79.8% of ops, phase 2, 360s
+trace_replay:  89.7% of ops, phase 2, 420s
+trace_replay:  99.1% of ops, phase 2, 481s
+trace_replay: done in 513.1s (measured 295.9s: 13713 IOPS, reads 470420 p99 5423us, writes 3587706 p99 4833us)
+iurmw     IOPS=   13713 (R     1590 W   12123; R  116.1 W  303.8 MiB/s) WAF= 5.169 mapR/pg=0.000 | read_us p50=768 p99=5423 p99.9=412090 p99.99=483394 max=557577 | write_us p50=175 p99=4833 p99.9=409993 p99.99=481296 max=556939 | 0.14h
+[491681.985096] NVMeVirt: [dm final] policy=mu L=14546288 NB=373 P=41728 submitted=60573274 host=54442167 prog=1293453438 (host 54442167 gc 1239011271 rmw 0 fold 0 map 0 other 0) WAFx1000=21353 reads(host 18541716 gc 1239011271 rmw 0 fold 0 map 3582) host_read_pages=18542224 erases=30787 map_miss=3582 mem=10942857
+[492199.110810] NVMeVirt: [dm final] policy=iurmw L=14546288 NB=373 P=41728 submitted=60573274 host=54442152 prog=209168592 (host 54442152 gc 142039568 rmw 12686872 fold 0 map 0 other 0) WAFx1000=3453 reads(host 18541716 gc 142039568 rmw 12686872 fold 0 map 0) host_read_pages=18542224 erases=4642 map_miss=0 mem=3636572
+Wed Oct  7 12:26:41 AM UTC 2026 trace ali3 done
+# ali3: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=   17542 (R     2034 W   15508; R  148.5 W  388.6 MiB/s) WAF= 4.012 mapR/pg=0.000 | read_us p50=608 p99=3416 p99.9=412090 p99.99=516948 max=556241 | write_us p50=178 p99=3105 p99.9=414188 p99.99=533725 max=621420 | 0.11h
+proposed  IOPS=   20831 (R     2415 W   18416; R  176.4 W  461.4 MiB/s) WAF= 3.408 mapR/pg=0.000 | read_us p50=612 p99=3514 p99.9=439353 p99.99=698352 max=1258063 | write_us p50=179 p99=3154 p99.9=418382 p99.99=799015 max=1257589 | 0.10h
+dftl      IOPS=   16779 (R     1945 W   14834; R  142.1 W  371.7 MiB/s) WAF= 4.052 mapR/pg=0.009 | read_us p50=653 p99=3727 p99.9=422576 p99.99=572522 max=639273 | write_us p50=180 p99=3482 p99.9=426770 p99.99=564134 max=714035 | 0.12h
+leaftl    IOPS=   17892 (R     2074 W   15818; R  151.5 W  396.3 MiB/s) WAF= 3.867 mapR/pg=0.000 | read_us p50=764 p99=363856 p99.9=433062 p99.99=551551 max=566929 | write_us p50=167 p99=2204 p99.9=286261 p99.99=424673 max=481826 | 0.11h
+fast      IOPS=   13090 (R     1517 W   11573; R  110.8 W  290.0 MiB/s) WAF= 5.491 mapR/pg=0.000 | read_us p50=608 p99=97780 p99.9=614466 p99.99=870318 max=1217583 | write_us p50=178 p99=3662 p99.9=533725 p99.99=861930 max=1217280 | 0.16h
+mu        IOPS=    2220 (R      257 W    1962; R   18.8 W   49.2 MiB/s) WAF=41.796 mapR/pg=0.000 | read_us p50=620 p99=4997 p99.9=2759852 p99.99=4311744 max=6440169 | write_us p50=177 p99=138936 p99.9=3514827 p99.99=5452595 max=6729686 | 0.69h
+iurmw     IOPS=   13713 (R     1590 W   12123; R  116.1 W  303.8 MiB/s) WAF= 5.169 mapR/pg=0.000 | read_us p50=768 p99=5423 p99.9=412090 p99.99=483394 max=557577 | write_us p50=175 p99=4833 p99.9=409993 p99.99=481296 max=556939 | 0.14h
+Wed Oct  7 12:26:41 AM UTC 2026 trace ali2: capacity 17788043264 B, memmap_size=18092M
+=== page4k params=''
+[492200.237556] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17910988800 B (17081 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[492200.237556] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.68 GiB; write turnovers 10.79; warm-up ends after op 1330964
+trace_replay: precondition 16.68 GiB in 7.6s (2233 MiB/s)
+trace_replay:  25.8% of ops, phase 1, 60s
+trace_replay:  34.2% of ops, phase 1, 120s
+trace_replay:  42.8% of ops, phase 1, 180s
+trace_replay:  50.4% of ops, phase 1, 240s
+trace_replay: warm-up done after 1330965 ops in 257.5s
+trace_replay:  57.3% of ops, phase 2, 300s
+trace_replay:  64.6% of ops, phase 2, 360s
+trace_replay:  72.1% of ops, phase 2, 420s
+trace_replay:  88.5% of ops, phase 2, 480s
+trace_replay:  95.1% of ops, phase 2, 541s
+trace_replay: done in 593.9s (measured 328.7s: 3662 IOPS, reads 14466 p99 188219us, writes 1189424 p99 187171us)
+page4k    IOPS=    3662 (R       44 W    3618; R    1.1 W  280.3 MiB/s) WAF= 5.916 mapR/pg=0.000 | read_us p50=956 p99=188219 p99.9=219677 p99.99=219677 max=220276 | write_us p50=517 p99=187171 p99.9=215482 p99.99=221774 max=225413 | 0.16h
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[492797.125957] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17910988800 B (17081 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[492797.125957] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.68 GiB; write turnovers 10.79; warm-up ends after op 1330964
+trace_replay: precondition 16.68 GiB in 7.6s (2233 MiB/s)
+trace_replay:  27.5% of ops, phase 1, 60s
+trace_replay:  36.5% of ops, phase 1, 120s
+trace_replay:  45.5% of ops, phase 1, 180s
+trace_replay: warm-up done after 1330965 ops in 231.5s
+trace_replay:  53.5% of ops, phase 2, 240s
+trace_replay:  61.2% of ops, phase 2, 300s
+trace_replay:  68.8% of ops, phase 2, 360s
+trace_replay:  83.6% of ops, phase 2, 420s
+trace_replay:  94.5% of ops, phase 2, 481s
+trace_replay: done in 531.7s (measured 292.4s: 4117 IOPS, reads 14466 p99 206045us, writes 1189424 p99 210239us)
+proposed  IOPS=    4117 (R       50 W    4068; R    1.2 W  315.1 MiB/s) WAF= 5.238 mapR/pg=0.000 | read_us p50=969 p99=206045 p99.9=279970 p99.99=307205 max=307205 | write_us p50=551 p99=210240 p99.9=305136 p99.99=389022 max=445501 | 0.15h
+=== dftl params='cache_bytes=3279600,dftl_tpbuf=1'
+[493334.411370] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=3279600,dftl_tpbuf=1": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17910988800 B (17081 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[493334.411370] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=3279600,dftl_tpbuf=1": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.68 GiB; write turnovers 10.79; warm-up ends after op 1330964
+trace_replay: precondition 16.68 GiB in 7.9s (2167 MiB/s)
+trace_replay:  25.1% of ops, phase 1, 60s
+trace_replay:  32.6% of ops, phase 1, 120s
+trace_replay:  41.0% of ops, phase 1, 180s
+trace_replay:  47.7% of ops, phase 1, 240s
+trace_replay: warm-up done after 1330965 ops in 280.9s
+trace_replay:  54.4% of ops, phase 2, 300s
+trace_replay:  60.8% of ops, phase 2, 360s
+trace_replay:  67.0% of ops, phase 2, 420s
+trace_replay:  75.9% of ops, phase 2, 480s
+trace_replay:  90.4% of ops, phase 2, 541s
+trace_replay:  95.3% of ops, phase 2, 601s
+trace_replay: done in 656.7s (measured 367.8s: 3273 IOPS, reads 14466 p99 209191us, writes 1189424 p99 209191us)
+dftl      IOPS=    3273 (R       39 W    3234; R    1.0 W  250.5 MiB/s) WAF= 5.974 mapR/pg=0.045 | read_us p50=1085 p99=209191 p99.9=241697 p99.99=242745 max=255340 | write_us p50=559 p99=209191 p99.9=242745 p99.99=255328 max=262775 | 0.18h
+=== leaftl params='cache_bytes=3279600'
+[493996.614520] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=3279600": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17910988800 B (17081 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[493996.614520] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=3279600": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.68 GiB; write turnovers 10.79; warm-up ends after op 1330964
+trace_replay: precondition 16.68 GiB in 7.6s (2239 MiB/s)
+trace_replay:  25.9% of ops, phase 1, 60s
+trace_replay:  34.5% of ops, phase 1, 120s
+trace_replay:  43.1% of ops, phase 1, 180s
+trace_replay:  50.7% of ops, phase 1, 240s
+trace_replay: warm-up done after 1330965 ops in 254.8s
+trace_replay:  57.6% of ops, phase 2, 300s
+trace_replay:  65.0% of ops, phase 2, 360s
+trace_replay:  72.7% of ops, phase 2, 420s
+trace_replay:  89.9% of ops, phase 2, 480s
+trace_replay:  95.8% of ops, phase 2, 540s
+trace_replay: done in 587.4s (measured 324.9s: 3706 IOPS, reads 14466 p99 198705us, writes 1189424 p99 170394us)
+leaftl    IOPS=    3706 (R       44 W    3661; R    1.1 W  283.6 MiB/s) WAF= 5.939 mapR/pg=0.000 | read_us p50=63046 p99=198705 p99.9=240648 p99.99=326107 max=330753 | write_us p50=443 p99=170394 p99.9=196608 p99.99=202900 max=206788 | 0.16h
+=== fast params=''
+[494586.928177] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17880317952 B (17052 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[494586.928177] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.65 GiB; write turnovers 10.81; warm-up ends after op 1330964
+trace_replay: precondition 16.65 GiB in 7.6s (2233 MiB/s)
+trace_replay:  20.7% of ops, phase 1, 60s
+trace_replay:  27.2% of ops, phase 1, 120s
+trace_replay:  32.5% of ops, phase 1, 180s
+trace_replay:  38.5% of ops, phase 1, 240s
+trace_replay:  43.8% of ops, phase 1, 300s
+trace_replay:  48.4% of ops, phase 1, 360s
+trace_replay: warm-up done after 1330965 ops in 408.6s
+trace_replay:  53.3% of ops, phase 2, 420s
+trace_replay:  57.8% of ops, phase 2, 480s
+trace_replay:  62.6% of ops, phase 2, 541s
+trace_replay:  67.3% of ops, phase 2, 601s
+trace_replay:  72.4% of ops, phase 2, 661s
+trace_replay:  82.8% of ops, phase 2, 721s
+trace_replay:  91.3% of ops, phase 2, 781s
+trace_replay:  95.3% of ops, phase 2, 841s
+trace_replay:  99.7% of ops, phase 2, 901s
+trace_replay: done in 913.7s (measured 497.3s: 2421 IOPS, reads 14466 p99 275775us, writes 1189424 p99 300941us)
+fast      IOPS=    2421 (R       29 W    2392; R    0.7 W  185.3 MiB/s) WAF= 8.508 mapR/pg=0.000 | read_us p50=965 p99=275776 p99.9=418382 p99.99=451936 max=454088 | write_us p50=539 p99=300941 p99.9=443548 p99.99=523239 max=611786 | 0.25h
+=== mu params='cache_bytes=3279600'
+[495506.121662] NVMeVirt: dm_ftl policy=mu params="cache_bytes=3279600": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17910988800 B (17081 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[495506.121662] NVMeVirt: dm_ftl policy=mu params="cache_bytes=3279600": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.68 GiB; write turnovers 10.79; warm-up ends after op 1330964
+trace_replay: precondition 16.68 GiB in 7.7s (2232 MiB/s)
+trace_replay:  18.7% of ops, phase 1, 60s
+trace_replay:  21.4% of ops, phase 1, 121s
+trace_replay:  23.2% of ops, phase 1, 181s
+trace_replay:  24.7% of ops, phase 1, 241s
+trace_replay:  26.8% of ops, phase 1, 301s
+trace_replay:  28.4% of ops, phase 1, 362s
+trace_replay:  29.8% of ops, phase 1, 423s
+trace_replay:  30.9% of ops, phase 1, 483s
+trace_replay:  33.0% of ops, phase 1, 544s
+trace_replay:  35.4% of ops, phase 1, 604s
+trace_replay:  37.5% of ops, phase 1, 665s
+trace_replay:  39.7% of ops, phase 1, 725s
+trace_replay:  41.8% of ops, phase 1, 785s
+trace_replay:  43.8% of ops, phase 1, 846s
+trace_replay:  45.5% of ops, phase 1, 906s
+trace_replay:  47.6% of ops, phase 1, 966s
+trace_replay:  49.6% of ops, phase 1, 1026s
+trace_replay:  51.8% of ops, phase 1, 1087s
+trace_replay: warm-up done after 1330965 ops in 1102.7s
+trace_replay:  53.7% of ops, phase 2, 1147s
+trace_replay:  55.5% of ops, phase 2, 1207s
+trace_replay:  57.3% of ops, phase 2, 1267s
+trace_replay:  59.2% of ops, phase 2, 1327s
+trace_replay:  61.4% of ops, phase 2, 1388s
+trace_replay:  63.3% of ops, phase 2, 1448s
+trace_replay:  65.2% of ops, phase 2, 1508s
+trace_replay:  67.0% of ops, phase 2, 1568s
+trace_replay:  68.8% of ops, phase 2, 1629s
+trace_replay:  70.7% of ops, phase 2, 1689s
+trace_replay:  73.1% of ops, phase 2, 1750s
+trace_replay:  76.2% of ops, phase 2, 1810s
+trace_replay:  80.6% of ops, phase 2, 1870s
+trace_replay:  83.9% of ops, phase 2, 1930s
+trace_replay:  89.3% of ops, phase 2, 1990s
+trace_replay:  90.6% of ops, phase 2, 2051s
+trace_replay:  91.4% of ops, phase 2, 2111s
+trace_replay:  92.6% of ops, phase 2, 2171s
+trace_replay:  93.6% of ops, phase 2, 2231s
+trace_replay:  95.2% of ops, phase 2, 2291s
+trace_replay:  96.6% of ops, phase 2, 2352s
+trace_replay:  97.9% of ops, phase 2, 2412s
+trace_replay:  99.4% of ops, phase 2, 2472s
+trace_replay: done in 2514.3s (measured 1403.8s: 858 IOPS, reads 14466 p99 794821us, writes 1189424 p99 773849us)
+mu        IOPS=     858 (R       10 W     847; R    0.3 W   65.6 MiB/s) WAF=26.963 mapR/pg=0.062 | read_us p50=1085 p99=794821 p99.9=1816134 p99.99=1908408 max=1984529 | write_us p50=620 p99=773849 p99.9=1447035 p99.99=2009072 max=2698037 | 0.70h
+=== iurmw params=''
+[498023.341750] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 17910988800 B (17081 MiB); trace ali2: /mnt/nvme_mounted/dm_trace_sampled/ali2.csv, capacity 17788043264 B; QD32; max 5h
+[498023.341750] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=12544 pages, logical 4372800 pages (17081 MiB), physical 18277 MiB
+trace: {'sample': '48/1000', 'kept_regions': 16964, 'capacity_gib': 16.57, 'write_gib': 179.96, 'read_gib': 0.91, 'writes': 2501797, 'reads': 33058, 'turnovers': 10.86}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 2534855 ops (2501797 writes 180.0 GiB, 33058 reads 0.9 GiB) loaded in 0.1s; device 16.68 GiB; write turnovers 10.79; warm-up ends after op 1330964
+trace_replay: precondition 16.68 GiB in 7.6s (2233 MiB/s)
+trace_replay:  21.2% of ops, phase 1, 60s
+trace_replay:  28.3% of ops, phase 1, 120s
+trace_replay:  34.4% of ops, phase 1, 180s
+trace_replay:  41.1% of ops, phase 1, 240s
+trace_replay:  46.6% of ops, phase 1, 300s
+trace_replay:  52.4% of ops, phase 1, 360s
+trace_replay: warm-up done after 1330965 ops in 362.0s
+trace_replay:  57.5% of ops, phase 2, 421s
+trace_replay:  63.0% of ops, phase 2, 481s
+trace_replay:  68.5% of ops, phase 2, 541s
+trace_replay:  76.2% of ops, phase 2, 601s
+trace_replay:  87.8% of ops, phase 2, 661s
+trace_replay:  93.1% of ops, phase 2, 721s
+trace_replay:  98.4% of ops, phase 2, 781s
+trace_replay: done in 808.3s (measured 438.5s: 2745 IOPS, reads 14466 p99 185074us, writes 1189424 p99 187171us)
+iurmw     IOPS=    2745 (R       33 W    2712; R    0.8 W  210.1 MiB/s) WAF= 7.785 mapR/pg=0.000 | read_us p50=2368 p99=185074 p99.9=216531 p99.99=217580 max=218166 | write_us p50=1184 p99=187171 p99.9=217580 p99.99=222822 max=227130 | 0.22h
+[498020.889964] NVMeVirt: [dm final] policy=mu L=4372800 NB=373 P=12544 submitted=51549420 host=51229259 prog=1145795106 (host 51229259 gc 1092639804 rmw 0 fold 0 map 1926043 other 0) WAFx1000=22227 reads(host 238222 gc 1092639804 rmw 0 fold 0 map 1931085) host_read_pages=238506 erases=91220 map_miss=1931085 mem=3312741
+[498832.141598] NVMeVirt: [dm final] policy=iurmw L=4372800 NB=373 P=12544 submitted=51549420 host=51229270 prog=340321904 (host 51229270 gc 267187136 rmw 21905498 fold 0 map 0 other 0) WAFx1000=6601 reads(host 237959 gc 267187136 rmw 21905498 fold 0 map 0) host_read_pages=238243 erases=26760 map_miss=0 mem=1093200
+Wed Oct  7 02:17:13 AM UTC 2026 trace ali2 done
+# ali2: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=    3662 (R       44 W    3618; R    1.1 W  280.3 MiB/s) WAF= 5.916 mapR/pg=0.000 | read_us p50=956 p99=188219 p99.9=219677 p99.99=219677 max=220276 | write_us p50=517 p99=187171 p99.9=215482 p99.99=221774 max=225413 | 0.16h
+proposed  IOPS=    4117 (R       50 W    4068; R    1.2 W  315.1 MiB/s) WAF= 5.238 mapR/pg=0.000 | read_us p50=969 p99=206045 p99.9=279970 p99.99=307205 max=307205 | write_us p50=551 p99=210240 p99.9=305136 p99.99=389022 max=445501 | 0.15h
+dftl      IOPS=    3273 (R       39 W    3234; R    1.0 W  250.5 MiB/s) WAF= 5.974 mapR/pg=0.045 | read_us p50=1085 p99=209191 p99.9=241697 p99.99=242745 max=255340 | write_us p50=559 p99=209191 p99.9=242745 p99.99=255328 max=262775 | 0.18h
+leaftl    IOPS=    3706 (R       44 W    3661; R    1.1 W  283.6 MiB/s) WAF= 5.939 mapR/pg=0.000 | read_us p50=63046 p99=198705 p99.9=240648 p99.99=326107 max=330753 | write_us p50=443 p99=170394 p99.9=196608 p99.99=202900 max=206788 | 0.16h
+fast      IOPS=    2421 (R       29 W    2392; R    0.7 W  185.3 MiB/s) WAF= 8.508 mapR/pg=0.000 | read_us p50=965 p99=275776 p99.9=418382 p99.99=451936 max=454088 | write_us p50=539 p99=300941 p99.9=443548 p99.99=523239 max=611786 | 0.25h
+mu        IOPS=     858 (R       10 W     847; R    0.3 W   65.6 MiB/s) WAF=26.963 mapR/pg=0.062 | read_us p50=1085 p99=794821 p99.9=1816134 p99.99=1908408 max=1984529 | write_us p50=620 p99=773849 p99.9=1447035 p99.99=2009072 max=2698037 | 0.70h
+iurmw     IOPS=    2745 (R       33 W    2712; R    0.8 W  210.1 MiB/s) WAF= 7.785 mapR/pg=0.000 | read_us p50=2368 p99=185074 p99.9=216531 p99.99=217580 max=218166 | write_us p50=1184 p99=187171 p99.9=217580 p99.99=222822 max=227130 | 0.22h
+Wed Oct  7 02:17:13 AM UTC 2026 trace ssd: capacity 75186044928 B, memmap_size=76840M
+=== page4k params=''
+[498833.315758] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75482267648 B (71985 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[498833.315758] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.6s; device 70.30 GiB; write turnovers 5.19; warm-up ends after op 8293280
+trace_replay: precondition 70.30 GiB in 32.2s (2233 MiB/s)
+trace_replay:  11.7% of ops, phase 1, 60s
+trace_replay:  19.1% of ops, phase 1, 120s
+trace_replay:  25.4% of ops, phase 1, 180s
+trace_replay:  31.5% of ops, phase 1, 240s
+trace_replay:  37.1% of ops, phase 1, 300s
+trace_replay:  42.3% of ops, phase 1, 361s
+trace_replay:  47.6% of ops, phase 1, 421s
+trace_replay: warm-up done after 8293281 ops in 447.0s
+trace_replay:  52.6% of ops, phase 2, 481s
+trace_replay:  57.4% of ops, phase 2, 541s
+trace_replay:  62.3% of ops, phase 2, 601s
+trace_replay:  67.2% of ops, phase 2, 661s
+trace_replay:  71.9% of ops, phase 2, 721s
+trace_replay:  76.4% of ops, phase 2, 782s
+trace_replay:  81.1% of ops, phase 2, 842s
+trace_replay:  85.5% of ops, phase 2, 902s
+trace_replay:  90.0% of ops, phase 2, 962s
+trace_replay:  94.4% of ops, phase 2, 1022s
+trace_replay:  98.9% of ops, phase 2, 1082s
+trace_replay: done in 1131.2s (measured 651.9s: 12765 IOPS, reads 7971623 p99 4833us, writes 349195 p99 589300us)
+page4k    IOPS=   12765 (R    12229 W     536; R  108.2 W  286.7 MiB/s) WAF= 5.815 mapR/pg=0.000 | read_us p50=230 p99=4833 p99.9=576717 p99.99=673186 max=779928 | write_us p50=2695 p99=589300 p99.9=681574 p99.99=765460 max=779829 | 0.31h
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[499969.240558] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75482267648 B (71985 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[499969.240558] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.5s; device 70.30 GiB; write turnovers 5.19; warm-up ends after op 8293280
+trace_replay: precondition 70.30 GiB in 32.2s (2233 MiB/s)
+trace_replay:  11.2% of ops, phase 1, 60s
+trace_replay:  19.0% of ops, phase 1, 120s
+trace_replay:  25.9% of ops, phase 1, 181s
+trace_replay:  32.2% of ops, phase 1, 241s
+trace_replay:  38.1% of ops, phase 1, 301s
+trace_replay:  43.6% of ops, phase 1, 361s
+trace_replay:  48.9% of ops, phase 1, 421s
+trace_replay: warm-up done after 8293281 ops in 431.8s
+trace_replay:  53.9% of ops, phase 2, 481s
+trace_replay:  59.2% of ops, phase 2, 542s
+trace_replay:  64.2% of ops, phase 2, 602s
+trace_replay:  69.0% of ops, phase 2, 662s
+trace_replay:  73.6% of ops, phase 2, 722s
+trace_replay:  78.3% of ops, phase 2, 782s
+trace_replay:  82.9% of ops, phase 2, 842s
+trace_replay:  87.8% of ops, phase 2, 902s
+trace_replay:  92.3% of ops, phase 2, 963s
+trace_replay:  96.9% of ops, phase 2, 1023s
+trace_replay: done in 1096.9s (measured 632.8s: 13150 IOPS, reads 7971623 p99 4833us, writes 349195 p99 677380us)
+proposed  IOPS=   13150 (R    12598 W     552; R  111.4 W  295.4 MiB/s) WAF= 5.726 mapR/pg=0.000 | read_us p50=231 p99=4833 p99.9=585105 p99.99=853541 max=1146737 | write_us p50=2712 p99=677380 p99.9=891290 p99.99=1029702 max=1146861 | 0.30h
+=== dftl params='cache_bytes=13821216,dftl_tpbuf=1'
+[501074.785631] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=13821216,dftl_tpbuf=1": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75482267648 B (71985 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[501074.785631] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=13821216,dftl_tpbuf=1": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.5s; device 70.30 GiB; write turnovers 5.19; warm-up ends after op 8293280
+trace_replay: precondition 70.30 GiB in 32.9s (2185 MiB/s)
+trace_replay:  10.0% of ops, phase 1, 60s
+trace_replay:  16.7% of ops, phase 1, 120s
+trace_replay:  22.6% of ops, phase 1, 180s
+trace_replay:  28.2% of ops, phase 1, 240s
+trace_replay:  33.4% of ops, phase 1, 300s
+trace_replay:  38.5% of ops, phase 1, 360s
+trace_replay:  43.2% of ops, phase 1, 420s
+trace_replay:  47.8% of ops, phase 1, 480s
+trace_replay: warm-up done after 8293281 ops in 508.1s
+trace_replay:  52.3% of ops, phase 2, 540s
+trace_replay:  56.4% of ops, phase 2, 601s
+trace_replay:  60.7% of ops, phase 2, 661s
+trace_replay:  65.1% of ops, phase 2, 721s
+trace_replay:  69.2% of ops, phase 2, 781s
+trace_replay:  73.4% of ops, phase 2, 842s
+trace_replay:  77.5% of ops, phase 2, 902s
+trace_replay:  81.6% of ops, phase 2, 963s
+trace_replay:  85.7% of ops, phase 2, 1023s
+trace_replay:  89.9% of ops, phase 2, 1083s
+trace_replay:  93.9% of ops, phase 2, 1143s
+trace_replay:  98.0% of ops, phase 2, 1203s
+trace_replay: done in 1268.3s (measured 727.1s: 11444 IOPS, reads 7971623 p99 5587us, writes 349195 p99 606077us)
+dftl      IOPS=   11444 (R    10964 W     480; R   97.0 W  257.1 MiB/s) WAF= 5.829 mapR/pg=0.118 | read_us p50=452 p99=5587 p99.9=597688 p99.99=689963 max=783001 | write_us p50=3269 p99=606077 p99.9=698352 p99.99=710934 max=784863 | 0.35h
+=== leaftl params='cache_bytes=13821216'
+[502351.586463] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=13821216": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75482267648 B (71985 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[502351.586463] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=13821216": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.5s; device 70.30 GiB; write turnovers 5.19; warm-up ends after op 8293280
+trace_replay: precondition 70.30 GiB in 32.2s (2235 MiB/s)
+trace_replay:  11.1% of ops, phase 1, 60s
+trace_replay:  18.4% of ops, phase 1, 120s
+trace_replay:  24.5% of ops, phase 1, 181s
+trace_replay:  30.7% of ops, phase 1, 241s
+trace_replay:  36.2% of ops, phase 1, 301s
+trace_replay:  41.5% of ops, phase 1, 361s
+trace_replay:  46.7% of ops, phase 1, 421s
+trace_replay: warm-up done after 8293281 ops in 461.1s
+trace_replay:  51.5% of ops, phase 2, 481s
+trace_replay:  56.2% of ops, phase 2, 541s
+trace_replay:  61.0% of ops, phase 2, 601s
+trace_replay:  65.6% of ops, phase 2, 661s
+trace_replay:  70.1% of ops, phase 2, 721s
+trace_replay:  74.5% of ops, phase 2, 782s
+trace_replay:  78.9% of ops, phase 2, 842s
+trace_replay:  83.2% of ops, phase 2, 902s
+trace_replay:  87.7% of ops, phase 2, 962s
+trace_replay:  91.9% of ops, phase 2, 1022s
+trace_replay:  96.3% of ops, phase 2, 1082s
+trace_replay: done in 1169.2s (measured 675.8s: 12313 IOPS, reads 7971623 p99 7422us, writes 349195 p99 88343us)
+leaftl    IOPS=   12313 (R    11796 W     517; R  104.3 W  276.6 MiB/s) WAF= 5.911 mapR/pg=0.000 | read_us p50=232 p99=7422 p99.9=589300 p99.99=677380 max=774771 | write_us p50=1503 p99=88342 p99.9=589300 p99.99=622854 max=684752 | 0.32h
+=== fast params=''
+[503525.491465] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75352768512 B (71862 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[503525.491465] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.5s; device 70.18 GiB; write turnovers 5.20; warm-up ends after op 8293280
+trace_replay: precondition 70.18 GiB in 32.2s (2233 MiB/s)
+trace_replay:   5.6% of ops, phase 1, 60s
+trace_replay:  10.3% of ops, phase 1, 120s
+trace_replay:  14.8% of ops, phase 1, 180s
+trace_replay:  19.0% of ops, phase 1, 240s
+trace_replay:  22.8% of ops, phase 1, 300s
+trace_replay:  26.7% of ops, phase 1, 360s
+trace_replay:  30.4% of ops, phase 1, 420s
+trace_replay:  33.7% of ops, phase 1, 481s
+trace_replay:  37.0% of ops, phase 1, 541s
+trace_replay:  40.3% of ops, phase 1, 601s
+trace_replay:  43.5% of ops, phase 1, 661s
+trace_replay:  46.6% of ops, phase 1, 721s
+trace_replay:  49.6% of ops, phase 1, 782s
+trace_replay: warm-up done after 8293281 ops in 787.2s
+trace_replay:  52.6% of ops, phase 2, 843s
+trace_replay:  55.2% of ops, phase 2, 903s
+trace_replay:  58.2% of ops, phase 2, 964s
+trace_replay:  60.9% of ops, phase 2, 1025s
+trace_replay:  63.7% of ops, phase 2, 1085s
+trace_replay:  66.4% of ops, phase 2, 1145s
+trace_replay:  69.0% of ops, phase 2, 1205s
+trace_replay:  72.0% of ops, phase 2, 1266s
+trace_replay:  74.4% of ops, phase 2, 1327s
+trace_replay:  77.0% of ops, phase 2, 1387s
+trace_replay:  79.7% of ops, phase 2, 1447s
+trace_replay:  82.4% of ops, phase 2, 1507s
+trace_replay:  85.2% of ops, phase 2, 1567s
+trace_replay:  87.7% of ops, phase 2, 1627s
+trace_replay:  90.3% of ops, phase 2, 1687s
+trace_replay:  92.9% of ops, phase 2, 1748s
+trace_replay:  95.6% of ops, phase 2, 1809s
+trace_replay:  98.3% of ops, phase 2, 1869s
+trace_replay: done in 1946.4s (measured 1126.9s: 7384 IOPS, reads 7971623 p99 5259us, writes 349195 p99 1145045us)
+fast      IOPS=    7384 (R     7074 W     310; R   62.6 W  165.9 MiB/s) WAF=10.907 mapR/pg=0.000 | read_us p50=232 p99=5259 p99.9=958398 p99.99=1497366 max=1962251 | write_us p50=2744 p99=1145045 p99.9=1690304 p99.99=1958740 max=2163382 | 0.54h
+=== mu params='cache_bytes=13821216'
+[505480.393271] NVMeVirt: dm_ftl policy=mu params="cache_bytes=13821216": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75482267648 B (71985 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[505480.393271] NVMeVirt: dm_ftl policy=mu params="cache_bytes=13821216": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.5s; device 70.30 GiB; write turnovers 5.19; warm-up ends after op 8293280
+trace_replay: precondition 70.30 GiB in 32.2s (2233 MiB/s)
+trace_replay:   5.4% of ops, phase 1, 61s
+trace_replay:   8.1% of ops, phase 1, 121s
+trace_replay:  10.2% of ops, phase 1, 184s
+trace_replay:  11.8% of ops, phase 1, 244s
+trace_replay:  14.3% of ops, phase 1, 305s
+trace_replay:  16.4% of ops, phase 1, 366s
+trace_replay:  18.0% of ops, phase 1, 427s
+trace_replay:  19.5% of ops, phase 1, 487s
+trace_replay:  21.0% of ops, phase 1, 547s
+trace_replay:  22.2% of ops, phase 1, 608s
+trace_replay:  23.6% of ops, phase 1, 673s
+trace_replay:  25.4% of ops, phase 1, 733s
+trace_replay:  27.0% of ops, phase 1, 794s
+trace_replay:  28.5% of ops, phase 1, 854s
+trace_replay:  30.0% of ops, phase 1, 914s
+trace_replay:  31.2% of ops, phase 1, 974s
+trace_replay:  32.4% of ops, phase 1, 1035s
+trace_replay:  33.5% of ops, phase 1, 1096s
+trace_replay:  35.0% of ops, phase 1, 1158s
+trace_replay:  36.6% of ops, phase 1, 1218s
+trace_replay:  37.9% of ops, phase 1, 1279s
+trace_replay:  40.0% of ops, phase 1, 1341s
+trace_replay:  41.8% of ops, phase 1, 1401s
+trace_replay:  43.4% of ops, phase 1, 1462s
+trace_replay:  45.3% of ops, phase 1, 1522s
+trace_replay:  46.8% of ops, phase 1, 1582s
+trace_replay:  48.2% of ops, phase 1, 1643s
+trace_replay:  49.7% of ops, phase 1, 1704s
+trace_replay: warm-up done after 8293281 ops in 1711.8s
+trace_replay:  51.2% of ops, phase 2, 1765s
+trace_replay:  52.7% of ops, phase 2, 1826s
+trace_replay:  53.9% of ops, phase 2, 1886s
+trace_replay:  55.4% of ops, phase 2, 1946s
+trace_replay:  57.0% of ops, phase 2, 2008s
+trace_replay:  59.0% of ops, phase 2, 2068s
+trace_replay:  60.6% of ops, phase 2, 2128s
+trace_replay:  62.3% of ops, phase 2, 2189s
+trace_replay:  63.9% of ops, phase 2, 2249s
+trace_replay:  65.5% of ops, phase 2, 2310s
+trace_replay:  66.8% of ops, phase 2, 2371s
+trace_replay:  68.3% of ops, phase 2, 2431s
+trace_replay:  69.8% of ops, phase 2, 2491s
+trace_replay:  71.4% of ops, phase 2, 2552s
+trace_replay:  72.9% of ops, phase 2, 2613s
+trace_replay:  74.3% of ops, phase 2, 2673s
+trace_replay:  75.8% of ops, phase 2, 2734s
+trace_replay:  77.3% of ops, phase 2, 2794s
+trace_replay:  78.7% of ops, phase 2, 2854s
+trace_replay:  80.2% of ops, phase 2, 2914s
+trace_replay:  81.5% of ops, phase 2, 2975s
+trace_replay:  82.9% of ops, phase 2, 3036s
+trace_replay:  84.4% of ops, phase 2, 3097s
+trace_replay:  85.8% of ops, phase 2, 3157s
+trace_replay:  87.4% of ops, phase 2, 3218s
+trace_replay:  88.8% of ops, phase 2, 3278s
+trace_replay:  90.4% of ops, phase 2, 3338s
+trace_replay:  91.8% of ops, phase 2, 3399s
+trace_replay:  93.3% of ops, phase 2, 3459s
+trace_replay:  94.7% of ops, phase 2, 3520s
+trace_replay:  96.3% of ops, phase 2, 3580s
+trace_replay:  97.7% of ops, phase 2, 3640s
+trace_replay:  99.1% of ops, phase 2, 3700s
+trace_replay: done in 3772.5s (measured 2028.3s: 4102 IOPS, reads 7971623 p99 5325us, writes 349195 p99 1690305us)
+mu        IOPS=    4102 (R     3930 W     172; R   34.8 W   92.1 MiB/s) WAF=21.266 mapR/pg=0.000 | read_us p50=233 p99=5325 p99.9=1413480 p99.99=2625634 max=4616917 | write_us p50=2794 p99=1690304 p99.9=2994733 p99.99=4034920 max=4617194 | 1.05h
+=== iurmw params=''
+[509257.610322] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 75482267648 B (71985 MiB); trace ssd: /mnt/nvme_mounted/dm_trace_sampled/ssd.csv, capacity 75186044928 B; QD32; max 5h
+[509257.610322] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=52864 pages, logical 18428288 pages (71985 MiB), physical 77024 MiB
+trace: {'sample': '177/1000', 'kept_regions': 71703, 'capacity_gib': 70.02, 'write_gib': 365.05, 'read_gib': 144.22, 'writes': 681358, 'reads': 15932741, 'turnovers': 5.21}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 16614099 ops (681358 writes 365.0 GiB, 15932741 reads 144.2 GiB) loaded in 0.5s; device 70.30 GiB; write turnovers 5.19; warm-up ends after op 8293280
+trace_replay: precondition 70.30 GiB in 32.2s (2233 MiB/s)
+trace_replay:  11.3% of ops, phase 1, 60s
+trace_replay:  18.8% of ops, phase 1, 120s
+trace_replay:  24.9% of ops, phase 1, 181s
+trace_replay:  31.3% of ops, phase 1, 241s
+trace_replay:  36.9% of ops, phase 1, 301s
+trace_replay:  42.2% of ops, phase 1, 361s
+trace_replay:  47.6% of ops, phase 1, 422s
+trace_replay: warm-up done after 8293281 ops in 449.0s
+trace_replay:  52.5% of ops, phase 2, 482s
+trace_replay:  57.1% of ops, phase 2, 542s
+trace_replay:  61.9% of ops, phase 2, 602s
+trace_replay:  66.6% of ops, phase 2, 662s
+trace_replay:  71.3% of ops, phase 2, 722s
+trace_replay:  75.9% of ops, phase 2, 782s
+trace_replay:  80.5% of ops, phase 2, 843s
+trace_replay:  85.1% of ops, phase 2, 903s
+trace_replay:  89.5% of ops, phase 2, 963s
+trace_replay:  93.9% of ops, phase 2, 1024s
+trace_replay:  98.4% of ops, phase 2, 1084s
+trace_replay: done in 1140.4s (measured 659.1s: 12624 IOPS, reads 7971623 p99 4833us, writes 349195 p99 589300us)
+iurmw     IOPS=   12624 (R    12094 W     530; R  107.0 W  283.6 MiB/s) WAF= 5.892 mapR/pg=0.000 | read_us p50=233 p99=4833 p99.9=576717 p99.99=673186 max=763184 | write_us p50=2695 p99=589300 p99.9=677380 p99.99=752878 max=762838 | 0.32h
+[509253.847601] NVMeVirt: [dm final] policy=mu L=18428288 NB=373 P=52864 submitted=114122799 host=114116748 prog=1904451621 (host 114116748 gc 1790334873 rmw 0 fold 0 map 0 other 0) WAFx1000=16687 reads(host 37806792 gc 1790334873 rmw 0 fold 0 map 3583) host_read_pages=37807056 erases=35853 map_miss=3583 mem=13854357
+[510399.005243] NVMeVirt: [dm final] policy=iurmw L=18428288 NB=373 P=52864 submitted=114122799 host=114116748 prog=475940464 (host 114116748 gc 361478464 rmw 345252 fold 0 map 0 other 0) WAFx1000=4170 reads(host 37806792 gc 361478464 rmw 345252 fold 0 map 0) host_read_pages=37807056 erases=8633 map_miss=0 mem=4607072
+Wed Oct  7 05:30:01 AM UTC 2026 trace ssd done
+# ssd: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=   12765 (R    12229 W     536; R  108.2 W  286.7 MiB/s) WAF= 5.815 mapR/pg=0.000 | read_us p50=230 p99=4833 p99.9=576717 p99.99=673186 max=779928 | write_us p50=2695 p99=589300 p99.9=681574 p99.99=765460 max=779829 | 0.31h
+proposed  IOPS=   13150 (R    12598 W     552; R  111.4 W  295.4 MiB/s) WAF= 5.726 mapR/pg=0.000 | read_us p50=231 p99=4833 p99.9=585105 p99.99=853541 max=1146737 | write_us p50=2712 p99=677380 p99.9=891290 p99.99=1029702 max=1146861 | 0.30h
+dftl      IOPS=   11444 (R    10964 W     480; R   97.0 W  257.1 MiB/s) WAF= 5.829 mapR/pg=0.118 | read_us p50=452 p99=5587 p99.9=597688 p99.99=689963 max=783001 | write_us p50=3269 p99=606077 p99.9=698352 p99.99=710934 max=784863 | 0.35h
+leaftl    IOPS=   12313 (R    11796 W     517; R  104.3 W  276.6 MiB/s) WAF= 5.911 mapR/pg=0.000 | read_us p50=232 p99=7422 p99.9=589300 p99.99=677380 max=774771 | write_us p50=1503 p99=88342 p99.9=589300 p99.99=622854 max=684752 | 0.32h
+fast      IOPS=    7384 (R     7074 W     310; R   62.6 W  165.9 MiB/s) WAF=10.907 mapR/pg=0.000 | read_us p50=232 p99=5259 p99.9=958398 p99.99=1497366 max=1962251 | write_us p50=2744 p99=1145045 p99.9=1690304 p99.99=1958740 max=2163382 | 0.54h
+mu        IOPS=    4102 (R     3930 W     172; R   34.8 W   92.1 MiB/s) WAF=21.266 mapR/pg=0.000 | read_us p50=233 p99=5325 p99.9=1413480 p99.99=2625634 max=4616917 | write_us p50=2794 p99=1690304 p99.9=2994733 p99.99=4034920 max=4617194 | 1.05h
+iurmw     IOPS=   12624 (R    12094 W     530; R  107.0 W  283.6 MiB/s) WAF= 5.892 mapR/pg=0.000 | read_us p50=233 p99=4833 p99.9=576717 p99.99=673186 max=763184 | write_us p50=2695 p99=589300 p99.9=677380 p99.99=752878 max=762838 | 0.32h
+Wed Oct  7 05:30:01 AM UTC 2026 queue_trace all done

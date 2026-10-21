@@ -1,0 +1,10 @@
+[cfg] cuckoo2 fine table: 168721 buckets x 4 = 674884 entries (5.15 MiB), budget 0.1875 of page map
+[cfg] mode=proposed L=10798160 pages (41.2 GB) NP=12080640 NB=390 P=30976 U=16 OP=0.120 fine_quota=28 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_apptrace/tpcc_d_t64/trace.csv: 49504586 write pages (188.8 GiB, 4.58x device), warmup 23.0%
+[verify] ok. fine_valid_pages=392503 fine_blocks=19 coarse_blocks=369 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 1 2 6 19 36 32 20 31 240
+[trace] warmup done (11387008 pages), reset stats
+[trace] identity addresses: 49496210 write pages replayed (0 clipped beyond L)
+[verify] ok. fine_valid_pages=431441 fine_blocks=21 coarse_blocks=367 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 0 0 6 6 17 47 80 89 142

@@ -1,0 +1,13 @@
+[cfg] spill=2: 10546 FTPs x 64 IUs, GTD 0.040 MiB; DRAM split coarse 2.574 / GTD 0.040 / table 2.373 MiB (budget 5.149 MiB)
+[cfg] cuckoo2 fine table: 77769 buckets x 4 = 311076 entries (2.37 MiB), budget 0.1250 of page map
+[cfg] mode=proposed L=10798160 pages (41.2 GB) NP=11554048 NB=373 P=30976 U=16 OP=0.070 fine_quota=16 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_apptrace/tpcc_d_t64//trace.csv: 49504586 write pages (188.8 GiB, 4.58x device), warmup 23.0%
+[verify] spill ok: 8596 spilled IUs, 137075 spilled pages, 147790 table entries
+[verify] ok. fine_valid_pages=284865 fine_blocks=14 coarse_blocks=357 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 0 1 2 5 7 27 47 38 243
+[trace] warmup done (11387008 pages), reset stats
+[trace] identity addresses: 49496210 write pages replayed (0 clipped beyond L)
+[verify] spill ok: 27688 spilled IUs, 160041 spilled pages, 168215 table entries
+[verify] ok. fine_valid_pages=328256 fine_blocks=15 coarse_blocks=356 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 1 0 0 1 4 11 78 131 144

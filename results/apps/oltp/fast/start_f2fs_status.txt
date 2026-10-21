@@ -1,0 +1,110 @@
+=====[ partition info(nvme3n1). #0, RW, CP: Good]=====
+[SBI: fs_dirty]
+[SB: 1] [CP: 2] [SIT: 2] [NAT: 92] [SSA: 96] [MAIN: 20736(OverProv:1502 Resv:1374)]
+
+Current Time Sec: 289030 / Mounted Time Sec: 289018
+
+Policy:
+  - IPU: [ FORCE ]
+
+Utilization: 50% (4949173 valid blocks)
+  - Node: 5800 (Inode: 1938, Other: 3862)
+  - Data: 4943373
+  - Inline_xattr Inode: 129
+  - Inline_data Inode: 0
+  - Inline_dentry Inode: 4
+  - Compressed Inode: 0, Blocks: 0
+  - Swapfile Inode: 0
+  - Donate Inode: 0
+  - Orphan/Append/Update Inode: 0, 1809, 0
+
+Main area: 20736 segs, 324 secs 324 zones
+    TYPE            segno    secno   zoneno  dirty_seg   full_seg  valid_blk
+  - COLD   data:     5120       80       80          0          0          0
+  - WARM   data:    19958      311      311          1       9654    4943351
+  - HOT    data:      192        3        3          1          0         22
+  - Dir   dnode:        0        0        0          1          0          7
+  - File  dnode:       77        1        1         14          0       5793
+  - Indir nodes:      128        2        2          0          0          0
+  - Pinned file:       -1       -1       -1
+  - ATGC   data:       -1       -1       -1
+
+  - Valid: 9660
+  - Dirty: 13
+  - Prefree: 0
+  - Free: 11063 (168)
+
+CP calls: 4 (BG: 2)
+CP count: 4
+  - cp blocks : 13
+  - sit blocks : 181
+  - nat blocks : 17
+  - ssa blocks : 9666
+CP merge:
+  - Queued :    0
+  - Issued :    4
+  - Total :    4
+  - Cur time :    1(ms)
+  - Peak time :   60(ms)
+GC calls: 0 (gc_thread: 0)
+  - data sections : 0 (BG: 0)
+  - node sections : 0 (BG: 0)
+  - data segments : 0 (BG: 0)
+  - node segments : 0 (BG: 0)
+  - Reclaimed segs :
+    - Normal : 0
+    - Idle CB : 0
+    - Idle Greedy : 0
+    - Idle AT : 0
+    - Urgent High : 0
+    - Urgent Mid : 0
+    - Urgent Low : 0
+Try to move 0 blocks (BG: 0)
+  - data blocks : 0 (0)
+  - node blocks : 0 (0)
+BG skip : IO: 0, Other: 0
+
+Extent Cache (Read):
+  - Hit Count: L1-1:3169 L1-2:0 L2:0
+  - Hit Ratio: 0% (3169 / 4972913)
+  - Inner Struct Count: tree: 124(0), node: 124
+
+Extent Cache (Block Age):
+  - Allocated Data Blocks: 4943378
+  - Hit Count: L1:0 L2:0
+  - Hit Ratio: 0% (0 / 0)
+  - Inner Struct Count: tree: 0(0), node: 0
+
+Balancing F2FS Async:
+  - DIO (R:    0, W:    0)
+  - IO_R (Data:    1, Node:    0, Meta:    0
+  - IO_W (CP:    0, Data:    0, Flush: (   3  962    1), Discard: (   0    0)) cmd:    0 undiscard:   0
+  - atomic IO:    0 (Max.    0)
+  - compress:    0, hit:       0
+  - nodes:    1 in  131
+  - dents:    0 in dirs:   0 (   1)
+  - datas:    0 in files:   0
+  - quota datas:    0 in quota files:   0
+  - meta:    1 in   14
+  - imeta:    0
+  - fsync mark:  546
+  - NATs:       124/      131
+  - SITs:        14/    20736
+  - free_nids:      1096/ 10710357
+  - alloc_nids:         0
+
+Distribution of User Blocks: [ valid | invalid | free ]
+  [-------------------------|-|------------------------]
+
+IPU: 1275 blocks
+SSR: 0 blocks in 0 segments
+LFS: 4950546 blocks in 9667 segments
+
+BDF: 99, avg. vblocks: 8493
+
+Memory: 6985 KB
+  - static: 6300 KB
+  - cached all: 104 KB
+  - read extent cache: 19 KB
+  - block age extent cache: 0 KB
+  - paged : 580 KB

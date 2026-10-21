@@ -1,0 +1,96 @@
+[09:05:56] === ycsbf_mu_20261005T090556Z -> /home/sejun000/dual_mapping/results/apps_ext4/ycsbf/mu
+[09:05:56] insmod /home/sejun000/nvmevirt_mu/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[09:05:57] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[09:05:57] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[09:05:57] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[09:05:58] ext4 capacity (used+avail) 40987148288 B, util 0%
+[09:05:58] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[09:05:58] [ycsb] 16 instances x (records=625000 threads=20 workloadf)
+[09:07:51] [ballast] writing 1525 MiB to reach ~76% (pending 0 MiB)
+[09:07:54] [ballast] df util now 75%
+[09:08:04] measurement start utilisation=75% (window 73-85)
+[09:08:04] [ycsb] run 600s, 16 x 20 threads
+case=/home/sejun000/dual_mapping/results/apps_ext4/ycsbf/mu
+workload=ycsbf
+policy=mu
+status=DONE
+start_util_pct=75.9912
+end_util_pct=72.2595
+ext4_write_kbytes_delta=171439800
+blk_read_ios=10833759
+blk_write_ios=13279316
+blk_read_bytes=177048055808
+blk_write_bytes=175549972480
+blk_avg_write_req_kb=12.91
+dev_read_lat_ms_avg=8.09074
+dev_write_lat_ms_avg=6.40122
+write_qd_max=594
+blk_read_lat_us_mean=8098.75
+blk_read_lat_us_p50=3777.16
+blk_read_lat_us_p90=6291.8
+blk_read_lat_us_p99=72120.9
+blk_read_lat_us_p99.9=705605
+blk_read_lat_us_p99.99=1.15595e+06
+blk_write_lat_us_mean=6415.72
+blk_write_lat_us_p50=114.233
+blk_write_lat_us_p90=3445.33
+blk_write_lat_us_p99=139262
+blk_write_lat_us_p99.9=768984
+blk_write_lat_us_p99.99=1.17526e+06
+app_write_bytes=175141136896
+fs_waf=1.00233
+dev_host_write_pages=42870282
+dev_host_read_pages=43249025
+dev_nand_progs=151917902
+dev_waf=3.54366
+dev_waf_gc=2.47188
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.196837
+dev_waf_other=0
+dev_nand_reads=163436313
+dev_map_reads_per_host_page=0.165084
+dev_map_reads_per_host_read=0.328722
+dev_erases=4804
+dev_map_miss=14216906
+dev_mapping_mem_bytes_end=8131761
+total_waf=3.55194
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746568192
+memcg_events_high=112988
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=242487296
+throughput=22399.1
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=8.96819e+06
+ycsb_ops.READ.avg_us=4820.96
+ycsb_ops.READ.p50_us=2650.62
+ycsb_ops.READ.p90_us=5692.5
+ycsb_ops.READ.p95_us=6886.25
+ycsb_ops.READ.p99_us=19940
+ycsb_ops.READ.p99.9_us=592863
+ycsb_ops.READ.max_us=2.21184e+06
+ycsb_ops.READ-MODIFY-WRITE.ops=4.48314e+06
+ycsb_ops.READ-MODIFY-WRITE.avg_us=19193.2
+ycsb_ops.READ-MODIFY-WRITE.p50_us=5777.5
+ycsb_ops.READ-MODIFY-WRITE.p90_us=18604
+ycsb_ops.READ-MODIFY-WRITE.p95_us=37967
+ycsb_ops.READ-MODIFY-WRITE.p99_us=497007
+ycsb_ops.READ-MODIFY-WRITE.p99.9_us=1.04035e+06
+ycsb_ops.READ-MODIFY-WRITE.max_us=3.04538e+06
+ycsb_ops.UPDATE.ops=8.96439e+06
+ycsb_ops.UPDATE.avg_us=16584.7
+ycsb_ops.UPDATE.p50_us=3940.38
+ycsb_ops.UPDATE.p90_us=16339
+ycsb_ops.UPDATE.p95_us=33542
+ycsb_ops.UPDATE.p99_us=463103
+ycsb_ops.UPDATE.p99.9_us=1.01843e+06
+ycsb_ops.UPDATE.max_us=2.5641e+06
+app_write_lat_ms_avg=19.1932
+app_write_lat_ms_p99=497.007
+app_read_lat_ms_avg=4.82096
+app_read_lat_ms_p99=19.94
+[09:19:09] === ycsbf_mu_20261005T090556Z status DONE

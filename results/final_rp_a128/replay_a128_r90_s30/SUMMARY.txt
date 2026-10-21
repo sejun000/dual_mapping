@@ -1,0 +1,8 @@
+# a128_r90_s30: NVMeVirt closed-loop QD32 replay, measured = second 50% of write pages; latency in us
+page4k    IOPS=   13829 (R    12445 W    1384; R 1103.4 W  122.6 MiB/s) WAF= 8.599 mapR/pg=0.000 | read_us p50=940 p99=12354 p99.9=20251 p99.99=23396 max=32995 | write_us p50=911 p99=14188 p99.9=21168 p99.99=25494 max=32800 | 0.42h
+proposed  IOPS=   13129 (R    11815 W    1314; R 1047.6 W  116.4 MiB/s) WAF= 9.622 mapR/pg=0.000 | read_us p50=924 p99=14647 p99.9=23527 p99.99=34996 max=69648 | write_us p50=916 p99=16843 p99.9=26411 p99.99=38142 max=69691 | 0.44h
+leaftl    IOPS=   12744 (R    11469 W    1275; R 1016.9 W  113.0 MiB/s) WAF= 8.602 mapR/pg=0.000 | read_us p50=960 p99=14058 p99.9=112460 p99.99=136839 max=144014 | write_us p50=862 p99=16089 p99.9=120324 p99.99=136839 max=148092 | 0.45h
+dftl      IOPS=    9899 (R     8908 W     990; R  789.8 W   87.8 MiB/s) WAF= 8.888 mapR/pg=0.071 | read_us p50=1765 p99=13074 p99.9=472908 p99.99=622854 max=679085 | write_us p50=181 p99=13337 p99.9=48366 p99.99=69992 max=564916 | 0.56h
+iurmw     IOPS=   13361 (R    12024 W    1337; R 1066.1 W  118.5 MiB/s) WAF= 9.420 mapR/pg=0.000 | read_us p50=940 p99=12747 p99.9=18416 p99.99=23527 max=38401 | write_us p50=911 p99=14647 p99.9=20382 p99.99=26149 max=38501 | 0.44h
+mu        IOPS=    8163 (R     7346 W     817; R  651.3 W   72.4 MiB/s) WAF=15.843 mapR/pg=0.031 | read_us p50=1323 p99=33686 p99.9=104596 p99.99=433062 max=2852686 | write_us p50=372 p99=29032 p99.9=52822 p99.99=113508 max=1488544 | 0.67h
+fast      IOPS=    5932 (R     5339 W     594; R  473.4 W   52.6 MiB/s) WAF=26.508 mapR/pg=0.000 | read_us p50=940 p99=37880 p99.9=74187 p99.99=307233 max=8823451 | write_us p50=940 p99=45220 p99.9=86770 p99.99=344982 max=8823323 | 0.92h

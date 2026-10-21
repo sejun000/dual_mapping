@@ -1,0 +1,98 @@
+[16:13:36] === ycsba_d_t16_leaftl_20261007T161336Z -> /home/sejun000/dual_mapping/results/apps_ext4/ycsba_d_t16/leaftl
+[16:13:37] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[16:13:37] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[16:13:38] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[16:13:38] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[16:13:38] ext4 capacity (used+avail) 40987148288 B, util 0%
+[16:13:38] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[16:13:38] [ycsb] 16 instances x (records=625000 threads=1 workloada)
+[16:15:01] [ballast] writing 7742 MiB to reach ~76% (pending 0 MiB)
+[16:15:13] [ballast] df util now 75%
+[16:15:24] measurement start utilisation=76% (window 73-85)
+[16:15:24] [ycsb] run 600s, 16 x 1 threads
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 266: read: read error: 0: No such device
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-r44bdfbefa159449eb2f9647632e2f440.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-rd12dc943fe4a481d8226bbaef9d8e391.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-rf086480a39264efc9de906430e97ab54.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-r1ab64507242b47ce9d0d596bfb3f6c98.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-rbf0d9fef300b4e4e86df23819601faae.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-r61b286f1623a40ac8a01c32d57ed3ec3.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-r76061125d3474dde9123f847048887be.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-ra8d8277e5fb24c4db252e213675d4e29.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-re6c25c9b05574d9e88bf1aec799892b6.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/apps_ext4/ycsba_d_t16/leaftl
+workload=ycsba_d_t16
+policy=leaftl
+status=DONE
+start_util_pct=76.0004
+end_util_pct=83.026
+ext4_write_kbytes_delta=368891624
+blk_read_ios=18256737
+blk_write_ios=26174354
+blk_read_bytes=262747938816
+blk_write_bytes=377744932864
+blk_avg_write_req_kb=14.0936
+dev_read_lat_ms_avg=0.933032
+dev_write_lat_ms_avg=0.372273
+write_qd_max=458
+blk_read_lat_us_mean=931.755
+blk_read_lat_us_p50=142.924
+blk_read_lat_us_p90=1540.19
+blk_read_lat_us_p99=12036
+blk_read_lat_us_p99.9=79027.5
+blk_read_lat_us_p99.99=111480
+blk_write_lat_us_mean=398.618
+blk_write_lat_us_p50=50.6415
+blk_write_lat_us_p90=892.091
+blk_write_lat_us_p99=4075.76
+blk_write_lat_us_p99.9=15803.5
+blk_write_lat_us_p99.99=20803.8
+app_write_bytes=377543594240
+fs_waf=1.00053
+dev_host_write_pages=92224548
+dev_host_read_pages=64147446
+dev_nand_progs=114886183
+dev_waf=1.24572
+dev_waf_gc=0.389053
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0498474
+dev_waf_other=0
+dev_nand_reads=106542562
+dev_map_reads_per_host_page=0.041663
+dev_map_reads_per_host_read=0.101562
+dev_erases=3560
+dev_map_miss=5758037
+dev_mapping_mem_bytes_end=8267314
+total_waf=1.24639
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7743864832
+memcg_events_high=122993
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=0
+throughput=33524.2
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.00566e+07
+ycsb_ops.READ.avg_us=414.071
+ycsb_ops.READ.p50_us=146.312
+ycsb_ops.READ.p90_us=380.688
+ycsb_ops.READ.p95_us=1034.75
+ycsb_ops.READ.p99_us=5104.25
+ycsb_ops.READ.p99.9_us=46369
+ycsb_ops.READ.max_us=244095
+ycsb_ops.UPDATE.ops=1.0058e+07
+ycsb_ops.UPDATE.avg_us=537.465
+ycsb_ops.UPDATE.p50_us=208.062
+ycsb_ops.UPDATE.p90_us=595.625
+ycsb_ops.UPDATE.p95_us=1394.56
+ycsb_ops.UPDATE.p99_us=6119.75
+ycsb_ops.UPDATE.p99.9_us=49611
+ycsb_ops.UPDATE.max_us=237951
+app_write_lat_ms_avg=0.537465
+app_write_lat_ms_p99=6.11975
+app_read_lat_ms_avg=0.414071
+app_read_lat_ms_p99=5.10425
+[16:26:18] === ycsba_d_t16_leaftl_20261007T161336Z status DONE

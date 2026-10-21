@@ -1,0 +1,1825 @@
+Sun Oct 11 06:28:24 AM UTC 2026 start
+[06:28:24] B18=8098620 (cached in /home/sejun000/dual_mapping/results/apps_aged/b18_44G.txt)
+[06:28:24] === ycsbc_d_t64_page4k_20261011T062824Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/page4k
+[06:28:25] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[06:28:25] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[06:28:27] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[06:28:27] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[06:28:46] [prefill] done in 19 s
+[06:28:46] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[06:28:47] ext4 capacity (used+avail) 40987148288 B, util 0%
+[06:28:47] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[06:28:47] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[06:31:18] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[06:31:29] [ballast] df util now 75%
+[06:31:42] measurement start utilisation=76% (window 73-85)
+[06:31:42] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/page4k
+workload=ycsbc_d_t64
+policy=page4k
+status=DONE
+start_util_pct=76.0008
+end_util_pct=76.0072
+ext4_write_kbytes_delta=98528
+blk_read_ios=94491651
+blk_write_ios=11151
+blk_read_bytes=886427910144
+blk_write_bytes=100892672
+blk_avg_write_req_kb=8.8358
+dev_read_lat_ms_avg=0.129961
+dev_write_lat_ms_avg=0.0981078
+write_qd_max=0
+blk_read_lat_us_mean=128.01
+blk_read_lat_us_p50=113.62
+blk_read_lat_us_p90=189.7
+blk_read_lat_us_p99=294.247
+blk_read_lat_us_p99.9=401.032
+blk_read_lat_us_p99.99=536.47
+blk_write_lat_us_mean=80.0279
+blk_write_lat_us_p50=59.0083
+blk_write_lat_us_p90=144.314
+blk_write_lat_us_p99=300.292
+blk_write_lat_us_p99.9=868.746
+blk_write_lat_us_p99.99=4039.58
+app_write_bytes=99688640
+fs_waf=1.01208
+dev_host_write_pages=24632
+dev_host_read_pages=216413064
+dev_nand_progs=88169
+dev_waf=3.57945
+dev_waf_gc=2.59386
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=216461222
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=3
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+total_waf=3.62268
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7747207168
+memcg_events_high=247288
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=360275968
+throughput=376757
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.26131e+08
+ycsb_ops.READ.avg_us=167.076
+ycsb_ops.READ.p50_us=110.312
+ycsb_ops.READ.p90_us=293
+ycsb_ops.READ.p95_us=330.438
+ycsb_ops.READ.p99_us=423.438
+ycsb_ops.READ.p99.9_us=2611.06
+ycsb_ops.READ.max_us=2.9143e+06
+app_read_lat_ms_avg=0.167076
+app_read_lat_ms_p99=0.423438
+[06:42:34] === ycsbc_d_t64_page4k_20261011T062824Z status DONE
+[06:42:34] === ycsbc_d_t64_proposed_20261011T064234Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/proposed
+[06:42:35] insmod /home/sejun000/nvmevirt_proposed/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[06:42:35] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[06:42:36] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[06:42:36] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[06:42:55] [prefill] done in 19 s
+[06:42:55] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[06:42:56] ext4 capacity (used+avail) 40987148288 B, util 0%
+[06:42:56] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[06:42:56] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[06:45:17] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[06:45:34] [ballast] df util now 76%
+[06:45:47] measurement start utilisation=75% (window 73-85)
+[06:45:47] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/proposed
+workload=ycsbc_d_t64
+policy=proposed
+status=DONE
+start_util_pct=75.9996
+end_util_pct=76.0072
+ext4_write_kbytes_delta=23232
+blk_read_ios=93465470
+blk_write_ios=693
+blk_read_bytes=855007600640
+blk_write_bytes=23789568
+blk_avg_write_req_kb=33.5238
+dev_read_lat_ms_avg=0.120049
+dev_write_lat_ms_avg=0.15873
+write_qd_max=0
+blk_read_lat_us_mean=118.05
+blk_read_lat_us_p50=105.103
+blk_read_lat_us_p90=167.794
+blk_read_lat_us_p99=256.587
+blk_read_lat_us_p99.9=353.658
+blk_read_lat_us_p99.99=673.983
+blk_write_lat_us_mean=68.3111
+blk_write_lat_us_p50=53.5385
+blk_write_lat_us_p90=133.067
+blk_write_lat_us_p99=260.13
+blk_write_lat_us_p99.9=314.652
+blk_write_lat_us_p99.99=315.865
+app_write_bytes=19604544
+fs_waf=1.21347
+dev_host_write_pages=5808
+dev_host_read_pages=208742090
+dev_nand_progs=5906
+dev_waf=1.01687
+dev_waf_gc=0
+dev_waf_rmw=0.032197
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=208740925
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=0
+dev_map_miss=0
+dev_mapping_mem_bytes_end=8098612
+total_waf=1.23395
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746289664
+memcg_events_high=253053
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=359211008
+throughput=400382
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.40305e+08
+ycsb_ops.READ.avg_us=157.182
+ycsb_ops.READ.p50_us=120.875
+ycsb_ops.READ.p90_us=270.688
+ycsb_ops.READ.p95_us=309.5
+ycsb_ops.READ.p99_us=394.812
+ycsb_ops.READ.p99.9_us=2364.31
+ycsb_ops.READ.max_us=3.24813e+06
+app_read_lat_ms_avg=0.157182
+app_read_lat_ms_p99=0.394813
+[06:56:38] === ycsbc_d_t64_proposed_20261011T064234Z status DONE
+[06:56:39] === ycsbc_d_t64_dftl_20261011T065639Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/dftl
+[06:56:39] insmod /home/sejun000/nvmevirt_dftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620,dftl_tpbuf=1'
+[06:56:39] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[06:56:40] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[06:56:40] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[06:57:00] [prefill] done in 20 s
+[06:57:00] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[06:57:01] ext4 capacity (used+avail) 40987148288 B, util 0%
+[06:57:01] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[06:57:01] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[06:59:46] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[06:59:57] [ballast] df util now 75%
+[07:00:11] measurement start utilisation=76% (window 73-85)
+[07:00:11] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/dftl
+workload=ycsbc_d_t64
+policy=dftl
+status=DONE
+start_util_pct=76.0005
+end_util_pct=76.0069
+ext4_write_kbytes_delta=6002332
+blk_read_ios=44422073
+blk_write_ios=742234
+blk_read_bytes=393667284992
+blk_write_bytes=6146387968
+blk_avg_write_req_kb=8.08685
+dev_read_lat_ms_avg=0.590494
+dev_write_lat_ms_avg=0.597135
+write_qd_max=238
+blk_read_lat_us_mean=588.731
+blk_read_lat_us_p50=567.06
+blk_read_lat_us_p90=888.977
+blk_read_lat_us_p99=1195.34
+blk_read_lat_us_p99.9=1594.02
+blk_read_lat_us_p99.99=3175.74
+blk_write_lat_us_mean=618.56
+blk_write_lat_us_p50=33.3549
+blk_write_lat_us_p90=131.272
+blk_write_lat_us_p99=2269.12
+blk_write_lat_us_p99.9=148290
+blk_write_lat_us_p99.99=234405
+app_write_bytes=6144237760
+fs_waf=1.00035
+dev_host_write_pages=1500583
+dev_host_read_pages=96110177
+dev_nand_progs=4705521
+dev_waf=3.1358
+dev_waf_gc=2.08929
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0465206
+dev_waf_other=0
+dev_nand_reads=136947222
+dev_map_reads_per_host_page=0.386281
+dev_map_reads_per_host_read=0.392312
+dev_erases=149
+dev_map_miss=83562536
+dev_mapping_mem_bytes_end=8140797
+total_waf=3.13689
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746318336
+memcg_events_high=145169
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=357871616
+throughput=279685
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.67867e+08
+ycsb_ops.READ.avg_us=226.682
+ycsb_ops.READ.p50_us=180.75
+ycsb_ops.READ.p90_us=668.812
+ycsb_ops.READ.p95_us=798.312
+ycsb_ops.READ.p99_us=1157.94
+ycsb_ops.READ.p99.9_us=2304.44
+ycsb_ops.READ.max_us=4.24346e+06
+app_read_lat_ms_avg=0.226682
+app_read_lat_ms_p99=1.15794
+[07:11:02] === ycsbc_d_t64_dftl_20261011T065639Z status DONE
+[07:11:02] === ycsbc_d_t64_leaftl_20261011T071102Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/leaftl
+[07:11:03] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[07:11:03] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[07:11:04] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[07:11:04] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[07:11:23] [prefill] done in 19 s
+[07:11:23] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[07:11:24] ext4 capacity (used+avail) 40987148288 B, util 0%
+[07:11:24] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[07:11:24] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[07:13:29] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[07:13:39] [ballast] df util now 75%
+[07:13:52] measurement start utilisation=76% (window 73-85)
+[07:13:52] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/leaftl
+workload=ycsbc_d_t64
+policy=leaftl
+status=DONE
+start_util_pct=76.0002
+end_util_pct=76.0073
+ext4_write_kbytes_delta=3100468
+blk_read_ios=92138893
+blk_write_ios=44526
+blk_read_bytes=846826758144
+blk_write_bytes=3174879232
+blk_avg_write_req_kb=69.6328
+dev_read_lat_ms_avg=0.133102
+dev_write_lat_ms_avg=6.04081
+write_qd_max=616
+blk_read_lat_us_mean=125.438
+blk_read_lat_us_p50=109.9
+blk_read_lat_us_p90=181.981
+blk_read_lat_us_p99=281.831
+blk_read_lat_us_p99.9=390.512
+blk_read_lat_us_p99.99=1225.23
+blk_write_lat_us_mean=3192.03
+blk_write_lat_us_p50=89.2384
+blk_write_lat_us_p90=989.985
+blk_write_lat_us_p99=151763
+blk_write_lat_us_p99.9=189522
+blk_write_lat_us_p99.99=214187
+app_write_bytes=1439802048
+fs_waf=2.20508
+dev_host_write_pages=775117
+dev_host_read_pages=206744814
+dev_nand_progs=2169034
+dev_waf=2.79833
+dev_waf_gc=1.79898
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=208128482
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=70
+dev_map_miss=0
+dev_mapping_mem_bytes_end=1589942
+total_waf=6.17054
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746899968
+memcg_events_high=247853
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=360271872
+throughput=388203
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.32997e+08
+ycsb_ops.READ.avg_us=162.197
+ycsb_ops.READ.p50_us=119.875
+ycsb_ops.READ.p90_us=282.25
+ycsb_ops.READ.p95_us=321.562
+ycsb_ops.READ.p99_us=413.375
+ycsb_ops.READ.p99.9_us=2497.81
+ycsb_ops.READ.max_us=4.096e+06
+app_read_lat_ms_avg=0.162197
+app_read_lat_ms_p99=0.413375
+[07:24:44] === ycsbc_d_t64_leaftl_20261011T071102Z status DONE
+[07:24:44] === ycsbc_d_t64_fast_20261011T072444Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/fast
+[07:24:44] insmod /home/sejun000/nvmevirt_fast/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[07:24:45] target /dev/nvme3n1 (CSL_Virt_MN_01 41.1G)
+[07:24:45] memory cgroup dmapp.slice: MemoryMax=8421M MemoryHigh=7368M (20% of 44153438208 B)
+[07:24:45] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44153438208 B) before mkfs
+[07:25:06] [prefill] done in 21 s
+[07:25:06] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[07:25:07] ext4 capacity (used+avail) 40917221376 B, util 0%
+[07:25:07] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40917221376 B)
+[07:25:07] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[07:28:39] [ballast] writing 7690 MiB to reach ~76% (pending 0 MiB)
+[07:28:55] [ballast] df util now 76%
+[07:29:10] measurement start utilisation=76% (window 73-85)
+[07:29:10] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/fast
+workload=ycsbc_d_t64
+policy=fast
+status=DONE
+start_util_pct=76.0065
+end_util_pct=76.0065
+ext4_write_kbytes_delta=77636
+blk_read_ios=92734362
+blk_write_ios=9008
+blk_read_bytes=842121900032
+blk_write_bytes=79499264
+blk_avg_write_req_kb=8.61856
+dev_read_lat_ms_avg=0.119052
+dev_write_lat_ms_avg=0.089587
+write_qd_max=0
+blk_read_lat_us_mean=117.082
+blk_read_lat_us_p50=104.058
+blk_read_lat_us_p90=166.421
+blk_read_lat_us_p99=254.621
+blk_read_lat_us_p99.9=348.559
+blk_read_lat_us_p99.99=545.679
+blk_write_lat_us_mean=72.8823
+blk_write_lat_us_p50=56.0711
+blk_write_lat_us_p90=138.816
+blk_write_lat_us_p99=289.147
+blk_write_lat_us_p99.9=336.544
+blk_write_lat_us_p99.99=354.254
+app_write_bytes=79323136
+fs_waf=1.00222
+dev_host_write_pages=19409
+dev_host_read_pages=205596167
+dev_nand_progs=18931
+dev_waf=0.975372
+dev_waf_gc=0
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=205581864
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=1
+dev_map_miss=0
+dev_mapping_mem_bytes_end=3720878
+total_waf=0.977538
+memcg_max=8830058496
+memcg_high=7725907968
+memcg_peak=7732883456
+memcg_events_high=253765
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=360988672
+throughput=402909
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.41823e+08
+ycsb_ops.READ.avg_us=156.218
+ycsb_ops.READ.p50_us=127.062
+ycsb_ops.READ.p90_us=272.938
+ycsb_ops.READ.p95_us=309.938
+ycsb_ops.READ.p99_us=395.688
+ycsb_ops.READ.p99.9_us=2286.06
+ycsb_ops.READ.max_us=3.4857e+06
+app_read_lat_ms_avg=0.156218
+app_read_lat_ms_p99=0.395688
+[07:40:02] === ycsbc_d_t64_fast_20261011T072444Z status DONE
+[07:40:02] === ycsbc_d_t64_mu_20261011T074002Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/mu
+[07:40:02] insmod /home/sejun000/nvmevirt_mu/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[07:40:03] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[07:40:03] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[07:40:03] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[07:40:23] [prefill] done in 20 s
+[07:40:23] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[07:40:23] ext4 capacity (used+avail) 40987148288 B, util 0%
+[07:40:23] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[07:40:23] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[07:47:05] [ballast] writing 7738 MiB to reach ~76% (pending 0 MiB)
+[07:47:23] [ballast] df util now 75%
+[07:48:08] measurement start utilisation=75% (window 73-85)
+[07:48:08] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/mu
+workload=ycsbc_d_t64
+policy=mu
+status=DONE
+start_util_pct=75.9999
+end_util_pct=75.9999
+ext4_write_kbytes_delta=5820332
+blk_read_ios=88096504
+blk_write_ios=705853
+blk_read_bytes=803783274496
+blk_write_bytes=5960019968
+blk_avg_write_req_kb=8.24581
+dev_read_lat_ms_avg=0.14926
+dev_write_lat_ms_avg=3.51703
+write_qd_max=349
+blk_read_lat_us_mean=147.365
+blk_read_lat_us_p50=114.301
+blk_read_lat_us_p90=200.941
+blk_read_lat_us_p99=343.346
+blk_read_lat_us_p99.9=552.875
+blk_read_lat_us_p99.99=1551.97
+blk_write_lat_us_mean=3683.12
+blk_write_lat_us_p50=61.5614
+blk_write_lat_us_p90=310.071
+blk_write_lat_us_p99=7650
+blk_write_lat_us_p99.9=857073
+blk_write_lat_us_p99.99=972669
+app_write_bytes=6076833792
+fs_waf=0.980777
+dev_host_write_pages=1455083
+dev_host_read_pages=196236151
+dev_nand_progs=11021811
+dev_waf=7.5747
+dev_waf_gc=6.39666
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.178091
+dev_waf_other=0
+dev_nand_reads=208587864
+dev_map_reads_per_host_page=0.0154441
+dev_map_reads_per_host_read=0.0155587
+dev_erases=347
+dev_map_miss=3053171
+dev_mapping_mem_bytes_end=8131761
+total_waf=7.42909
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746473984
+memcg_events_high=241676
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=362254336
+throughput=378973
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.2747e+08
+ycsb_ops.READ.avg_us=166.304
+ycsb_ops.READ.p50_us=120.812
+ycsb_ops.READ.p90_us=289.688
+ycsb_ops.READ.p95_us=333.375
+ycsb_ops.READ.p99_us=446.938
+ycsb_ops.READ.p99.9_us=2301.88
+ycsb_ops.READ.max_us=2.82214e+06
+app_read_lat_ms_avg=0.166304
+app_read_lat_ms_p99=0.446937
+[07:59:01] === ycsbc_d_t64_mu_20261011T074002Z status DONE
+[07:59:01] === ycsbc_d_t64_iurmw_20261011T075901Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/iurmw
+[07:59:01] insmod /home/sejun000/nvmevirt_iurmw/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[07:59:02] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[07:59:02] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[07:59:02] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[07:59:22] [prefill] done in 20 s
+[07:59:22] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[07:59:22] ext4 capacity (used+avail) 40987148288 B, util 0%
+[07:59:22] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[07:59:22] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[08:02:30] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[08:02:42] [ballast] df util now 75%
+[08:03:00] measurement start utilisation=76% (window 73-85)
+[08:03:00] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/iurmw
+workload=ycsbc_d_t64
+policy=iurmw
+status=DONE
+start_util_pct=76.0008
+end_util_pct=76.0072
+ext4_write_kbytes_delta=2219912
+blk_read_ios=89543354
+blk_write_ios=210600
+blk_read_bytes=823025012736
+blk_write_bytes=2273189888
+blk_avg_write_req_kb=10.5409
+dev_read_lat_ms_avg=0.140964
+dev_write_lat_ms_avg=3.74352
+write_qd_max=192
+blk_read_lat_us_mean=139.027
+blk_read_lat_us_p50=105.797
+blk_read_lat_us_p90=170.502
+blk_read_lat_us_p99=276.133
+blk_read_lat_us_p99.9=2262.1
+blk_read_lat_us_p99.99=8095.1
+blk_write_lat_us_mean=3901.21
+blk_write_lat_us_p50=45.6562
+blk_write_lat_us_p90=810.3
+blk_write_lat_us_p99=157595
+blk_write_lat_us_p99.9=233664
+blk_write_lat_us_p99.99=250983
+app_write_bytes=2312110400
+fs_waf=0.983167
+dev_host_write_pages=554722
+dev_host_read_pages=200933836
+dev_nand_progs=11187600
+dev_waf=20.1679
+dev_waf_gc=13.8988
+dev_waf_rmw=5.26934
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=211557129
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=361
+dev_map_miss=0
+dev_mapping_mem_bytes_end=2699540
+total_waf=19.8284
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746441216
+memcg_events_high=243209
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=360833024
+throughput=377690
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.2673e+08
+ycsb_ops.READ.avg_us=166.675
+ycsb_ops.READ.p50_us=119.688
+ycsb_ops.READ.p90_us=276.375
+ycsb_ops.READ.p95_us=313.188
+ycsb_ops.READ.p99_us=407.375
+ycsb_ops.READ.p99.9_us=2925.31
+ycsb_ops.READ.max_us=3.36896e+06
+app_read_lat_ms_avg=0.166675
+app_read_lat_ms_p99=0.407375
+[08:13:52] === ycsbc_d_t64_iurmw_20261011T075901Z status DONE
+[08:13:52] === ycsbd_d_t64_page4k_20261011T081352Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/page4k
+[08:13:52] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[08:13:53] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[08:13:53] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[08:13:53] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[08:14:13] [prefill] done in 20 s
+[08:14:13] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[08:14:13] ext4 capacity (used+avail) 40987148288 B, util 0%
+[08:14:13] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[08:14:13] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[08:16:43] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[08:16:54] [ballast] df util now 76%
+[08:17:06] measurement start utilisation=76% (window 73-85)
+[08:17:06] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/page4k
+workload=ycsbd_d_t64
+policy=page4k
+status=DONE
+start_util_pct=76.0003
+end_util_pct=100
+ext4_write_kbytes_delta=97232136
+blk_read_ios=39613109
+blk_write_ios=8835245
+blk_read_bytes=362452242432
+blk_write_bytes=99565707264
+blk_avg_write_req_kb=11.005
+dev_read_lat_ms_avg=0.290122
+dev_write_lat_ms_avg=1.81502
+write_qd_max=706
+blk_read_lat_us_mean=288.048
+blk_read_lat_us_p50=93.9538
+blk_read_lat_us_p90=159.757
+blk_read_lat_us_p99=702.701
+blk_read_lat_us_p99.9=4628.58
+blk_read_lat_us_p99.99=302820
+blk_write_lat_us_mean=1826.93
+blk_write_lat_us_p50=21.0654
+blk_write_lat_us_p90=122.155
+blk_write_lat_us_p99=15764.4
+blk_write_lat_us_p99.9=321682
+blk_write_lat_us_p99.99=413891
+app_write_bytes=130073451280
+fs_waf=0.765458
+dev_host_write_pages=24308034
+dev_host_read_pages=88489317
+dev_nand_progs=46070817
+dev_waf=1.89529
+dev_waf_gc=1.44139
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=123526024
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=1488
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+total_waf=1.45077
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746879488
+memcg_events_high=112516
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=343474176
+throughput=450900
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.51407e+08
+ycsb_ops.READ.avg_us=169.179
+ycsb_ops.READ.p50_us=91.6875
+ycsb_ops.READ.p90_us=260.625
+ycsb_ops.READ.p95_us=305.812
+ycsb_ops.READ.p99_us=437
+ycsb_ops.READ.p99.9_us=1685.25
+ycsb_ops.READ.max_us=4.34586e+06
+ycsb_ops.INSERT.ops=6.9186e+06
+ycsb_ops.INSERT.avg_us=415.034
+ycsb_ops.INSERT.p50_us=243.312
+ycsb_ops.INSERT.p90_us=379.688
+ycsb_ops.INSERT.p95_us=433.875
+ycsb_ops.INSERT.p99_us=826.188
+ycsb_ops.INSERT.p99.9_us=11354.5
+ycsb_ops.INSERT.max_us=3.42221e+06
+app_write_lat_ms_avg=0.415034
+app_write_lat_ms_p99=0.826187
+app_read_lat_ms_avg=0.169179
+app_read_lat_ms_p99=0.437
+[08:28:33] === ycsbd_d_t64_page4k_20261011T081352Z status DONE
+[08:28:33] === ycsbd_d_t64_proposed_20261011T082833Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/proposed
+[08:28:34] insmod /home/sejun000/nvmevirt_proposed/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[08:28:34] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[08:28:35] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[08:28:35] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[08:29:02] [prefill] done in 27 s
+[08:29:02] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[08:29:03] ext4 capacity (used+avail) 40987148288 B, util 0%
+[08:29:03] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[08:29:03] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[08:31:24] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[08:31:40] [ballast] df util now 75%
+[08:31:52] measurement start utilisation=75% (window 73-85)
+[08:31:52] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/proposed
+workload=ycsbd_d_t64
+policy=proposed
+status=DONE
+start_util_pct=76.0006
+end_util_pct=100
+ext4_write_kbytes_delta=97396020
+blk_read_ios=38422244
+blk_write_ios=8831736
+blk_read_bytes=349880139776
+blk_write_bytes=99733524480
+blk_avg_write_req_kb=11.028
+dev_read_lat_ms_avg=0.291843
+dev_write_lat_ms_avg=2.00193
+write_qd_max=764
+blk_read_lat_us_mean=289.737
+blk_read_lat_us_p50=93.8271
+blk_read_lat_us_p90=154.694
+blk_read_lat_us_p99=700.066
+blk_read_lat_us_p99.9=2895.12
+blk_read_lat_us_p99.99=476256
+blk_write_lat_us_mean=2018.61
+blk_write_lat_us_p50=21.5833
+blk_write_lat_us_p90=104.09
+blk_write_lat_us_p99=11845.6
+blk_write_lat_us_p99.9=598748
+blk_write_lat_us_p99.99=1.14512e+06
+app_write_bytes=128117163723
+fs_waf=0.778456
+dev_host_write_pages=24349005
+dev_host_read_pages=85419956
+dev_nand_progs=47866640
+dev_waf=1.96586
+dev_waf_gc=1.43785
+dev_waf_rmw=0.00468787
+dev_waf_fold=0.0664431
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=122164909
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=1569
+dev_map_miss=0
+dev_mapping_mem_bytes_end=8098612
+total_waf=1.53033
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746764800
+memcg_events_high=111590
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=233627648
+throughput=480637
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.51373e+08
+ycsb_ops.READ.avg_us=164.43
+ycsb_ops.READ.p50_us=89.4375
+ycsb_ops.READ.p90_us=254.5
+ycsb_ops.READ.p95_us=299.25
+ycsb_ops.READ.p99_us=428.688
+ycsb_ops.READ.p99.9_us=1546.12
+ycsb_ops.READ.max_us=3.76013e+06
+ycsb_ops.INSERT.ops=6.92085e+06
+ycsb_ops.INSERT.avg_us=454.43
+ycsb_ops.INSERT.p50_us=242.688
+ycsb_ops.INSERT.p90_us=385.688
+ycsb_ops.INSERT.p95_us=449.625
+ycsb_ops.INSERT.p99_us=1488.25
+ycsb_ops.INSERT.p99.9_us=14633
+ycsb_ops.INSERT.max_us=3.44474e+06
+app_write_lat_ms_avg=0.45443
+app_write_lat_ms_p99=1.48825
+app_read_lat_ms_avg=0.16443
+app_read_lat_ms_p99=0.428687
+[08:43:32] === ycsbd_d_t64_proposed_20261011T082833Z status DONE
+[08:43:33] === ycsbd_d_t64_dftl_20261011T084333Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/dftl
+[08:43:33] insmod /home/sejun000/nvmevirt_dftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620,dftl_tpbuf=1'
+[08:43:33] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[08:43:34] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[08:43:34] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[08:43:54] [prefill] done in 20 s
+[08:43:54] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[08:43:54] ext4 capacity (used+avail) 40987148288 B, util 0%
+[08:43:54] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[08:43:55] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[08:46:37] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[08:46:48] [ballast] df util now 75%
+[08:47:02] measurement start utilisation=76% (window 73-85)
+[08:47:02] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/dftl
+workload=ycsbd_d_t64
+policy=dftl
+status=DONE
+start_util_pct=76.0008
+end_util_pct=100
+ext4_write_kbytes_delta=99440280
+blk_read_ios=31454979
+blk_write_ios=9144920
+blk_read_bytes=291315396608
+blk_write_bytes=101826846720
+blk_avg_write_req_kb=10.8738
+dev_read_lat_ms_avg=0.807772
+dev_write_lat_ms_avg=1.62517
+write_qd_max=384
+blk_read_lat_us_mean=806.167
+blk_read_lat_us_p50=280.174
+blk_read_lat_us_p90=1316.09
+blk_read_lat_us_p99=3195.43
+blk_read_lat_us_p99.9=7667.66
+blk_read_lat_us_p99.99=434119
+blk_write_lat_us_mean=1636.97
+blk_write_lat_us_p50=20.6247
+blk_write_lat_us_p90=50.6798
+blk_write_lat_us_p99=8093
+blk_write_lat_us_p99.9=387506
+blk_write_lat_us_p99.99=464907
+app_write_bytes=110988374464
+fs_waf=0.917455
+dev_host_write_pages=24860070
+dev_host_read_pages=71121923
+dev_nand_progs=54642786
+dev_waf=2.19801
+dev_waf_gc=1.70482
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0253378
+dev_waf_other=0
+dev_nand_reads=140000142
+dev_map_reads_per_host_page=0.276058
+dev_map_reads_per_host_read=0.372552
+dev_erases=1744
+dev_map_miss=65773941
+dev_mapping_mem_bytes_end=8140797
+total_waf=2.01658
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746416640
+memcg_events_high=94585
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=293421056
+throughput=300360
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.4078e+08
+ycsb_ops.READ.avg_us=224.889
+ycsb_ops.READ.p50_us=89.3125
+ycsb_ops.READ.p90_us=402.562
+ycsb_ops.READ.p95_us=581.438
+ycsb_ops.READ.p99_us=1410.56
+ycsb_ops.READ.p99.9_us=3314
+ycsb_ops.READ.max_us=2.04186e+06
+ycsb_ops.INSERT.ops=6.91949e+06
+ycsb_ops.INSERT.avg_us=504.87
+ycsb_ops.INSERT.p50_us=220.562
+ycsb_ops.INSERT.p90_us=326.25
+ycsb_ops.INSERT.p95_us=410.125
+ycsb_ops.INSERT.p99_us=2817.75
+ycsb_ops.INSERT.p99.9_us=17593
+ycsb_ops.INSERT.max_us=1.72646e+06
+app_write_lat_ms_avg=0.50487
+app_write_lat_ms_p99=2.81775
+app_read_lat_ms_avg=0.224889
+app_read_lat_ms_p99=1.41056
+[08:58:18] === ycsbd_d_t64_dftl_20261011T084333Z status DONE
+[08:58:18] === ycsbd_d_t64_leaftl_20261011T085818Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/leaftl
+[08:58:18] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[08:58:19] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[08:58:19] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[08:58:19] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[08:58:39] [prefill] done in 20 s
+[08:58:39] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[08:58:39] ext4 capacity (used+avail) 40987148288 B, util 0%
+[08:58:39] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[08:58:39] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[09:00:46] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[09:00:58] [ballast] df util now 75%
+[09:01:14] measurement start utilisation=76% (window 73-85)
+[09:01:14] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/leaftl
+workload=ycsbd_d_t64
+policy=leaftl
+status=DONE
+start_util_pct=76.0009
+end_util_pct=100
+ext4_write_kbytes_delta=97626992
+blk_read_ios=38726291
+blk_write_ios=8925261
+blk_read_bytes=353660248064
+blk_write_bytes=99970039808
+blk_avg_write_req_kb=10.9383
+dev_read_lat_ms_avg=0.327677
+dev_write_lat_ms_avg=0.336361
+write_qd_max=192
+blk_read_lat_us_mean=325.796
+blk_read_lat_us_p50=93.8814
+blk_read_lat_us_p90=156.592
+blk_read_lat_us_p99=912.003
+blk_read_lat_us_p99.9=10906.9
+blk_read_lat_us_p99.99=318296
+blk_write_lat_us_mean=338.191
+blk_write_lat_us_p50=21.1937
+blk_write_lat_us_p90=118.261
+blk_write_lat_us_p99=2648.29
+blk_write_lat_us_p99.9=39581.2
+blk_write_lat_us_p99.99=292814
+app_write_bytes=126668153664
+fs_waf=0.789228
+dev_host_write_pages=24405980
+dev_host_read_pages=86342822
+dev_nand_progs=46535108
+dev_waf=1.90671
+dev_waf_gc=1.45214
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=121780873
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=1503
+dev_map_miss=0
+dev_mapping_mem_bytes_end=6835802
+total_waf=1.50483
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746199552
+memcg_events_high=111171
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=349548544
+throughput=449034
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.51287e+08
+ycsb_ops.READ.avg_us=174.794
+ycsb_ops.READ.p50_us=90.4375
+ycsb_ops.READ.p90_us=257.375
+ycsb_ops.READ.p95_us=301.438
+ycsb_ops.READ.p99_us=445.125
+ycsb_ops.READ.p99.9_us=2737.12
+ycsb_ops.READ.max_us=3.06176e+06
+ycsb_ops.INSERT.ops=6.91908e+06
+ycsb_ops.INSERT.avg_us=307.35
+ycsb_ops.INSERT.p50_us=241.5
+ycsb_ops.INSERT.p90_us=375.5
+ycsb_ops.INSERT.p95_us=429.125
+ycsb_ops.INSERT.p99_us=708.25
+ycsb_ops.INSERT.p99.9_us=10907.2
+ycsb_ops.INSERT.max_us=1.99168e+06
+app_write_lat_ms_avg=0.30735
+app_write_lat_ms_p99=0.70825
+app_read_lat_ms_avg=0.174794
+app_read_lat_ms_p99=0.445125
+[09:12:36] === ycsbd_d_t64_leaftl_20261011T085818Z status DONE
+[09:12:36] === ycsbd_d_t64_fast_20261011T091236Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/fast
+[09:12:37] insmod /home/sejun000/nvmevirt_fast/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[09:12:37] target /dev/nvme3n1 (CSL_Virt_MN_01 41.1G)
+[09:12:38] memory cgroup dmapp.slice: MemoryMax=8421M MemoryHigh=7368M (20% of 44153438208 B)
+[09:12:38] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44153438208 B) before mkfs
+[09:12:57] [prefill] done in 19 s
+[09:12:57] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[09:12:58] ext4 capacity (used+avail) 40917221376 B, util 0%
+[09:12:58] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40917221376 B)
+[09:12:58] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[09:16:19] [ballast] writing 7690 MiB to reach ~76% (pending 0 MiB)
+[09:16:45] [ballast] df util now 76%
+[09:17:00] measurement start utilisation=76% (window 73-85)
+[09:17:00] [ycsb] run 600s, 16 x 4 threads
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 262: /sys/fs/cgroup/dmapp.slice/run-r22136a8de0384b4bb2accaf562fa21d6.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/fast
+workload=ycsbd_d_t64
+policy=fast
+status=DONE
+start_util_pct=76.0065
+end_util_pct=100
+ext4_write_kbytes_delta=96523976
+blk_read_ios=37262110
+blk_write_ios=8824358
+blk_read_bytes=342339956736
+blk_write_bytes=98840551424
+blk_avg_write_req_kb=10.9384
+dev_read_lat_ms_avg=0.38484
+dev_write_lat_ms_avg=2.61839
+write_qd_max=769
+blk_read_lat_us_mean=382.909
+blk_read_lat_us_p50=94.1908
+blk_read_lat_us_p90=157.595
+blk_read_lat_us_p99=650.324
+blk_read_lat_us_p99.9=80084.5
+blk_read_lat_us_p99.99=497900
+blk_write_lat_us_mean=2640.06
+blk_write_lat_us_p50=21.4042
+blk_write_lat_us_p90=117.129
+blk_write_lat_us_p99=32856.5
+blk_write_lat_us_p99.9=546048
+blk_write_lat_us_p99.99=889760
+app_write_bytes=121976177104
+fs_waf=0.810327
+dev_host_write_pages=24130994
+dev_host_read_pages=83579091
+dev_nand_progs=62918167
+dev_waf=2.60736
+dev_waf_gc=2.15669
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=135621625
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=2031
+dev_map_miss=0
+dev_mapping_mem_bytes_end=3480261
+total_waf=2.11281
+memcg_max=8830058496
+memcg_high=7725907968
+memcg_peak=7733731328
+memcg_events_high=107107
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=284610560
+throughput=411178
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.48652e+08
+ycsb_ops.READ.avg_us=180.74
+ycsb_ops.READ.p50_us=89.5
+ycsb_ops.READ.p90_us=254.562
+ycsb_ops.READ.p95_us=298.75
+ycsb_ops.READ.p99_us=423.688
+ycsb_ops.READ.p99.9_us=1949.88
+ycsb_ops.READ.max_us=2.0009e+06
+ycsb_ops.INSERT.ops=6.90836e+06
+ycsb_ops.INSERT.avg_us=504.956
+ycsb_ops.INSERT.p50_us=240.688
+ycsb_ops.INSERT.p90_us=375
+ycsb_ops.INSERT.p95_us=429.375
+ycsb_ops.INSERT.p99_us=963.312
+ycsb_ops.INSERT.p99.9_us=27399
+ycsb_ops.INSERT.max_us=2.0183e+06
+app_write_lat_ms_avg=0.504956
+app_write_lat_ms_p99=0.963313
+app_read_lat_ms_avg=0.18074
+app_read_lat_ms_p99=0.423687
+[09:28:16] === ycsbd_d_t64_fast_20261011T091236Z status DONE
+[09:28:16] === ycsbd_d_t64_mu_20261011T092816Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/mu
+[09:28:17] insmod /home/sejun000/nvmevirt_mu/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[09:28:17] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[09:28:18] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[09:28:18] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[09:28:37] [prefill] done in 19 s
+[09:28:37] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[09:28:38] ext4 capacity (used+avail) 40987148288 B, util 0%
+[09:28:38] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[09:28:38] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[09:33:02] [ballast] writing 7738 MiB to reach ~76% (pending 0 MiB)
+[09:33:27] [ballast] df util now 75%
+[09:33:54] measurement start utilisation=75% (window 73-85)
+[09:33:54] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/mu
+workload=ycsbd_d_t64
+policy=mu
+status=DONE
+start_util_pct=75.9995
+end_util_pct=94.3544
+ext4_write_kbytes_delta=73409800
+blk_read_ios=17829175
+blk_write_ios=6706814
+blk_read_bytes=164639326208
+blk_write_bytes=75171635200
+blk_avg_write_req_kb=10.9456
+dev_read_lat_ms_avg=1.65125
+dev_write_lat_ms_avg=4.12579
+write_qd_max=384
+blk_read_lat_us_mean=1650.56
+blk_read_lat_us_p50=121.565
+blk_read_lat_us_p90=389.508
+blk_read_lat_us_p99=1317.57
+blk_read_lat_us_p99.9=459302
+blk_read_lat_us_p99.99=2.18587e+06
+blk_write_lat_us_mean=4155.6
+blk_write_lat_us_p50=20.1953
+blk_write_lat_us_p90=41.5647
+blk_write_lat_us_p99=611.429
+blk_write_lat_us_p99.9=1.66166e+06
+blk_write_lat_us_p99.99=2.64756e+06
+app_write_bytes=75159429376
+fs_waf=1.00016
+dev_host_write_pages=18352450
+dev_host_read_pages=40195148
+dev_nand_progs=198089899
+dev_waf=10.7936
+dev_waf_gc=10.2745
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0711422
+dev_waf_other=0
+dev_nand_reads=234209586
+dev_map_reads_per_host_page=0.0931097
+dev_map_reads_per_host_read=0.135622
+dev_erases=6399
+dev_map_miss=5451352
+dev_mapping_mem_bytes_end=8131761
+total_waf=10.7954
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746326528
+memcg_events_high=62282
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=256053248
+throughput=177017
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.01029e+08
+ycsb_ops.READ.avg_us=334.638
+ycsb_ops.READ.p50_us=82.8125
+ycsb_ops.READ.p90_us=244.062
+ycsb_ops.READ.p95_us=313.688
+ycsb_ops.READ.p99_us=557.125
+ycsb_ops.READ.p99.9_us=1676.5
+ycsb_ops.READ.max_us=5.88595e+06
+ycsb_ops.INSERT.ops=5.31448e+06
+ycsb_ops.INSERT.avg_us=824.727
+ycsb_ops.INSERT.p50_us=240.25
+ycsb_ops.INSERT.p90_us=411.688
+ycsb_ops.INSERT.p95_us=621.5
+ycsb_ops.INSERT.p99_us=2012.75
+ycsb_ops.INSERT.p99.9_us=49712
+ycsb_ops.INSERT.max_us=5.88595e+06
+app_write_lat_ms_avg=0.824727
+app_write_lat_ms_p99=2.01275
+app_read_lat_ms_avg=0.334638
+app_read_lat_ms_p99=0.557125
+[09:45:11] === ycsbd_d_t64_mu_20261011T092816Z status DONE
+[09:45:11] === ycsbd_d_t64_iurmw_20261011T094511Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/iurmw
+[09:45:11] insmod /home/sejun000/nvmevirt_iurmw/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[09:45:12] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[09:45:12] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[09:45:12] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[09:45:32] [prefill] done in 20 s
+[09:45:32] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[09:45:33] ext4 capacity (used+avail) 40987148288 B, util 0%
+[09:45:33] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[09:45:33] [ycsb] 16 instances x (records=625000 threads=4 workloadd)
+[09:48:36] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[09:48:50] [ballast] df util now 75%
+[09:49:04] measurement start utilisation=76% (window 73-85)
+[09:49:04] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbd_d_t64/iurmw
+workload=ycsbd_d_t64
+policy=iurmw
+status=DONE
+start_util_pct=76.0009
+end_util_pct=95.1258
+ext4_write_kbytes_delta=76263700
+blk_read_ios=19423141
+blk_write_ios=6880635
+blk_read_bytes=181112283136
+blk_write_bytes=78103986176
+blk_avg_write_req_kb=11.0852
+dev_read_lat_ms_avg=1.60123
+dev_write_lat_ms_avg=6.74155
+write_qd_max=749
+blk_read_lat_us_mean=1617.65
+blk_read_lat_us_p50=97.694
+blk_read_lat_us_p90=467.782
+blk_read_lat_us_p99=5447.85
+blk_read_lat_us_p99.9=378735
+blk_read_lat_us_p99.99=437612
+blk_write_lat_us_mean=6760.45
+blk_write_lat_us_p50=20.357
+blk_write_lat_us_p90=98.0762
+blk_write_lat_us_p99=317471
+blk_write_lat_us_p99.9=457025
+blk_write_lat_us_p99.99=1.16862e+06
+app_write_bytes=78604116416
+fs_waf=0.993637
+dev_host_write_pages=19063608
+dev_host_read_pages=44209018
+dev_nand_progs=164980496
+dev_waf=8.65421
+dev_waf_gc=7.07157
+dev_waf_rmw=1.13706
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=200694978
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=5326
+dev_map_miss=0
+dev_mapping_mem_bytes_end=2699540
+total_waf=8.59915
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746965504
+memcg_events_high=64185
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=258928640
+throughput=184179
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.0506e+08
+ycsb_ops.READ.avg_us=322.295
+ycsb_ops.READ.p50_us=88.5
+ycsb_ops.READ.p90_us=240.938
+ycsb_ops.READ.p95_us=300.375
+ycsb_ops.READ.p99_us=898.938
+ycsb_ops.READ.p99.9_us=6100.5
+ycsb_ops.READ.max_us=2.23232e+06
+ycsb_ops.INSERT.ops=5.53076e+06
+ycsb_ops.INSERT.avg_us=775.925
+ycsb_ops.INSERT.p50_us=246.25
+ycsb_ops.INSERT.p90_us=385
+ycsb_ops.INSERT.p95_us=478.5
+ycsb_ops.INSERT.p99_us=3106.38
+ycsb_ops.INSERT.p99.9_us=224167
+ycsb_ops.INSERT.max_us=1.67629e+06
+app_write_lat_ms_avg=0.775925
+app_write_lat_ms_p99=3.10637
+app_read_lat_ms_avg=0.322295
+app_read_lat_ms_p99=0.898937
+[10:00:29] === ycsbd_d_t64_iurmw_20261011T094511Z status DONE
+[10:00:30] === ycsbe_d_t64_page4k_20261011T100030Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/page4k
+[10:00:30] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[10:00:30] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[10:00:31] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[10:00:31] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[10:00:50] [prefill] done in 19 s
+[10:00:50] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[10:00:51] ext4 capacity (used+avail) 40987148288 B, util 0%
+[10:00:51] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[10:00:51] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[10:03:24] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[10:03:36] [ballast] df util now 75%
+[10:03:49] measurement start utilisation=76% (window 73-85)
+[10:03:49] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/page4k
+workload=ycsbe_d_t64
+policy=page4k
+status=DONE
+start_util_pct=76.0008
+end_util_pct=99.5521
+ext4_write_kbytes_delta=114994144
+blk_read_ios=4186416
+blk_write_ios=11271617
+blk_read_bytes=38638235648
+blk_write_bytes=117754003456
+blk_avg_write_req_kb=10.2021
+dev_read_lat_ms_avg=1.21687
+dev_write_lat_ms_avg=1.46926
+write_qd_max=384
+blk_read_lat_us_mean=1218.47
+blk_read_lat_us_p50=132.195
+blk_read_lat_us_p90=505.244
+blk_read_lat_us_p99=1339.93
+blk_read_lat_us_p99.9=306387
+blk_read_lat_us_p99.99=375454
+blk_write_lat_us_mean=1479.72
+blk_write_lat_us_p50=17.3558
+blk_write_lat_us_p90=86.9343
+blk_write_lat_us_p99=7001.76
+blk_write_lat_us_p99.9=294865
+blk_write_lat_us_p99.99=360974
+app_write_bytes=128962486720
+fs_waf=0.913087
+dev_host_write_pages=28748536
+dev_host_read_pages=9433163
+dev_nand_progs=73101052
+dev_waf=2.54277
+dev_waf_gc=1.98477
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=66492000
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=2360
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+total_waf=2.32178
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7747182592
+memcg_events_high=39422
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=273604608
+throughput=226308
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=6.79178e+06
+ycsb_ops.INSERT.avg_us=1231.92
+ycsb_ops.INSERT.p50_us=239.875
+ycsb_ops.INSERT.p90_us=551.25
+ycsb_ops.INSERT.p95_us=756.5
+ycsb_ops.INSERT.p99_us=2428.75
+ycsb_ops.INSERT.p99.9_us=288719
+ycsb_ops.INSERT.max_us=1.71418e+06
+ycsb_ops.SCAN.ops=1.29034e+08
+ycsb_ops.SCAN.avg_us=211.655
+ycsb_ops.SCAN.p50_us=147.812
+ycsb_ops.SCAN.p90_us=345.375
+ycsb_ops.SCAN.p95_us=411.188
+ycsb_ops.SCAN.p99_us=549.062
+ycsb_ops.SCAN.p99.9_us=1135.62
+ycsb_ops.SCAN.max_us=1.48275e+06
+app_write_lat_ms_avg=1.23192
+app_write_lat_ms_p99=2.42875
+app_read_lat_ms_avg=0.211655
+app_read_lat_ms_p99=0.549063
+[10:14:44] === ycsbe_d_t64_page4k_20261011T100030Z status DONE
+[10:14:44] === ycsbe_d_t64_proposed_20261011T101444Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/proposed
+[10:14:44] insmod /home/sejun000/nvmevirt_proposed/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[10:14:45] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[10:14:45] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[10:14:45] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[10:15:05] [prefill] done in 20 s
+[10:15:05] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[10:15:05] ext4 capacity (used+avail) 40987148288 B, util 0%
+[10:15:05] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[10:15:06] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[10:17:27] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[10:17:43] [ballast] df util now 75%
+[10:17:55] measurement start utilisation=75% (window 73-85)
+[10:17:55] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/proposed
+workload=ycsbe_d_t64
+policy=proposed
+status=DONE
+start_util_pct=75.9995
+end_util_pct=100
+ext4_write_kbytes_delta=117635812
+blk_read_ios=3957964
+blk_write_ios=11518253
+blk_read_bytes=36411092992
+blk_write_bytes=120459071488
+blk_avg_write_req_kb=10.213
+dev_read_lat_ms_avg=1.21991
+dev_write_lat_ms_avg=1.53399
+write_qd_max=635
+blk_read_lat_us_mean=1221.92
+blk_read_lat_us_p50=127.908
+blk_read_lat_us_p90=526.893
+blk_read_lat_us_p99=1861.81
+blk_read_lat_us_p99.9=266925
+blk_read_lat_us_p99.99=1.44652e+06
+blk_write_lat_us_mean=1551.51
+blk_write_lat_us_p50=17.8098
+blk_write_lat_us_p90=142.541
+blk_write_lat_us_p99=10477.4
+blk_write_lat_us_p99.9=409569
+blk_write_lat_us_p99.99=1.12656e+06
+app_write_bytes=133500466368
+fs_waf=0.902312
+dev_host_write_pages=29408953
+dev_host_read_pages=8889427
+dev_nand_progs=64083643
+dev_waf=2.17905
+dev_waf_gc=1.53854
+dev_waf_rmw=0.0012098
+dev_waf_fold=0.0804272
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=56562250
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=2085
+dev_map_miss=0
+dev_mapping_mem_bytes_end=8098612
+total_waf=1.96618
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746498560
+memcg_events_high=37694
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=272470016
+throughput=235347
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=6.92028e+06
+ycsb_ops.INSERT.avg_us=1075.59
+ycsb_ops.INSERT.p50_us=230.062
+ycsb_ops.INSERT.p90_us=540.625
+ycsb_ops.INSERT.p95_us=692.312
+ycsb_ops.INSERT.p99_us=2694.38
+ycsb_ops.INSERT.p99.9_us=247359
+ycsb_ops.INSERT.max_us=2.24461e+06
+ycsb_ops.SCAN.ops=1.34161e+08
+ycsb_ops.SCAN.avg_us=209.239
+ycsb_ops.SCAN.p50_us=148.938
+ycsb_ops.SCAN.p90_us=350.188
+ycsb_ops.SCAN.p95_us=415.875
+ycsb_ops.SCAN.p99_us=550.875
+ycsb_ops.SCAN.p99.9_us=1179.5
+ycsb_ops.SCAN.max_us=1.74797e+06
+app_write_lat_ms_avg=1.07559
+app_write_lat_ms_p99=2.69437
+app_read_lat_ms_avg=0.209239
+app_read_lat_ms_p99=0.550875
+[10:28:47] === ycsbe_d_t64_proposed_20261011T101444Z status DONE
+[10:28:47] === ycsbe_d_t64_dftl_20261011T102847Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/dftl
+[10:28:48] insmod /home/sejun000/nvmevirt_dftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620,dftl_tpbuf=1'
+[10:28:48] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[10:28:49] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[10:28:49] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[10:29:09] [prefill] done in 20 s
+[10:29:09] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[10:29:09] ext4 capacity (used+avail) 40987148288 B, util 0%
+[10:29:09] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[10:29:09] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[10:31:50] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[10:32:02] [ballast] df util now 75%
+[10:32:15] measurement start utilisation=76% (window 73-85)
+[10:32:15] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/dftl
+workload=ycsbe_d_t64
+policy=dftl
+status=DONE
+start_util_pct=76.0008
+end_util_pct=98.2025
+ext4_write_kbytes_delta=110156768
+blk_read_ios=2231790
+blk_write_ios=10706478
+blk_read_bytes=19319799808
+blk_write_bytes=112800530432
+blk_avg_write_req_kb=10.2888
+dev_read_lat_ms_avg=4.33286
+dev_write_lat_ms_avg=1.85538
+write_qd_max=384
+blk_read_lat_us_mean=4336.76
+blk_read_lat_us_p50=2021.55
+blk_read_lat_us_p90=3752.42
+blk_read_lat_us_p99=5449.78
+blk_read_lat_us_p99.9=418355
+blk_read_lat_us_p99.99=481669
+blk_write_lat_us_mean=1865.1
+blk_write_lat_us_p50=17.1457
+blk_write_lat_us_p90=70.6609
+blk_write_lat_us_p99=12929.6
+blk_write_lat_us_p99.9=362312
+blk_write_lat_us_p99.99=447058
+app_write_bytes=124638011840
+fs_waf=0.905025
+dev_host_write_pages=27539192
+dev_host_read_pages=4716748
+dev_nand_progs=74306209
+dev_waf=2.6982
+dev_waf_gc=2.10892
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0209631
+dev_waf_other=0
+dev_nand_reads=65758226
+dev_map_reads_per_host_page=0.0918808
+dev_map_reads_per_host_read=0.628336
+dev_erases=2381
+dev_map_miss=11509753
+dev_mapping_mem_bytes_end=8140797
+total_waf=2.44194
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746105344
+memcg_events_high=27577
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=267096064
+throughput=213147
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=6.4045e+06
+ycsb_ops.INSERT.avg_us=1690.38
+ycsb_ops.INSERT.p50_us=248.812
+ycsb_ops.INSERT.p90_us=641.688
+ycsb_ops.INSERT.p95_us=1242.19
+ycsb_ops.INSERT.p99_us=3642.12
+ycsb_ops.INSERT.p99.9_us=346415
+ycsb_ops.INSERT.max_us=1.45203e+06
+ycsb_ops.SCAN.ops=1.21587e+08
+ycsb_ops.SCAN.avg_us=206.12
+ycsb_ops.SCAN.p50_us=148.312
+ycsb_ops.SCAN.p90_us=342.688
+ycsb_ops.SCAN.p95_us=407.312
+ycsb_ops.SCAN.p99_us=530.375
+ycsb_ops.SCAN.p99.9_us=1771.81
+ycsb_ops.SCAN.max_us=1.26157e+06
+app_write_lat_ms_avg=1.69038
+app_write_lat_ms_p99=3.64213
+app_read_lat_ms_avg=0.20612
+app_read_lat_ms_p99=0.530375
+[10:43:12] === ycsbe_d_t64_dftl_20261011T102847Z status DONE
+[10:43:12] === ycsbe_d_t64_leaftl_20261011T104312Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/leaftl
+[10:43:12] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[10:43:13] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[10:43:13] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[10:43:13] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[10:43:33] [prefill] done in 20 s
+[10:43:33] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[10:43:33] ext4 capacity (used+avail) 40987148288 B, util 0%
+[10:43:33] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[10:43:33] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[10:45:39] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[10:45:49] [ballast] df util now 75%
+[10:46:02] measurement start utilisation=76% (window 73-85)
+[10:46:02] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/leaftl
+workload=ycsbe_d_t64
+policy=leaftl
+status=DONE
+start_util_pct=76.0001
+end_util_pct=100
+ext4_write_kbytes_delta=123633380
+blk_read_ios=3029673
+blk_write_ios=11875034
+blk_read_bytes=28338712576
+blk_write_bytes=126600581120
+blk_avg_write_req_kb=10.4112
+dev_read_lat_ms_avg=3.24021
+dev_write_lat_ms_avg=0.328384
+write_qd_max=384
+blk_read_lat_us_mean=3520.31
+blk_read_lat_us_p50=182.508
+blk_read_lat_us_p90=722.178
+blk_read_lat_us_p99=184095
+blk_read_lat_us_p99.9=362838
+blk_read_lat_us_p99.99=398076
+blk_write_lat_us_mean=323.216
+blk_write_lat_us_p50=17.2327
+blk_write_lat_us_p90=147.949
+blk_write_lat_us_p99=1086.89
+blk_write_lat_us_p99.9=43994.7
+blk_write_lat_us_p99.99=281811
+app_write_bytes=139968803648
+fs_waf=0.904491
+dev_host_write_pages=30908309
+dev_host_read_pages=6860882
+dev_nand_progs=83343885
+dev_waf=2.69649
+dev_waf_gc=2.11761
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.00021182
+dev_waf_other=0
+dev_nand_reads=72311559
+dev_map_reads_per_host_page=1.23646e-05
+dev_map_reads_per_host_read=6.80671e-05
+dev_erases=2690
+dev_map_miss=467
+dev_mapping_mem_bytes_end=8267333
+total_waf=2.43895
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746850816
+memcg_events_high=29963
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=272564224
+throughput=244341
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=6.92078e+06
+ycsb_ops.INSERT.avg_us=619.696
+ycsb_ops.INSERT.p50_us=219.5
+ycsb_ops.INSERT.p90_us=550.188
+ycsb_ops.INSERT.p95_us=728.25
+ycsb_ops.INSERT.p99_us=2104.69
+ycsb_ops.INSERT.p99.9_us=44855
+ycsb_ops.INSERT.max_us=1.86573e+06
+ycsb_ops.SCAN.ops=1.39283e+08
+ycsb_ops.SCAN.avg_us=222.91
+ycsb_ops.SCAN.p50_us=146.875
+ycsb_ops.SCAN.p90_us=341.812
+ycsb_ops.SCAN.p95_us=409.188
+ycsb_ops.SCAN.p99_us=538.875
+ycsb_ops.SCAN.p99.9_us=1076
+ycsb_ops.SCAN.max_us=1.63123e+06
+app_write_lat_ms_avg=0.619696
+app_write_lat_ms_p99=2.10469
+app_read_lat_ms_avg=0.22291
+app_read_lat_ms_p99=0.538875
+[10:56:55] === ycsbe_d_t64_leaftl_20261011T104312Z status DONE
+[10:56:55] === ycsbe_d_t64_fast_20261011T105655Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/fast
+[10:56:56] insmod /home/sejun000/nvmevirt_fast/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[10:56:56] target /dev/nvme3n1 (CSL_Virt_MN_01 41.1G)
+[10:56:57] memory cgroup dmapp.slice: MemoryMax=8421M MemoryHigh=7368M (20% of 44153438208 B)
+[10:56:57] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44153438208 B) before mkfs
+[10:57:16] [prefill] done in 19 s
+[10:57:16] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[10:57:17] ext4 capacity (used+avail) 40917221376 B, util 0%
+[10:57:17] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40917221376 B)
+[10:57:18] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[11:00:40] [ballast] writing 7690 MiB to reach ~76% (pending 0 MiB)
+[11:01:05] [ballast] df util now 76%
+[11:01:19] measurement start utilisation=76% (window 73-85)
+[11:01:19] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/fast
+workload=ycsbe_d_t64
+policy=fast
+status=DONE
+start_util_pct=76.0065
+end_util_pct=98.5781
+ext4_write_kbytes_delta=107916316
+blk_read_ios=3148083
+blk_write_ios=10555631
+blk_read_bytes=27568988160
+blk_write_bytes=110506307584
+blk_avg_write_req_kb=10.2236
+dev_read_lat_ms_avg=1.74038
+dev_write_lat_ms_avg=1.8675
+write_qd_max=384
+blk_read_lat_us_mean=1743.47
+blk_read_lat_us_p50=156.078
+blk_read_lat_us_p90=511.412
+blk_read_lat_us_p99=3066.92
+blk_read_lat_us_p99.9=352957
+blk_read_lat_us_p99.99=1.10957e+06
+blk_write_lat_us_mean=1877.91
+blk_write_lat_us_p50=17.5555
+blk_write_lat_us_p90=117.298
+blk_write_lat_us_p99=15398.2
+blk_write_lat_us_p99.9=394023
+blk_write_lat_us_p99.99=1.04601e+06
+app_write_bytes=120119042304
+fs_waf=0.919973
+dev_host_write_pages=26979079
+dev_host_read_pages=6730710
+dev_nand_progs=85194068
+dev_waf=3.15778
+dev_waf_gc=2.60808
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=77093991
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=2751
+dev_map_miss=0
+dev_mapping_mem_bytes_end=3895575
+total_waf=2.90508
+memcg_max=8830058496
+memcg_high=7725907968
+memcg_peak=7734095872
+memcg_events_high=30387
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=269889536
+throughput=216704
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=6.50126e+06
+ycsb_ops.INSERT.avg_us=1566.92
+ycsb_ops.INSERT.p50_us=239.938
+ycsb_ops.INSERT.p90_us=559.25
+ycsb_ops.INSERT.p95_us=835.875
+ycsb_ops.INSERT.p99_us=4508.75
+ycsb_ops.INSERT.p99.9_us=328111
+ycsb_ops.INSERT.max_us=1.4592e+06
+ycsb_ops.SCAN.ops=1.23592e+08
+ycsb_ops.SCAN.avg_us=207.872
+ycsb_ops.SCAN.p50_us=146.688
+ycsb_ops.SCAN.p90_us=340.812
+ycsb_ops.SCAN.p95_us=404.5
+ycsb_ops.SCAN.p99_us=525.25
+ycsb_ops.SCAN.p99.9_us=964.562
+ycsb_ops.SCAN.max_us=1.54214e+06
+app_write_lat_ms_avg=1.56692
+app_write_lat_ms_p99=4.50875
+app_read_lat_ms_avg=0.207872
+app_read_lat_ms_p99=0.52525
+[11:12:17] === ycsbe_d_t64_fast_20261011T105655Z status DONE
+[11:12:17] === ycsbe_d_t64_mu_20261011T111217Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/mu
+[11:12:18] insmod /home/sejun000/nvmevirt_mu/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[11:12:18] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[11:12:19] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[11:12:19] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[11:12:38] [prefill] done in 19 s
+[11:12:38] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[11:12:39] ext4 capacity (used+avail) 40987148288 B, util 0%
+[11:12:39] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[11:12:39] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[11:17:10] [ballast] writing 7738 MiB to reach ~76% (pending 0 MiB)
+[11:17:28] [ballast] df util now 75%
+[11:17:49] measurement start utilisation=75% (window 73-85)
+[11:17:49] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/mu
+workload=ycsbe_d_t64
+policy=mu
+status=DONE
+start_util_pct=75.9996
+end_util_pct=89.0239
+ext4_write_kbytes_delta=61070632
+blk_read_ios=1205232
+blk_write_ios=6030580
+blk_read_bytes=10469367808
+blk_write_bytes=62536327168
+blk_avg_write_req_kb=10.1268
+dev_read_lat_ms_avg=3.31979
+dev_write_lat_ms_avg=14.9174
+write_qd_max=768
+blk_read_lat_us_mean=3347.06
+blk_read_lat_us_p50=129.044
+blk_read_lat_us_p90=374.66
+blk_read_lat_us_p99=1359.08
+blk_read_lat_us_p99.9=1.20416e+06
+blk_read_lat_us_p99.99=2.35549e+06
+blk_write_lat_us_mean=15033.5
+blk_write_lat_us_p50=17.6376
+blk_write_lat_us_p90=428.137
+blk_write_lat_us_p99=441512
+blk_write_lat_us_p99.9=2.59164e+06
+blk_write_lat_us_p99.99=4.32238e+06
+app_write_bytes=65384087808
+fs_waf=0.956446
+dev_host_write_pages=15267658
+dev_host_read_pages=2556000
+dev_nand_progs=175436836
+dev_waf=11.4907
+dev_waf_gc=10.8451
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.11483
+dev_waf_other=0
+dev_nand_reads=169899846
+dev_map_reads_per_host_page=0.0989881
+dev_map_reads_per_host_read=0.69027
+dev_erases=5652
+dev_map_miss=1764330
+dev_mapping_mem_bytes_end=8131761
+total_waf=10.9903
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7751057408
+memcg_events_high=19924
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=253222912
+throughput=126581
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=3.80055e+06
+ycsb_ops.INSERT.avg_us=5684.74
+ycsb_ops.INSERT.p50_us=225
+ycsb_ops.INSERT.p90_us=498
+ycsb_ops.INSERT.p95_us=582.875
+ycsb_ops.INSERT.p99_us=2237.88
+ycsb_ops.INSERT.p99.9_us=1.54586e+06
+ycsb_ops.INSERT.max_us=1.08462e+07
+ycsb_ops.SCAN.ops=7.22215e+07
+ycsb_ops.SCAN.avg_us=210.546
+ycsb_ops.SCAN.p50_us=143.812
+ycsb_ops.SCAN.p90_us=335.75
+ycsb_ops.SCAN.p95_us=396.625
+ycsb_ops.SCAN.p99_us=506.125
+ycsb_ops.SCAN.p99.9_us=825.312
+ycsb_ops.SCAN.max_us=4.5056e+06
+app_write_lat_ms_avg=5.68474
+app_write_lat_ms_p99=2.23787
+app_read_lat_ms_avg=0.210546
+app_read_lat_ms_p99=0.506125
+[11:28:52] === ycsbe_d_t64_mu_20261011T111217Z status DONE
+[11:28:52] === ycsbe_d_t64_iurmw_20261011T112852Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/iurmw
+[11:28:53] insmod /home/sejun000/nvmevirt_iurmw/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[11:28:53] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[11:28:54] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[11:28:54] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[11:29:13] [prefill] done in 19 s
+[11:29:13] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[11:29:14] ext4 capacity (used+avail) 40987148288 B, util 0%
+[11:29:14] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[11:29:14] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[11:32:17] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[11:32:29] [ballast] df util now 75%
+[11:32:43] measurement start utilisation=76% (window 73-85)
+[11:32:43] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbe_d_t64/iurmw
+workload=ycsbe_d_t64
+policy=iurmw
+status=DONE
+start_util_pct=76.0009
+end_util_pct=86.9982
+ext4_write_kbytes_delta=53006072
+blk_read_ios=1319921
+blk_write_ios=4994954
+blk_read_bytes=11410997248
+blk_write_bytes=54278217728
+blk_avg_write_req_kb=10.6119
+dev_read_lat_ms_avg=9.368
+dev_write_lat_ms_avg=2.77518
+write_qd_max=402
+blk_read_lat_us_mean=11188.5
+blk_read_lat_us_p50=597.513
+blk_read_lat_us_p90=4204.73
+blk_read_lat_us_p99=313433
+blk_read_lat_us_p99.9=378618
+blk_read_lat_us_p99.99=430280
+blk_write_lat_us_mean=2705.67
+blk_write_lat_us_p50=16.3785
+blk_write_lat_us_p90=29.3243
+blk_write_lat_us_p99=29795.6
+blk_write_lat_us_p99.9=385377
+blk_write_lat_us_p99.99=471631
+app_write_bytes=54973661632
+fs_waf=0.98735
+dev_host_write_pages=13250366
+dev_host_read_pages=2743594
+dev_nand_progs=186673408
+dev_waf=14.0882
+dev_waf_gc=11.3336
+dev_waf_rmw=2.19022
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=181938694
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=6026
+dev_map_miss=0
+dev_mapping_mem_bytes_end=2699540
+total_waf=13.9099
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7748034560
+memcg_events_high=19635
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=242487296
+throughput=106996
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=3.21584e+06
+ycsb_ops.INSERT.avg_us=6725.67
+ycsb_ops.INSERT.p50_us=385.5
+ycsb_ops.INSERT.p90_us=2509.88
+ycsb_ops.INSERT.p95_us=3400.75
+ycsb_ops.INSERT.p99_us=293935
+ycsb_ops.INSERT.p99.9_us=375599
+ycsb_ops.INSERT.max_us=4.28851e+06
+ycsb_ops.SCAN.ops=6.1012e+07
+ycsb_ops.SCAN.avg_us=250.187
+ycsb_ops.SCAN.p50_us=149.375
+ycsb_ops.SCAN.p90_us=310.812
+ycsb_ops.SCAN.p95_us=374.5
+ycsb_ops.SCAN.p99_us=500.125
+ycsb_ops.SCAN.p99.9_us=1890.38
+ycsb_ops.SCAN.max_us=4.16563e+06
+app_write_lat_ms_avg=6.72567
+app_write_lat_ms_p99=293.935
+app_read_lat_ms_avg=0.250187
+app_read_lat_ms_p99=0.500125
+[11:43:41] === ycsbe_d_t64_iurmw_20261011T112852Z status DONE
+[11:44:37] matrix finished; table in /home/sejun000/dual_mapping/results/apps_aged/summary.tsv
+Sun Oct 11 11:44:38 AM UTC 2026 done

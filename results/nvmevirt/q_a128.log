@@ -1,0 +1,59 @@
+Mon Oct 19 03:57:32 AM UTC 2026 fio a128 read=50% 4K:128K=70:30 : page4k proposed:U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2
+=== page4k params=''
+[1541653.931003] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; uniform random, read=50%, 4K:128K=70:30 by count (size-aligned), QD32 (16+16); warm writes 1.0x; measure 600s
+[1541653.931003] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k   read : IOPS=    2807 MB/s=   11.5 p50=   127.5us p99=   1368.1us p99.9=   7766.0us max=    34.0ms
+s4k   write: IOPS=    2811 MB/s=   11.5 p50=    48.4us p99=   1728.5us p99.9=   8355.8us max=    33.9ms
+s128k read : IOPS=    1204 MB/s=  157.8 p50=   259.1us p99=  21626.9us p99.9=  43778.0us max=    92.8ms
+s128k write: IOPS=    1204 MB/s=  157.7 p50=   146.4us p99=  24772.6us p99.9=  49545.2us max=    92.7ms
+total IOPS=8026  MB/s=338.6  request mix (4K:128K) = {'s4k': 3370848, 's128k': 1444648}
+device: WAF=8.635  map reads per host page=0.000
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2'
+[1542851.202494] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; uniform random, read=50%, 4K:128K=70:30 by count (size-aligned), QD32 (16+16); warm writes 1.0x; measure 600s
+[1542851.202494] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k   read : IOPS=    2574 MB/s=   10.5 p50=   119.3us p99=    493.6us p99.9=   7503.9us max=    73.7ms
+s4k   write: IOPS=    2574 MB/s=   10.5 p50=    40.2us p99=    757.8us p99.9=   8716.3us max=    73.7ms
+s128k read : IOPS=    1103 MB/s=  144.6 p50=   201.7us p99=  32899.1us p99.9=  65798.1us max=   137.6ms
+s128k write: IOPS=    1103 MB/s=  144.6 p50=   132.1us p99=  39059.5us p99.9=  73924.6us max=   153.0ms
+total IOPS=7355  MB/s=310.3  request mix (4K:128K) = {'s4k': 3089045, 's128k': 1323875}
+device: WAF=9.592  map reads per host page=0.000
+[1539293.474715] NVMeVirt: [dm final] policy=proposed L=14546288 NB=373 P=41728 submitted=60573274 host=54442109 prog=137935831 (host 54442109 gc 82668356 rmw 1334 fold 824032 map 0 other 0) WAFx1000=2277 reads(host 18541716 gc 82668356 rmw 1334 fold 824032 map 0) host_read_pages=18542224 erases=2959 map_miss=0 mem=7273140
+[1541491.187148] NVMeVirt: [dm final] policy=proposed L=5265216 NB=373 P=15104 submitted=20030654 host=20030627 prog=198573453 (host 20030627 gc 168613281 rmw 50664 fold 3638144 map 6240737 other 0) WAFx1000=9913 reads(host 295570104 gc 168613281 rmw 50664 fold 3638144 map 66180832) host_read_pages=295594137 erases=12376 map_miss=0 mem=2632584
+[1542846.965373] NVMeVirt: [dm final] policy=page4k L=23559648 NB=373 P=67584 submitted=71910178 host=71909661 prog=432873606 (host 71909661 gc 360963945 rmw 0 fold 0 map 0 other 0) WAFx1000=6019 reads(host 48369430 gc 360963945 rmw 0 fold 0 map 0) host_read_pages=48370477 erases=6035 map_miss=0 mem=94238592
+[1544100.469412] NVMeVirt: [dm final] policy=proposed L=23559648 NB=373 P=67584 submitted=69833919 host=69833431 prog=459108577 (host 69833431 gc 386494170 rmw 0 fold 2780976 map 0 other 0) WAFx1000=6574 reads(host 46299387 gc 386494170 rmw 0 fold 2780976 map 0) host_read_pages=46300466 erases=6437 map_miss=0 mem=11779800
+Mon Oct 19 04:38:21 AM UTC 2026 fio a128 read=50% 4K:128K=30:70 : page4k proposed:U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2
+=== page4k params=''
+[1544102.910601] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; uniform random, read=50%, 4K:128K=30:70 by count (size-aligned), QD32 (16+16); warm writes 1.0x; measure 600s
+[1544102.910601] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k   read : IOPS=     590 MB/s=    2.4 p50=   142.3us p99=   7831.6us p99.9=  20054.0us max=    29.1ms
+s4k   write: IOPS=     589 MB/s=    2.4 p50=    90.6us p99=  13172.7us p99.9=  22151.2us max=    42.0ms
+s128k read : IOPS=    1375 MB/s=  180.2 p50=   292.9us p99=  15007.7us p99.9=  24510.5us max=    37.8ms
+s128k write: IOPS=    1375 MB/s=  180.3 p50=   232.4us p99=  16908.3us p99.9=  26345.5us max=    39.3ms
+total IOPS=3928  MB/s=365.3  request mix (4K:128K) = {'s4k': 707133, 's128k': 1649975}
+device: WAF=8.620  map reads per host page=0.000
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2'
+[1545261.050544] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; uniform random, read=50%, 4K:128K=30:70 by count (size-aligned), QD32 (16+16); warm writes 1.0x; measure 600s
+[1545261.050544] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+Mon Oct 19 05:17:18 AM UTC 2026 STOPPED by Claude: flow-control fio runs at effective QD~5; replaced by trace_replay QD32 (q_a128r.sh). Current cycle (r50_s30 proposed) left to finish.
+s4k: (g=0): rw=randrw, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+s4k   read : IOPS=     532 MB/s=    2.2 p50=   144.4us p99=   2900.0us p99.9=  10158.1us max=    67.7ms
+s4k   write: IOPS=     533 MB/s=    2.2 p50=   120.3us p99=   5275.6us p99.9=  14483.5us max=    67.7ms
+s128k read : IOPS=    1243 MB/s=  162.9 p50=   284.7us p99=  22413.3us p99.9=  34340.9us max=   121.7ms
+s128k write: IOPS=    1243 MB/s=  162.9 p50=   240.6us p99=  24772.6us p99.9=  38010.9us max=   121.6ms
+total IOPS=3551  MB/s=330.2  request mix (4K:128K) = {'s4k': 639209, 's128k': 1491486}
+device: WAF=9.662  map reads per host page=0.000
+[1542846.965373] NVMeVirt: [dm final] policy=page4k L=23559648 NB=373 P=67584 submitted=71910178 host=71909661 prog=432873606 (host 71909661 gc 360963945 rmw 0 fold 0 map 0 other 0) WAFx1000=6019 reads(host 48369430 gc 360963945 rmw 0 fold 0 map 0) host_read_pages=48370477 erases=6035 map_miss=0 mem=94238592
+[1544100.469412] NVMeVirt: [dm final] policy=proposed L=23559648 NB=373 P=67584 submitted=69833919 host=69833431 prog=459108577 (host 69833431 gc 386494170 rmw 0 fold 2780976 map 0 other 0) WAFx1000=6574 reads(host 46299387 gc 386494170 rmw 0 fold 2780976 map 0) host_read_pages=46300466 erases=6437 map_miss=0 mem=11779800
+[1545256.825409] NVMeVirt: [dm final] policy=page4k L=23559648 NB=373 P=67584 submitted=73871670 host=73871114 prog=449430664 (host 73871114 gc 375559550 rmw 0 fold 0 map 0 other 0) WAFx1000=6083 reads(host 50314612 gc 375559550 rmw 0 fold 0 map 0) host_read_pages=50315725 erases=6280 map_miss=0 mem=94238592
+[1546463.860484] NVMeVirt: [dm final] policy=proposed L=23559648 NB=373 P=67584 submitted=71311868 host=71311332 prog=474171678 (host 71311332 gc 402349530 rmw 0 fold 510816 map 0 other 0) WAFx1000=6649 reads(host 47735183 gc 402349530 rmw 0 fold 510816 map 0) host_read_pages=47736227 erases=6652 map_miss=0 mem=11779800

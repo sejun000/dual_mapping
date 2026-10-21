@@ -1,0 +1,16 @@
+=== dftl params='cache_bytes=17669736,dftl_tpbuf=1'
+[250730.385986] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=17669736,dftl_tpbuf=1": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[250730.385986] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=17669736,dftl_tpbuf=1": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+=== leaftl params='cache_bytes=17669736'
+[252259.796191] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[252259.796191] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+=== mu params='cache_bytes=17669736'
+[252353.422482] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[252353.422482] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+[252255.673728] NVMeVirt: [dm final] policy=page4k L=23559648 NB=373 P=67584 submitted=0 host=0 prog=0 (host 0 gc 0 rmw 0 fold 0 map 0 other 0) WAFx1000=0 reads(host 0 gc 0 rmw 0 fold 0 map 0) host_read_pages=269 erases=0 map_miss=0 mem=94238592
+[252344.611521] NVMeVirt: [dm final] policy=leaftl L=23559648 NB=373 P=67584 submitted=26425837 host=26425798 prog=41627850 (host 26425798 gc 15065266 rmw 0 fold 0 map 136786 other 0) WAFx1000=1575 reads(host 271 gc 15065266 rmw 0 fold 0 map 108815) host_read_pages=1077 erases=244 map_miss=104189 mem=18037590
+[252349.273011] NVMeVirt: [dm final] policy=page4k L=23559648 NB=373 P=67584 submitted=0 host=0 prog=0 (host 0 gc 0 rmw 0 fold 0 map 0 other 0) WAFx1000=0 reads(host 0 gc 0 rmw 0 fold 0 map 0) host_read_pages=269 erases=0 map_miss=0 mem=94238592
+[252963.913313] NVMeVirt: [dm final] policy=mu L=23559648 NB=373 P=67584 submitted=33340550 host=33340427 prog=172505320 (host 33340427 gc 121152710 rmw 0 fold 0 map 18012183 other 0) WAFx1000=5174 reads(host 807 gc 121152710 rmw 0 fold 0 map 18016496) host_read_pages=1345 erases=1937 map_miss=18016496 mem=17702877

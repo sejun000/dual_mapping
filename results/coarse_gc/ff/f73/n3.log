@@ -1,0 +1,12 @@
+[cfg] spill=2: 23008 FTPs x 64 IUs, GTD 0.088 MiB; DRAM split coarse 5.617 / GTD 0.088 / table 5.529 MiB (budget 11.234 MiB)
+[cfg] cuckoo2 fine table: 181183 buckets x 4 = 724732 entries (5.53 MiB), budget 0.1250 of page map
+[cfg] mode=proposed L=23559648 pages (89.9 GB) NP=25208832 NB=373 P=67584 U=16 OP=0.070 fine_quota=16 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[phase] aging 1.00x
+[verify] spill ok: 5365 spilled IUs, 47764 spilled pages, 325733 table entries
+[verify] ok. fine_valid_pages=373497 fine_blocks=17 coarse_blocks=354 free=2
+[verify] block valid histogram (deciles 0..100%): 8 2 1 1 2 1 1 2 1 352 0
+[phase] reset stats, measure 1.00x
+[verify] spill ok: 208 spilled IUs, 2975 spilled pages, 275674 table entries
+[verify] ok. fine_valid_pages=278649 fine_blocks=18 coarse_blocks=352 free=3
+[verify] block valid histogram (deciles 0..100%): 11 1 0 1 1 1 2 1 1 351 0

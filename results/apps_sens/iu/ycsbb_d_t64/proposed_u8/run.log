@@ -1,0 +1,97 @@
+[11:02:28] === ycsbb_d_t64_proposed_u8_20261012T110228Z -> /home/sejun000/dual_mapping/results/apps_sens/iu/ycsbb_d_t64/proposed_u8
+[11:02:28] insmod /home/sejun000/nvmevirt_proposed/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='U=8,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[11:02:29] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[11:02:29] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229296128 B)
+[11:02:29] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229296128 B) before mkfs
+[11:02:49] [prefill] done in 20 s
+[11:02:49] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[11:02:49] ext4 capacity (used+avail) 40987181056 B, util 0%
+[11:02:49] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987181056 B)
+[11:02:49] [ycsb] 16 instances x (records=625000 threads=4 workloadb)
+[11:05:55] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[11:06:07] [ballast] df util now 75%
+[11:06:23] measurement start utilisation=76% (window 73-85)
+[11:06:23] [ycsb] run 600s, 16 x 4 threads
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 276: read: read error: 0: No such device
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 272: /sys/fs/cgroup/dmapp.slice/run-ra839f00a46474683886b85df9da68488.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 272: /sys/fs/cgroup/dmapp.slice/run-r9955f1f0b6da4bc59f60d0a53f03402a.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 272: /sys/fs/cgroup/dmapp.slice/run-r497888f6942f42a694fc94d516801c4f.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 272: /sys/fs/cgroup/dmapp.slice/run-r3597da7fec53402db5c5de3c8ece6f76.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 272: /sys/fs/cgroup/dmapp.slice/run-r581ae89c7f384efe98c6b6378ad04675.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 272: /sys/fs/cgroup/dmapp.slice/run-r400996b2b11943a98334c92caab17d49.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/apps_sens/iu/ycsbb_d_t64/proposed_u8
+workload=ycsbb_d_t64
+policy=proposed_u8
+status=DONE
+start_util_pct=76.0005
+end_util_pct=81.943
+ext4_write_kbytes_delta=112824036
+blk_read_ios=31439576
+blk_write_ios=9050495
+blk_read_bytes=312113414144
+blk_write_bytes=115531812864
+blk_avg_write_req_kb=12.4661
+dev_read_lat_ms_avg=1.0422
+dev_write_lat_ms_avg=7.76339
+write_qd_max=707
+blk_read_lat_us_mean=1040.87
+blk_read_lat_us_p50=126.969
+blk_read_lat_us_p90=394.101
+blk_read_lat_us_p99=2968.11
+blk_read_lat_us_p99.9=349044
+blk_read_lat_us_p99.99=945806
+blk_write_lat_us_mean=7809.21
+blk_write_lat_us_p50=58.9736
+blk_write_lat_us_p90=1845.69
+blk_write_lat_us_p99=281421
+blk_write_lat_us_p99.9=915583
+blk_write_lat_us_p99.99=1.44798e+06
+app_write_bytes=116013442048
+fs_waf=0.995849
+dev_host_write_pages=28206939
+dev_host_read_pages=76199504
+dev_nand_progs=186928504
+dev_waf=6.62704
+dev_waf_gc=5.56273
+dev_waf_rmw=0.00640155
+dev_waf_fold=0.232956
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=239858734
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=6241
+dev_map_miss=0
+dev_mapping_mem_bytes_end=8098604
+total_waf=6.59953
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746486272
+memcg_events_high=117064
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=263057408
+throughput=101090
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=5.76438e+07
+ycsb_ops.READ.avg_us=586.772
+ycsb_ops.READ.p50_us=178.438
+ycsb_ops.READ.p90_us=386.188
+ycsb_ops.READ.p95_us=517
+ycsb_ops.READ.p99_us=2066.62
+ycsb_ops.READ.p99.9_us=29377.8
+ycsb_ops.READ.max_us=2.69107e+06
+ycsb_ops.UPDATE.ops=3.03165e+06
+ycsb_ops.UPDATE.avg_us=1445.23
+ycsb_ops.UPDATE.p50_us=324.062
+ycsb_ops.UPDATE.p90_us=653.5
+ycsb_ops.UPDATE.p95_us=1101.56
+ycsb_ops.UPDATE.p99_us=4255.38
+ycsb_ops.UPDATE.p99.9_us=428999
+ycsb_ops.UPDATE.max_us=1.87187e+06
+app_write_lat_ms_avg=1.44523
+app_write_lat_ms_p99=4.25537
+app_read_lat_ms_avg=0.586772
+app_read_lat_ms_p99=2.06663
+[11:17:19] === ycsbb_d_t64_proposed_u8_20261012T110228Z status DONE

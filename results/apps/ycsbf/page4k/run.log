@@ -1,0 +1,98 @@
+[20:32:20] === ycsbf_page4k_20261004T203220Z -> /home/sejun000/dual_mapping/results/apps/ycsbf/page4k
+[20:32:20] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_params=''
+[20:32:21] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[20:32:21] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[20:32:21] mkfs.f2fs -f -s 64 /dev/nvme3n1
+[20:32:22] mounted /dev/nvme3n1 at /mnt/dmapp, f2fs user segments 19297 (study 18440)
+[20:32:22] [ycsb] 16 instances x (records=625000 threads=20 workloadf)
+[20:38:38] [ballast] writing 501 MiB to reach ~75%
+[20:38:39] [ballast] f2fs reports 72%; topping up 1261 MiB (round 1)
+[20:39:10] measurement start utilisation=76% (window 72-80)
+[20:39:10] [ycsb] run 600s, 16 x 20 threads
+case=/home/sejun000/dual_mapping/results/apps/ycsbf/page4k
+workload=ycsbf
+policy=page4k
+status=DONE
+start_util_pct=76
+end_util_pct=88
+f2fs_ipu_delta=78827129
+f2fs_ssr_delta=102082
+f2fs_lfs_delta=1650561
+f2fs_gc_delta=0
+blk_read_ios=21495712
+blk_write_ios=25494107
+blk_read_bytes=277966409728
+blk_write_bytes=330393161728
+blk_avg_write_req_kb=12.6558
+dev_read_lat_ms_avg=1.76682
+dev_write_lat_ms_avg=5.50679
+write_qd_max=767
+blk_read_lat_us_mean=1790.38
+blk_read_lat_us_p50=215.171
+blk_read_lat_us_p90=983.321
+blk_read_lat_us_p99=78822.5
+blk_read_lat_us_p99.9=139339
+blk_read_lat_us_p99.99=147125
+blk_write_lat_us_mean=5540.32
+blk_write_lat_us_p50=76.2489
+blk_write_lat_us_p90=962.327
+blk_write_lat_us_p99=134588
+blk_write_lat_us_p99.9=148706
+blk_write_lat_us_p99.99=156767
+app_write_bytes=339724036456
+fs_waf=0.972534
+dev_host_write_pages=80677721
+dev_host_read_pages=67872762
+dev_nand_progs=151089937
+dev_waf=1.87276
+dev_waf_gc=1.04618
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=152275675
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=4878
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+total_waf=1.82132
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7747854336
+memcg_events_high=305861
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=317505536
+throughput=48071.1
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.92455e+07
+ycsb_ops.READ.avg_us=3816.01
+ycsb_ops.READ.p50_us=175.812
+ycsb_ops.READ.p90_us=2088.56
+ycsb_ops.READ.p95_us=9722.25
+ycsb_ops.READ.p99_us=71961
+ycsb_ops.READ.p99.9_us=419839
+ycsb_ops.READ.max_us=2.2741e+07
+ycsb_ops.READ-MODIFY-WRITE.ops=9.62079e+06
+ycsb_ops.READ-MODIFY-WRITE.avg_us=8389.02
+ycsb_ops.READ-MODIFY-WRITE.p50_us=427.25
+ycsb_ops.READ-MODIFY-WRITE.p90_us=4776.12
+ycsb_ops.READ-MODIFY-WRITE.p95_us=13172.5
+ycsb_ops.READ-MODIFY-WRITE.p99_us=127663
+ycsb_ops.READ-MODIFY-WRITE.p99.9_us=1.34086e+06
+ycsb_ops.READ-MODIFY-WRITE.max_us=3.35544e+07
+ycsb_ops.UPDATE.ops=1.92441e+07
+ycsb_ops.UPDATE.avg_us=6131.42
+ycsb_ops.UPDATE.p50_us=263.688
+ycsb_ops.UPDATE.p90_us=1671.44
+ycsb_ops.UPDATE.p95_us=6703.12
+ycsb_ops.UPDATE.p99_us=87311
+ycsb_ops.UPDATE.p99.9_us=1.03722e+06
+ycsb_ops.UPDATE.max_us=3.35544e+07
+app_write_lat_ms_avg=8.38902
+app_write_lat_ms_p99=127.663
+app_read_lat_ms_avg=3.81601
+app_read_lat_ms_p99=71.961
+[20:50:13] === ycsbf_page4k_20261004T203220Z status DONE

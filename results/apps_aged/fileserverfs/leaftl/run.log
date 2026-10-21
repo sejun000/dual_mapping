@@ -1,0 +1,112 @@
+[21:17:38] === fileserverfs_leaftl_20261009T211738Z -> /home/sejun000/dual_mapping/results/apps_aged/fileserverfs/leaftl
+[21:17:38] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[21:17:38] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[21:17:39] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[21:17:39] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[21:17:58] [prefill] done in 19 s
+[21:17:58] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[21:17:59] ext4 capacity (used+avail) 40987148288 B, util 0%
+[21:17:59] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[21:17:59] [filebench] fileserverfs: nfiles 178905 -> 195441 (auto(50% of 40987148288 B; fixed 0 B, 104857 B/entry)), psrun 600
+[21:18:21] measurement start utilisation=50% (window 47-55)
+case=/home/sejun000/dual_mapping/results/apps_aged/fileserverfs/leaftl
+workload=fileserverfs
+policy=leaftl
+status=DONE
+start_util_pct=50.18
+end_util_pct=54.6527
+ext4_write_kbytes_delta=163190208
+blk_read_ios=1447278
+blk_write_ios=4262442
+blk_read_bytes=94735683584
+blk_write_bytes=167119020032
+blk_avg_write_req_kb=38.2884
+dev_read_lat_ms_avg=21.6396
+dev_write_lat_ms_avg=0.16661
+write_qd_max=33
+blk_read_lat_us_mean=21880.4
+blk_read_lat_us_p50=1949.68
+blk_read_lat_us_p90=3327.86
+blk_read_lat_us_p99=350088
+blk_read_lat_us_p99.9=389250
+blk_read_lat_us_p99.99=454239
+blk_write_lat_us_mean=158.573
+blk_write_lat_us_p50=28.6853
+blk_write_lat_us_p90=159.527
+blk_write_lat_us_p99=1089.09
+blk_write_lat_us_p99.9=38697.7
+blk_write_lat_us_p99.99=51547.4
+app_write_bytes=116002632717
+fs_waf=1.44065
+dev_host_write_pages=40763547
+dev_host_read_pages=23105603
+dev_nand_progs=232628658
+dev_waf=5.70678
+dev_waf_gc=4.71498
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=215304906
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=7510
+dev_map_miss=0
+dev_mapping_mem_bytes_end=4049859
+total_waf=8.22147
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7747092480
+memcg_events_high=104860
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=0
+throughput=18728.8
+throughput_unit=ops/s
+fb_ops=11237986
+fb_mbps=380.5
+fb_ms_per_op=2.663
+fb_flowops.statfile1.ops=864432
+fb_flowops.statfile1.avg_ms=0.009
+fb_flowops.statfile1.max_ms=376
+fb_flowops.deletefile1.ops=864432
+fb_flowops.deletefile1.avg_ms=1.261
+fb_flowops.deletefile1.max_ms=376.244
+fb_flowops.closefile3.ops=864432
+fb_flowops.closefile3.avg_ms=0.001
+fb_flowops.closefile3.max_ms=0.022
+fb_flowops.readfile1.ops=864432
+fb_flowops.readfile1.avg_ms=15.894
+fb_flowops.readfile1.max_ms=461.498
+fb_flowops.openfile2.ops=864462
+fb_flowops.openfile2.avg_ms=0.011
+fb_flowops.openfile2.max_ms=342.505
+fb_flowops.closefile2.ops=864462
+fb_flowops.closefile2.avg_ms=0.002
+fb_flowops.closefile2.max_ms=0.03
+fb_flowops.fsyncappend1.ops=864462
+fb_flowops.fsyncappend1.avg_ms=1.979
+fb_flowops.fsyncappend1.max_ms=343.875
+fb_flowops.appendfilerand1.ops=864462
+fb_flowops.appendfilerand1.avg_ms=11.723
+fb_flowops.appendfilerand1.max_ms=461.333
+fb_flowops.openfile1.ops=864482
+fb_flowops.openfile1.avg_ms=0.011
+fb_flowops.openfile1.max_ms=139.829
+fb_flowops.closefile1.ops=864482
+fb_flowops.closefile1.avg_ms=0.001
+fb_flowops.closefile1.max_ms=8.255
+fb_flowops.fsyncfile1.ops=864482
+fb_flowops.fsyncfile1.avg_ms=2.815
+fb_flowops.fsyncfile1.max_ms=344.235
+fb_flowops.wrtfile1.ops=864482
+fb_flowops.wrtfile1.avg_ms=0.14
+fb_flowops.wrtfile1.max_ms=73.559
+fb_flowops.createfile1.ops=864482
+fb_flowops.createfile1.avg_ms=0.775
+fb_flowops.createfile1.max_ms=344.912
+app_write_lat_ms_avg=2.397
+app_write_lat_ms_max=344.235
+app_read_lat_ms_avg=15.894
+app_read_lat_ms_max=461.498
+[21:29:04] === fileserverfs_leaftl_20261009T211738Z status DONE

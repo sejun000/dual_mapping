@@ -1,0 +1,107 @@
+[03:02:46] === oltp_page4k_20261005T030246Z -> /home/sejun000/dual_mapping/results/apps_ext4/oltp/page4k
+[03:02:46] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[03:02:47] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[03:02:47] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[03:02:47] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[03:02:48] ext4 capacity (used+avail) 40987148288 B, util 0%
+[03:02:48] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[03:02:48] [filebench] oltp: nfiles 1850 -> 1953 (auto(50% of 40987148288 B; fixed 10485760 B, 10485760 B/entry)), psrun 600
+[03:03:07] measurement start utilisation=49% (window 47-55)
+case=/home/sejun000/dual_mapping/results/apps_ext4/oltp/page4k
+workload=oltp
+policy=page4k
+status=DONE
+start_util_pct=49.9895
+end_util_pct=49.9895
+ext4_write_kbytes_delta=324651420
+blk_read_ios=1693364
+blk_write_ios=58490729
+blk_read_bytes=7808978944
+blk_write_bytes=332449968128
+blk_avg_write_req_kb=5.55059
+dev_read_lat_ms_avg=0.131574
+dev_write_lat_ms_avg=0.0818512
+write_qd_max=147
+blk_read_lat_us_mean=129.14
+blk_read_lat_us_p50=80.5924
+blk_read_lat_us_p90=275.387
+blk_read_lat_us_p99=462.366
+blk_read_lat_us_p99.9=1196.28
+blk_read_lat_us_p99.99=1635.72
+blk_write_lat_us_mean=83.283
+blk_write_lat_us_p50=67.1463
+blk_write_lat_us_p90=178.835
+blk_write_lat_us_p99=295.207
+blk_write_lat_us_p99.9=387.386
+blk_write_lat_us_p99.99=466.74
+app_write_bytes=119534141440
+fs_waf=2.78121
+dev_host_write_pages=81142927
+dev_host_read_pages=1899221
+dev_nand_progs=72234605
+dev_waf=0.890214
+dev_waf_gc=0.00708749
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=2474173
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=2131
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+total_waf=2.47588
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7743758336
+memcg_events_high=18507
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=4104192
+throughput=190488
+throughput_unit=ops/s
+fb_ops=114384087
+fb_mbps=377.4
+fb_ms_per_op=0.033
+fb_flowops.random-rate.ops=0
+fb_flowops.random-rate.avg_ms=0
+fb_flowops.random-rate.max_ms=0
+fb_flowops.shadow-post-dbwr.ops=56876000
+fb_flowops.shadow-post-dbwr.avg_ms=1.767
+fb_flowops.shadow-post-dbwr.max_ms=242.055
+fb_flowops.shadow-post-lg.ops=56876200
+fb_flowops.shadow-post-lg.avg_ms=0.033
+fb_flowops.shadow-post-lg.max_ms=48.519
+fb_flowops.shadowhog.ops=56876200
+fb_flowops.shadowhog.avg_ms=0.26
+fb_flowops.shadowhog.max_ms=43.237
+fb_flowops.shadowread.ops=56901800
+fb_flowops.shadowread.avg_ms=0.044
+fb_flowops.shadowread.max_ms=239.951
+fb_flowops.dbwr-aiowait.ops=568758
+fb_flowops.dbwr-aiowait.avg_ms=1.818
+fb_flowops.dbwr-aiowait.max_ms=28.269
+fb_flowops.dbwr-block.ops=568758
+fb_flowops.dbwr-block.avg_ms=7.297
+fb_flowops.dbwr-block.max_ms=236.376
+fb_flowops.dbwr-hog.ops=568767
+fb_flowops.dbwr-hog.avg_ms=0.009
+fb_flowops.dbwr-hog.max_ms=11.176
+fb_flowops.dbwrite-a.ops=56877980
+fb_flowops.dbwrite-a.avg_ms=0.004
+fb_flowops.dbwrite-a.max_ms=30.465
+fb_flowops.lg-block.ops=17773
+fb_flowops.lg-block.avg_ms=33.753
+fb_flowops.lg-block.max_ms=244.018
+fb_flowops.lg-aiowait.ops=17774
+fb_flowops.lg-aiowait.avg_ms=0.001
+fb_flowops.lg-aiowait.max_ms=0.443
+fb_flowops.lg-write.ops=17775
+fb_flowops.lg-write.avg_ms=0.021
+fb_flowops.lg-write.max_ms=7.995
+app_write_lat_ms_avg=7.297
+app_write_lat_ms_max=236.376
+app_read_lat_ms_avg=0.044
+app_read_lat_ms_max=239.951
+[03:13:50] === oltp_page4k_20261005T030246Z status DONE

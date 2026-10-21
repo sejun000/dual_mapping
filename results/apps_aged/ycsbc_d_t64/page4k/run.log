@@ -1,0 +1,80 @@
+[06:28:24] === ycsbc_d_t64_page4k_20261011T062824Z -> /home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/page4k
+[06:28:25] insmod /home/sejun000/nvmevirt_page4k/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[06:28:25] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[06:28:27] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[06:28:27] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[06:28:46] [prefill] done in 19 s
+[06:28:46] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[06:28:47] ext4 capacity (used+avail) 40987148288 B, util 0%
+[06:28:47] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[06:28:47] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[06:31:18] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[06:31:29] [ballast] df util now 75%
+[06:31:42] measurement start utilisation=76% (window 73-85)
+[06:31:42] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/apps_aged/ycsbc_d_t64/page4k
+workload=ycsbc_d_t64
+policy=page4k
+status=DONE
+start_util_pct=76.0008
+end_util_pct=76.0072
+ext4_write_kbytes_delta=98528
+blk_read_ios=94491651
+blk_write_ios=11151
+blk_read_bytes=886427910144
+blk_write_bytes=100892672
+blk_avg_write_req_kb=8.8358
+dev_read_lat_ms_avg=0.129961
+dev_write_lat_ms_avg=0.0981078
+write_qd_max=0
+blk_read_lat_us_mean=128.01
+blk_read_lat_us_p50=113.62
+blk_read_lat_us_p90=189.7
+blk_read_lat_us_p99=294.247
+blk_read_lat_us_p99.9=401.032
+blk_read_lat_us_p99.99=536.47
+blk_write_lat_us_mean=80.0279
+blk_write_lat_us_p50=59.0083
+blk_write_lat_us_p90=144.314
+blk_write_lat_us_p99=300.292
+blk_write_lat_us_p99.9=868.746
+blk_write_lat_us_p99.99=4039.58
+app_write_bytes=99688640
+fs_waf=1.01208
+dev_host_write_pages=24632
+dev_host_read_pages=216413064
+dev_nand_progs=88169
+dev_waf=3.57945
+dev_waf_gc=2.59386
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=216461222
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=3
+dev_map_miss=0
+dev_mapping_mem_bytes_end=43192640
+total_waf=3.62268
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7747207168
+memcg_events_high=247288
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=360275968
+throughput=376757
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.26131e+08
+ycsb_ops.READ.avg_us=167.076
+ycsb_ops.READ.p50_us=110.312
+ycsb_ops.READ.p90_us=293
+ycsb_ops.READ.p95_us=330.438
+ycsb_ops.READ.p99_us=423.438
+ycsb_ops.READ.p99.9_us=2611.06
+ycsb_ops.READ.max_us=2.9143e+06
+app_read_lat_ms_avg=0.167076
+app_read_lat_ms_p99=0.423438
+[06:42:34] === ycsbc_d_t64_page4k_20261011T062824Z status DONE

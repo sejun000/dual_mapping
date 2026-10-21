@@ -1,0 +1,9 @@
+[cfg] mode=page4k L=10798160 pages (41.2 GB) NP=12947968 NB=418 P=30976 U=16 OP=0.200 fine_quota=418 blocks (extra=1) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_apptrace/tpcc_d_t64/trace.csv: 49504586 write pages (188.8 GiB, 4.58x device), warmup 23.0%
+[verify] ok. fine_valid_pages=0 fine_blocks=416 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 1 18 49 28 18 22 17 39 224
+[trace] warmup done (11387008 pages), reset stats
+[trace] identity addresses: 49496210 write pages replayed (0 clipped beyond L)
+[verify] ok. fine_valid_pages=0 fine_blocks=416 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 1 0 0 0 0 52 54 55 58 69 127

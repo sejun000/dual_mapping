@@ -1,0 +1,32 @@
+Part C3: FTL-core CPU time per operation, userspace harness (scratch copies of ~/nvmevirt_<policy>/dm, gcc -O2),
+one pinned core (CPU 13, NUMA node 1 memory), measurement phase only, clock_gettime per call minus timer overhead.
+write = dm_policy.write (post-buffer host write incl. synchronous GC/fold work), read = dm_policy.read per 4 KiB page.
+p50/p99 are log2-bucket estimates per call. DRAM budget 18.75% for DFTL/LeaFTL/uFTL; proposed = V3.
+
+ycsbb:
+policy        WAF  ns/wr pg ns/wr call  p99 call   max call  ns/rd pg  rd p99  map MiB
+proposed    6.162     307.9     1055.5      1536    33.60ms      13.7      96      7.7
+page4k      4.302      78.9      270.6       192     3.28ms      12.3      96     41.2
+dftl        4.535     329.8     1130.6     12288     7.38ms     215.5     384      7.8
+leaftl      4.493    1370.3     4697.0        96    58.91ms      68.0     384      7.9
+iurmw      21.105     143.6      492.3       192     0.99ms       9.2      24      2.6
+mu         28.312     727.8     2494.9       384    85.12ms      31.3     192      7.8
+fast        8.508      61.0      209.2       192     3.33ms      13.6      96      3.3
+
+ali1:
+policy        WAF  ns/wr pg ns/wr call  p99 call   max call  ns/rd pg  rd p99  map MiB
+proposed    4.289      76.7      787.2      1536    41.15ms       2.4      96     48.3
+page4k      5.436      55.4      568.8       192    16.63ms       3.1      96    257.6
+dftl        5.467     327.6     3362.2      3072    83.79ms     136.8     384     48.6
+leaftl      5.588     453.2     4651.0        96   129.09ms      24.7     192     16.9
+iurmw       7.497      39.1      401.2       192     8.05ms       4.1      96     16.1
+
+skew:
+policy        WAF  ns/wr pg ns/wr call  p99 call   max call  ns/rd pg  rd p99  map MiB
+proposed    5.712     116.6     1463.6       768     1.71ms      13.9      48      1.5
+page4k      6.457      64.7      811.5       192     0.44ms       1.5      24      8.0
+dftl        6.576     276.4     3469.0     24576     1.21ms     140.5     192      1.5
+leaftl      6.432     694.9     8720.7     49152     4.97ms      21.2      96      0.9
+iurmw       8.715      46.4      582.4        96     0.23ms       2.9      12      0.5
+mu         12.709     145.7     1828.0       384     4.95ms       8.4      96      1.5
+fast       14.609      69.1      867.2       192     0.95ms       3.5      24      0.4

@@ -1,0 +1,25 @@
+Thu Oct  8 09:50:25 AM UTC 2026 standard YCSB-F
+=== iurmw params=''
+[623697.119082] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.9 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[623697.119082] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=    3909  p50=  1089.5us  p99=   3751.9us  p99.9=1044381.7us  max=  1052.4ms
+write: IOPS=    3909  p50=    28.0us  p99=    105.0us  p99.9=  44302.3us  max=    53.3ms
+device: WAF=126.150  map reads per host read+write page=0.000  map programs per host write page=0.000
+[630348.311272] NVMeVirt: [dm final] policy=iurmw L=23559648 NB=373 P=67584 submitted=49471342 host=47114906 prog=3281270080 (host 47114906 gc 2880830208 rmw 353324966 fold 0 map 0 other 0) WAFx1000=66326 reads(host 23550469 gc 2880830208 rmw 353324966 fold 0 map 0) host_read_pages=25907219 erases=48181 map_miss=0 mem=5889912
+=== iurmw params=''
+[630350.597229] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[630350.597229] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=    4941  p50=   897.0us  p99=   3686.4us  p99.9= 935329.8us  max=  1042.1ms
+write: IOPS=    4942  p50=    32.6us  p99=    132.1us  p99.9=  41680.9us  max=    51.1ms
+device: WAF=98.355  map reads per host read+write page=0.000  map programs per host write page=0.000
+[635731.796533] NVMeVirt: [dm final] policy=iurmw L=23559648 NB=373 P=67584 submitted=50089781 host=44124226 prog=2617391536 (host 44124226 gc 2264801360 rmw 308465950 fold 0 map 0 other 0) WAFx1000=52254 reads(host 20560166 gc 2264801360 rmw 308465950 fold 0 map 0) host_read_pages=26521954 erases=38358 map_miss=0 mem=5889912
+=== iurmw params=''
+[635734.079219] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[635734.079219] NVMeVirt: dm_ftl policy=iurmw params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+randwrite 4K QD32: IOPS=3624 BW=14.2 MiB/s  clat p50=1237.0us p99=28704.8us p99.9=1002438.7us
+device WAF during randwrite = 138.022 (host pages 47119296, NAND programs 6503513552)
+[648779.076020] NVMeVirt: [dm final] policy=iurmw L=23559648 NB=373 P=67584 submitted=70678944 host=70678398 prog=6527077296 (host 70678398 gc 5749633904 rmw 706764994 fold 0 map 0 other 0) WAFx1000=92348 reads(host 807 gc 5749633904 rmw 706764994 fold 0 map 0) host_read_pages=1345 erases=96207 map_miss=0 mem=5889912
+Thu Oct  8 07:56:21 PM UTC 2026 all done

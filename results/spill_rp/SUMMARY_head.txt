@@ -1,0 +1,34 @@
+SPILL READ-PROMOTION (2026-10-19)  --  chosen default: spill_rp=1 spill_rp_clean=1 (no rate guard)
+
+Variants (ftlsim, all default off; BASE = spill=2, 12.5 % mapping DRAM, host reads replayed with dram_stats=1):
+  rpK      spill_rp=K: a host read of a spilled IU un-spills it after its FTP read (pointers back into the cuckoo table,
+           exactly the host-write un-spill; a full bucket pair spills the usual candidate, spill=2 group spill). No data
+           moves. K=1 every read; K>=2 on the K-th read since the spill (ceil(log2 K)-bit counter taken from the 4 B coarse
+           entry -> no extra DRAM; consecutive page lookups of one IU count once).
+  rpKrR    + spill_rp_rate=R: promotions may spend <= R FTP programs per 1000 host write pages (token bucket).
+  rpcK     + spill_rp_clean=1: a read-promoted IU keeps its FTP image valid ("clean", 1 more coarse-entry bit). Evicting a
+           clean IU just drops its table entries and sets the spilled bit (no FTP read / program / group spill); any change
+           of its fragments (host write, fold/refold, fine-GC copy) makes it dirty. Spilling evictions prefer clean IUs.
+
+Result (details below):
+  * plain promotion barely helps: SPFresh map reads -5..-8 %, and K=1 costs +0.20 FTP programs per host write page
+    (0.477 -> 0.680, WAF +1.4 %). Rate guards / K>=2 cut the cost but not the reads. SPFresh reads are near-uniform over
+    ~328K IUs (top 80K IUs = 47 % of reads; every read IU is also written), and the table holds only about half of the
+    fragment-bearing IUs, so promote-then-group-spill mostly churns.
+  * clean promotion (rpc1): SPFresh map reads per host read 0.2046 -> 0.1190 (-42 %), WAF +0.12 %, FTP programs per host
+    write page 0.477 -> 0.476 (17.3M promotions, 10.1M later re-evicted clean with no FTP I/O, 4.3M dirtied by writes /
+    GC; promotions spent only 0.25M FTP programs = 0.034 per host write page, offset by fewer group spills elsewhere).
+    YCSB-A WAF 6.728 -> 6.729 (the spill WAF gain is kept), map reads -9 %; YCSB-B -32 %; TPC-C -25 %; YCSB-F -9 % at
+    +0.45 % WAF (rpc4 on the same trace: -0.43 %; run-to-run policy noise of this size is common in this matrix).
+    ali3, f73, f37 never spill at this budget: identical to BASE.
+  * Why clean helps the reads too: clean evictions remove one IU's entries instead of a spill=2 group, so the table keeps
+    more IUs resident (spilled IUs at the end 89.5K -> 41.2K on SPFresh) and read-hot IUs stay.
+  * Remaining SPFresh map reads: 89 % of reads that hit a spilled IU target a chunk page, not a fragment (BASE
+    reads_spilled_frag / reads_spilled = 3.7M / 34.2M); a per-IU fragment summary would avoid them, but a 16-bit bitmap
+    does not fit the coarse entry (SPFresh: 19-bit chunk index + 3 flag bits leave 10 bits). Not evaluated here.
+  * ycsbc_d_t64 / ycsbe_d_t64 have no captured block trace (only NVMeVirt app runs exist), so ycsbfstd_d_t64 is used as
+    the third YCSB trace.
+  * NVMeVirt parity (harness, READS=1) is bit-identical for every variant incl. SPFresh, see dm/NOTES_proposed.md.
+  * Jobs: jobs1.txt (base rp1 rp2 rp4), jobs2.txt (rate guards), jobs3.txt (clean); run.sh, gen.py, summarize.py.
+    ftlsim.bin = ftlsim/ftlsim.cpp with spill_rp (jobs1/2 ran on the build before spill_rp_clean existed; for those
+    options both builds give identical output, checked on rand4k).

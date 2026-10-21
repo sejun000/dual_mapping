@@ -1,0 +1,34 @@
+--- ftlsim.orig.cpp	2026-10-13 08:47:10.777886826 +0000
++++ ftlsim.cpp	2026-10-13 01:29:28.305435087 +0000
+@@ -2423,6 +2423,7 @@
+             if (!measuring_started && done >= warm) {
+                 s.verify();
+                 fprintf(stderr, "[trace] warmup done (%llu pages), reset stats\n", (unsigned long long)done);
++                if (tracef) { fprintf(tracef, "MARK\n"); fprintf(stderr, "[trace] post-buffer pages before measure: %llu\n", (unsigned long long)trace_pages); }
+                 s.st.reset(U); s.measuring = true; measuring_started = true;
+             }
+         }
+@@ -2438,19 +2439,19 @@
+ 
+     void run() {
+         if (!c.trace_file.empty()) {
+-            if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); }
++            if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); setvbuf(tracef, nullptr, _IOFBF, 1 << 22); }
+             if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
+             run_trace();
+-            if (tracef) fclose(tracef);
++            if (tracef) { fprintf(stderr, "[trace] post-buffer total pages: %llu\n", (unsigned long long)trace_pages); fclose(tracef); }
+             return;
+         }
+         build_workload();
+-        if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); }
++        if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); setvbuf(tracef, nullptr, _IOFBF, 1 << 22); }
+         if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
+         if (c.age_x > 0) { fprintf(stderr, "[phase] aging %.2fx\n", c.age_x); run_workload((u64)(L * c.age_x)); }
+         s.verify();
+         wb_drain();
+-        if (tracef) fprintf(stderr, "[trace] pages before measure: %llu\n", (unsigned long long)trace_pages);
++        if (tracef) { fprintf(tracef, "MARK\n"); fprintf(stderr, "[trace] pages before measure: %llu\n", (unsigned long long)trace_pages); }
+         fprintf(stderr, "[phase] reset stats, measure %.2fx\n", c.measure_x);
+         s.st.reset(U);
+         s.measuring = true;

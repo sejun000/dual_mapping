@@ -1,0 +1,104 @@
+WAF (NAND programs / submitted host pages), NVMeVirt 44G geometry, OP 7%, 4-16 KiB requests;
+fresh = seq fill of fill_frac then workload over fill_frac-0.03; aged = full seq fill, workload over 0.73
+condition                    V3      V3F   page4k     dftl   leaftl   V3/p4k  V3F/p4k  V3F/V3
+fresh_f0.5_z0             5.889    4.079    1.189    1.295    1.500     4.95     3.43   -30.7%
+fresh_f0.6_z0             6.766    4.866    1.361    1.531    1.778     4.97     3.57   -28.1%
+fresh_f0.76_z0            8.456    6.381    1.923    2.272    2.597     4.40     3.32   -24.5%
+fresh_f0.9_z0            11.016    8.950    3.392    4.169    4.632     3.25     2.64   -18.8%
+fresh_f1.0_z0            14.405   14.405    8.636   10.944   11.761     1.67     1.67    +0.0%
+aged_f0.76_z0            11.734   11.734    6.519    7.926    8.553     1.80     1.80    +0.0%
+fresh_f0.5_z0.8           5.562    3.296    1.311    1.432    1.527     4.24     2.51   -40.7%
+fresh_f0.6_z0.8           6.114    3.852    1.500    1.673    1.809     4.08     2.57   -37.0%
+fresh_f0.76_z0.8          7.078    4.930    2.096    2.420    2.622     3.38     2.35   -30.3%
+fresh_f0.9_z0.8           8.724    6.669    3.620    4.176    4.560     2.41     1.84   -23.6%
+fresh_f1.0_z0.8          11.474   11.474    8.472    9.988   10.569     1.35     1.35    +0.0%
+aged_f0.76_z0.8           8.871    8.871    6.608    7.558    8.009     1.34     1.34    +0.0%
+fresh_f0.5_z0.99          3.744    2.232    1.182    1.238    1.293     3.17     1.89   -40.4%
+fresh_f0.6_z0.99          4.034    2.529    1.396    1.456    1.559     2.89     1.81   -37.3%
+fresh_f0.76_z0.99         4.567    3.171    2.094    2.287    2.462     2.18     1.51   -30.6%
+fresh_f0.9_z0.99          5.393    4.056    3.016    3.367    3.605     1.79     1.34   -24.8%
+fresh_f1.0_z0.99          6.904    6.904    5.906    6.641    6.854     1.17     1.17    +0.0%
+aged_f0.76_z0.99          5.559    5.559    4.692    5.219    5.351     1.18     1.18    +0.0%
+fresh_f0.5_z1.2           1.801    1.158    0.783    0.784    0.791     2.30     1.48   -35.7%
+fresh_f0.6_z1.2           1.866    1.276    1.004    1.035    1.024     1.86     1.27   -31.6%
+fresh_f0.76_z1.2          1.996    1.456    1.189    1.254    1.237     1.68     1.22   -27.1%
+fresh_f0.9_z1.2           2.271    1.628    1.715    1.849    1.843     1.32     0.95   -28.3%
+fresh_f1.0_z1.2           2.605    2.617    2.852    3.036    3.000     0.91     0.92    +0.5%
+aged_f0.76_z1.2           2.209    2.202    2.425    2.576    2.517     0.91     0.91    -0.3%
+
+Program sources per submitted host page and diagnostics (proposed):
+  finegc = fine-pool GC copies, fold = explicit folds (cuckoo eviction + fine reclaim), cgc = coarse GC (clean + refold);
+  fvv/cvv = mean valid fraction of fine / coarse GC victims, fblk = mean fine blocks, fq = mean fine cap,
+  util = fine pool valid / fine pool slots, evict = cuckoo eviction folds, sw = adapt=2 mode switches, uni = host share in uniform mode
+fresh_f0.5_z0          V3   WAF= 5.889 host=1.000 finegc=1.844 fold=1.738 cgc=0.612 rmw=0.695 | fvv=0.79 cvv=0.13 fblk= 16.5 fq= 16.0 util=0.84 evict=242028 sw=0 uni=0.00
+fresh_f0.5_z0          V3F  WAF= 4.079 host=1.000 finegc=0.117 fold=1.994 cgc=0.803 rmw=0.164 | fvv=0.11 cvv=0.17 fblk= 45.5 fq=197.0 util=0.37 evict=1345968 sw=0 uni=0.00
+fresh_f0.5_z0          page4k WAF= 1.189 gc=0.189 victim_valid=0.16
+fresh_f0.6_z0          V3   WAF= 6.766 host=1.000 finegc=2.017 fold=2.077 cgc=1.220 rmw=0.452 | fvv=0.80 cvv=0.24 fblk= 16.4 fq= 16.0 util=0.84 evict=278360 sw=2 uni=0.00
+fresh_f0.6_z0          V3F  WAF= 4.866 host=1.000 finegc=0.244 fold=2.235 cgc=1.387 rmw=0.000 | fvv=0.20 cvv=0.27 fblk= 36.9 fq=159.8 util=0.45 evict=1508258 sw=2 uni=0.00
+fresh_f0.6_z0          page4k WAF= 1.361 gc=0.361 victim_valid=0.27
+fresh_f0.76_z0         V3   WAF= 8.456 host=1.000 finegc=2.174 fold=2.398 cgc=2.883 rmw=0.001 | fvv=0.81 cvv=0.45 fblk= 16.3 fq= 16.0 util=0.85 evict=315197 sw=2 uni=0.00
+fresh_f0.76_z0         V3F  WAF= 6.381 host=1.000 finegc=0.514 fold=2.064 cgc=2.801 rmw=0.001 | fvv=0.34 cvv=0.47 fblk= 28.8 fq= 99.8 util=0.57 evict=1393017 sw=2 uni=0.00
+fresh_f0.76_z0         page4k WAF= 1.923 gc=0.924 victim_valid=0.48
+fresh_f0.9_z0          V3   WAF=11.016 host=1.000 finegc=2.401 fold=1.973 cgc=5.640 rmw=0.001 | fvv=0.75 cvv=0.66 fblk= 17.3 fq= 16.9 util=0.82 evict=438051 sw=190 uni=0.46
+fresh_f0.9_z0          V3F  WAF= 8.950 host=1.000 finegc=1.018 fold=1.541 cgc=5.390 rmw=0.001 | fvv=0.51 cvv=0.68 fblk= 23.1 fq= 46.9 util=0.68 evict=1040143 sw=2 uni=0.00
+fresh_f0.9_z0          page4k WAF= 3.392 gc=2.392 victim_valid=0.70
+fresh_f1.0_z0          V3   WAF=14.405 host=1.000 finegc=1.197 fold=0.300 cgc=11.909 rmw=0.000 | fvv=0.52 cvv=0.91 fblk= 18.1 fq= 18.0 util=0.72 evict=202394 sw=1 uni=1.00
+fresh_f1.0_z0          V3F  WAF=14.405 host=1.000 finegc=1.197 fold=0.300 cgc=11.909 rmw=0.000 | fvv=0.52 cvv=0.91 fblk= 18.1 fq= 18.0 util=0.72 evict=202394 sw=1 uni=1.00
+fresh_f1.0_z0          page4k WAF= 8.636 gc=7.636 victim_valid=0.88
+aged_f0.76_z0          V3   WAF=11.734 host=1.000 finegc=1.893 fold=0.456 cgc=8.383 rmw=0.001 | fvv=0.67 cvv=0.86 fblk= 16.5 fq= 16.0 util=0.78 evict=182341 sw=2 uni=0.00
+aged_f0.76_z0          V3F  WAF=11.734 host=1.000 finegc=1.893 fold=0.456 cgc=8.383 rmw=0.001 | fvv=0.67 cvv=0.86 fblk= 16.5 fq= 16.0 util=0.78 evict=182341 sw=2 uni=0.00
+aged_f0.76_z0          page4k WAF= 6.519 gc=5.519 victim_valid=0.85
+fresh_f0.5_z0.8        V3   WAF= 5.562 host=0.986 finegc=2.200 fold=1.639 cgc=0.735 rmw=0.001 | fvv=0.77 cvv=0.22 fblk= 16.5 fq= 16.0 util=0.81 evict=143588 sw=0 uni=0.00
+fresh_f0.5_z0.8        V3F  WAF= 3.296 host=0.986 finegc=0.218 fold=1.362 cgc=0.730 rmw=0.000 | fvv=0.18 cvv=0.25 fblk= 43.9 fq=196.8 util=0.37 evict=919444 sw=0 uni=0.00
+fresh_f0.5_z0.8        page4k WAF= 1.311 gc=0.325 victim_valid=0.25
+fresh_f0.6_z0.8        V3   WAF= 6.114 host=0.987 finegc=2.286 fold=1.709 cgc=1.130 rmw=0.002 | fvv=0.78 cvv=0.31 fblk= 16.5 fq= 16.0 util=0.81 evict=161006 sw=0 uni=0.00
+fresh_f0.6_z0.8        V3F  WAF= 3.852 host=0.987 finegc=0.327 fold=1.419 cgc=1.119 rmw=0.000 | fvv=0.25 cvv=0.34 fblk= 36.4 fq=159.1 util=0.45 evict=957548 sw=0 uni=0.00
+fresh_f0.6_z0.8        page4k WAF= 1.500 gc=0.512 victim_valid=0.34
+fresh_f0.76_z0.8       V3   WAF= 7.078 host=0.989 finegc=2.266 fold=1.683 cgc=2.140 rmw=0.001 | fvv=0.78 cvv=0.48 fblk= 16.4 fq= 16.0 util=0.81 evict=156975 sw=0 uni=0.00
+fresh_f0.76_z0.8       V3F  WAF= 4.930 host=0.989 finegc=0.453 fold=1.349 cgc=2.140 rmw=0.000 | fvv=0.32 cvv=0.50 fblk= 31.5 fq= 99.3 util=0.51 evict=910174 sw=0 uni=0.00
+fresh_f0.76_z0.8       page4k WAF= 2.096 gc=1.108 victim_valid=0.53
+fresh_f0.9_z0.8        V3   WAF= 8.724 host=0.990 finegc=2.453 fold=1.302 cgc=3.979 rmw=0.000 | fvv=0.77 cvv=0.68 fblk= 16.5 fq= 16.0 util=0.81 evict=168951 sw=0 uni=0.00
+fresh_f0.9_z0.8        V3F  WAF= 6.669 host=0.990 finegc=0.818 fold=1.045 cgc=3.817 rmw=0.000 | fvv=0.46 cvv=0.69 fblk= 24.9 fq= 46.7 util=0.63 evict=705241 sw=0 uni=0.00
+fresh_f0.9_z0.8        page4k WAF= 3.620 gc=2.630 victim_valid=0.73
+fresh_f1.0_z0.8        V3   WAF=11.474 host=0.990 finegc=1.746 fold=0.284 cgc=8.454 rmw=0.000 | fvv=0.65 cvv=0.90 fblk= 16.7 fq= 16.0 util=0.73 evict=82717 sw=0 uni=0.00
+fresh_f1.0_z0.8        V3F  WAF=11.474 host=0.990 finegc=1.746 fold=0.284 cgc=8.454 rmw=0.000 | fvv=0.65 cvv=0.90 fblk= 16.7 fq= 16.0 util=0.73 evict=82717 sw=0 uni=0.00
+fresh_f1.0_z0.8        page4k WAF= 8.472 gc=7.481 victim_valid=0.88
+aged_f0.76_z0.8        V3   WAF= 8.871 host=0.989 finegc=1.756 fold=0.317 cgc=5.809 rmw=0.000 | fvv=0.66 cvv=0.86 fblk= 16.7 fq= 16.0 util=0.73 evict=74876 sw=0 uni=0.00
+aged_f0.76_z0.8        V3F  WAF= 8.871 host=0.989 finegc=1.756 fold=0.317 cgc=5.809 rmw=0.000 | fvv=0.66 cvv=0.86 fblk= 16.7 fq= 16.0 util=0.73 evict=74876 sw=0 uni=0.00
+aged_f0.76_z0.8        page4k WAF= 6.608 gc=5.619 victim_valid=0.85
+fresh_f0.5_z0.99       V3   WAF= 3.744 host=0.882 finegc=1.612 fold=0.914 cgc=0.334 rmw=0.002 | fvv=0.71 cvv=0.21 fblk= 16.5 fq= 16.0 util=0.80 evict=62465 sw=0 uni=0.00
+fresh_f0.5_z0.99       V3F  WAF= 2.232 host=0.882 finegc=0.191 fold=0.749 cgc=0.410 rmw=0.000 | fvv=0.18 cvv=0.26 fblk= 45.3 fq=196.8 util=0.36 evict=505242 sw=0 uni=0.00
+fresh_f0.5_z0.99       page4k WAF= 1.182 gc=0.300 victim_valid=0.25
+fresh_f0.6_z0.99       V3   WAF= 4.034 host=0.885 finegc=1.661 fold=0.949 cgc=0.537 rmw=0.002 | fvv=0.72 cvv=0.30 fblk= 16.4 fq= 16.0 util=0.80 evict=71083 sw=0 uni=0.00
+fresh_f0.6_z0.99       V3F  WAF= 2.529 host=0.885 finegc=0.254 fold=0.781 cgc=0.608 rmw=0.000 | fvv=0.22 cvv=0.35 fblk= 40.0 fq=159.1 util=0.41 evict=527116 sw=0 uni=0.00
+fresh_f0.6_z0.99       page4k WAF= 1.396 gc=0.511 victim_valid=0.37
+fresh_f0.76_z0.99      V3   WAF= 4.567 host=0.888 finegc=1.716 fold=0.920 cgc=1.042 rmw=0.001 | fvv=0.72 cvv=0.47 fblk= 16.4 fq= 16.0 util=0.80 evict=77371 sw=0 uni=0.00
+fresh_f0.76_z0.99      V3F  WAF= 3.171 host=0.888 finegc=0.364 fold=0.753 cgc=1.165 rmw=0.000 | fvv=0.29 cvv=0.50 fblk= 33.3 fq= 99.5 util=0.48 evict=508512 sw=0 uni=0.00
+fresh_f0.76_z0.99      page4k WAF= 2.094 gc=1.205 victim_valid=0.58
+fresh_f0.9_z0.99       V3   WAF= 5.393 host=0.890 finegc=1.745 fold=0.744 cgc=2.013 rmw=0.001 | fvv=0.71 cvv=0.66 fblk= 16.5 fq= 16.0 util=0.80 evict=75833 sw=0 uni=0.00
+fresh_f0.9_z0.99       V3F  WAF= 4.056 host=0.890 finegc=0.560 fold=0.560 cgc=2.046 rmw=0.000 | fvv=0.39 cvv=0.70 fblk= 27.5 fq= 46.7 util=0.57 evict=378014 sw=0 uni=0.00
+fresh_f0.9_z0.99       page4k WAF= 3.016 gc=2.126 victim_valid=0.71
+fresh_f1.0_z0.99       V3   WAF= 6.904 host=0.892 finegc=1.342 fold=0.197 cgc=4.472 rmw=0.000 | fvv=0.63 cvv=0.88 fblk= 16.6 fq= 16.0 util=0.72 evict=33145 sw=0 uni=0.00
+fresh_f1.0_z0.99       V3F  WAF= 6.904 host=0.892 finegc=1.342 fold=0.197 cgc=4.472 rmw=0.000 | fvv=0.63 cvv=0.88 fblk= 16.6 fq= 16.0 util=0.72 evict=33145 sw=0 uni=0.00
+fresh_f1.0_z0.99       page4k WAF= 5.906 gc=5.014 victim_valid=0.85
+aged_f0.76_z0.99       V3   WAF= 5.559 host=0.888 finegc=1.280 fold=0.194 cgc=3.197 rmw=0.000 | fvv=0.62 cvv=0.84 fblk= 16.6 fq= 16.0 util=0.71 evict=28201 sw=0 uni=0.00
+aged_f0.76_z0.99       V3F  WAF= 5.559 host=0.888 finegc=1.280 fold=0.194 cgc=3.197 rmw=0.000 | fvv=0.62 cvv=0.84 fblk= 16.6 fq= 16.0 util=0.71 evict=28201 sw=0 uni=0.00
+aged_f0.76_z0.99       page4k WAF= 4.692 gc=3.804 victim_valid=0.81
+fresh_f0.5_z1.2        V3   WAF= 1.801 host=0.667 finegc=0.740 fold=0.284 cgc=0.108 rmw=0.001 | fvv=0.61 cvv=0.18 fblk= 16.4 fq= 16.0 util=0.77 evict=11573 sw=0 uni=0.00
+fresh_f0.5_z1.2        V3F  WAF= 1.158 host=0.667 finegc=0.134 fold=0.229 cgc=0.128 rmw=0.000 | fvv=0.19 cvv=0.23 fblk= 47.7 fq=197.0 util=0.34 evict=154244 sw=0 uni=0.00
+fresh_f0.5_z1.2        page4k WAF= 0.783 gc=0.116 victim_valid=0.15
+fresh_f0.6_z1.2        V3   WAF= 1.866 host=0.668 finegc=0.746 fold=0.288 cgc=0.163 rmw=0.001 | fvv=0.61 cvv=0.25 fblk= 16.4 fq= 16.0 util=0.77 evict=12447 sw=0 uni=0.00
+fresh_f0.6_z1.2        V3F  WAF= 1.276 host=0.668 finegc=0.192 fold=0.246 cgc=0.169 rmw=0.000 | fvv=0.24 cvv=0.30 fblk= 39.9 fq=159.4 util=0.41 evict=166285 sw=0 uni=0.00
+fresh_f0.6_z1.2        page4k WAF= 1.004 gc=0.336 victim_valid=0.33
+fresh_f0.76_z1.2       V3   WAF= 1.996 host=0.670 finegc=0.761 fold=0.288 cgc=0.277 rmw=0.001 | fvv=0.61 cvv=0.36 fblk= 16.4 fq= 16.0 util=0.77 evict=13847 sw=0 uni=0.00
+fresh_f0.76_z1.2       V3F  WAF= 1.456 host=0.670 finegc=0.269 fold=0.239 cgc=0.279 rmw=0.000 | fvv=0.31 cvv=0.42 fblk= 34.5 fq=100.0 util=0.47 evict=161472 sw=0 uni=0.00
+fresh_f0.76_z1.2       page4k WAF= 1.189 gc=0.520 victim_valid=0.44
+fresh_f0.9_z1.2        V3   WAF= 2.271 host=0.671 finegc=0.789 fold=0.244 cgc=0.567 rmw=0.000 | fvv=0.62 cvv=0.56 fblk= 16.4 fq= 16.0 util=0.77 evict=13414 sw=0 uni=0.00
+fresh_f0.9_z1.2        V3F  WAF= 1.628 host=0.671 finegc=0.186 fold=0.134 cgc=0.637 rmw=0.000 | fvv=0.24 cvv=0.68 fblk= 37.2 fq= 46.5 util=0.41 evict=90139 sw=0 uni=0.00
+fresh_f0.9_z1.2        page4k WAF= 1.715 gc=1.044 victim_valid=0.61
+fresh_f1.0_z1.2        V3   WAF= 2.605 host=0.672 finegc=0.588 fold=0.064 cgc=1.281 rmw=0.000 | fvv=0.53 cvv=0.80 fblk= 16.3 fq= 16.0 util=0.71 evict=4814 sw=0 uni=0.00
+fresh_f1.0_z1.2        V3F  WAF= 2.617 host=0.672 finegc=0.620 fold=0.071 cgc=1.255 rmw=0.000 | fvv=0.54 cvv=0.80 fblk= 16.2 fq= 16.0 util=0.72 evict=5956 sw=0 uni=0.00
+fresh_f1.0_z1.2        page4k WAF= 2.852 gc=2.180 victim_valid=0.76
+aged_f0.76_z1.2        V3   WAF= 2.209 host=0.670 finegc=0.560 fold=0.061 cgc=0.918 rmw=0.000 | fvv=0.51 cvv=0.75 fblk= 16.3 fq= 16.0 util=0.70 evict=3785 sw=0 uni=0.00
+aged_f0.76_z1.2        V3F  WAF= 2.202 host=0.670 finegc=0.562 fold=0.064 cgc=0.906 rmw=0.000 | fvv=0.52 cvv=0.75 fblk= 16.3 fq= 16.0 util=0.70 evict=3939 sw=0 uni=0.00
+aged_f0.76_z1.2        page4k WAF= 2.425 gc=1.755 victim_valid=0.72

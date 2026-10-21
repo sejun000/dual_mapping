@@ -1,0 +1,90 @@
+[19:19:19] === ycsba_dftl_20261004T191919Z -> /home/sejun000/dual_mapping/results/apps/ycsba/dftl
+[19:19:19] insmod /home/sejun000/nvmevirt_dftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_params='cache_bytes=8098620,dftl_tpbuf=1'
+[19:19:20] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[19:19:20] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[19:19:20] mkfs.f2fs -f -s 64 /dev/nvme3n1
+[19:19:20] mounted /dev/nvme3n1 at /mnt/dmapp, f2fs user segments 19297 (study 18440)
+[19:19:21] [ycsb] 16 instances x (records=625000 threads=20 workloada)
+[19:25:34] [ballast] writing 436 MiB to reach ~75%
+[19:25:35] [ballast] f2fs reports 72%; topping up 1261 MiB (round 1)
+[19:26:01] measurement start utilisation=76% (window 72-80)
+[19:26:01] [ycsb] run 600s, 16 x 20 threads
+case=/home/sejun000/dual_mapping/results/apps/ycsba/dftl
+workload=ycsba
+policy=dftl
+status=DONE
+start_util_pct=76
+end_util_pct=81
+f2fs_ipu_delta=58952793
+f2fs_ssr_delta=0
+f2fs_lfs_delta=829566
+f2fs_gc_delta=0
+blk_read_ios=16620583
+blk_write_ios=20707927
+blk_read_bytes=218766495744
+blk_write_bytes=245089177600
+blk_avg_write_req_kb=11.5581
+dev_read_lat_ms_avg=5.77431
+dev_write_lat_ms_avg=3.84224
+write_qd_max=767
+blk_read_lat_us_mean=5830.52
+blk_read_lat_us_p50=4129.33
+blk_read_lat_us_p90=8350.47
+blk_read_lat_us_p99=68632.5
+blk_read_lat_us_p99.9=135017
+blk_read_lat_us_p99.99=189284
+blk_write_lat_us_mean=3869.77
+blk_write_lat_us_p50=46.7234
+blk_write_lat_us_p90=4003.66
+blk_write_lat_us_p99=118409
+blk_write_lat_us_p99.9=154021
+blk_write_lat_us_p99.99=269200
+app_write_bytes=250682575136
+fs_waf=0.977687
+dev_host_write_pages=59836225
+dev_host_read_pages=53409697
+dev_nand_progs=80686112
+dev_waf=1.34845
+dev_waf_gc=0.575152
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0312052
+dev_waf_other=0
+dev_nand_reads=107496463
+dev_map_reads_per_host_page=0.173711
+dev_map_reads_per_host_read=0.368324
+dev_erases=2545
+dev_map_miss=83841234
+dev_mapping_mem_bytes_end=8140797
+total_waf=1.31836
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7748022272
+memcg_events_high=206329
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=270974976
+throughput=37082.6
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.11377e+07
+ycsb_ops.READ.avg_us=4707.87
+ycsb_ops.READ.p50_us=1367.75
+ycsb_ops.READ.p90_us=7618
+ycsb_ops.READ.p95_us=9408
+ycsb_ops.READ.p99_us=51391
+ycsb_ops.READ.p99.9_us=295623
+ycsb_ops.READ.max_us=1.03055e+07
+ycsb_ops.UPDATE.ops=1.11369e+07
+ycsb_ops.UPDATE.avg_us=12517.4
+ycsb_ops.UPDATE.p50_us=2301.62
+ycsb_ops.UPDATE.p90_us=10140.5
+ycsb_ops.UPDATE.p95_us=19179.5
+ycsb_ops.UPDATE.p99_us=158607
+ycsb_ops.UPDATE.p99.9_us=1.61389e+06
+ycsb_ops.UPDATE.max_us=4.89226e+07
+app_write_lat_ms_avg=12.5174
+app_write_lat_ms_p99=158.607
+app_read_lat_ms_avg=4.70787
+app_read_lat_ms_p99=51.391
+[19:37:03] === ycsba_dftl_20261004T191919Z status DONE

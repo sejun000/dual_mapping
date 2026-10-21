@@ -1,0 +1,33 @@
+[cfg] mode=page4k L=16777216 pages (64.0 GB) NP=17940480 NB=365 P=49152 U=16 OP=0.070 fine_quota=365 blocks (extra=1) T=2 zipf=1.20
+[phase] seq fill
+[phase] aging 8.00x
+[verify] ok. fine_valid_pages=0 fine_blocks=363 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 1 1 0 0 0 0 0 361 0
+[trace] pages before measure: 126319224
+[phase] reset stats, measure 1.00x
+[trace] total pages: 140008823
+[verify] ok. fine_valid_pages=0 fine_blocks=363 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 2 0 0 0 0 0 0 361 0
+	Command being timed: "/tmp/claude-1001/-home-sejun000-dual-mapping/64054dd3-9fa1-4be8-986a-b7744c0b8ecf/scratchpad/ftlsim_x/ftlsim_x zipf=1.2 P=49152 op=0.07 mode=page4k tag=page4k out_trace=/mnt/nvme_mounted/dogi_v3_runs/z1.2_sh/stream.fifo"
+	User time (seconds): 18.56
+	System time (seconds): 0.57
+	Percent of CPU this job got: 8%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:56.31
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 158208
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 39126
+	Voluntary context switches: 29211
+	Involuntary context switches: 72
+	Swaps: 0
+	File system inputs: 8
+	File system outputs: 24
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

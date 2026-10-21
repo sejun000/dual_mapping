@@ -1,0 +1,13 @@
+[cfg] spill=2: 5142 FTPs x 64 IUs, GTD 0.020 MiB; DRAM split coarse 1.255 / GTD 0.020 / table 1.236 MiB (budget 2.511 MiB)
+[cfg] cuckoo2 fine table: 40491 buckets x 4 = 161964 entries (1.24 MiB), budget 0.1250 of page map
+[cfg] mode=proposed L=5265216 pages (20.1 GB) NP=5633792 NB=373 P=15104 U=16 OP=0.070 fine_quota=10 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv: 14765438 write pages (56.3 GiB, 2.80x device), warmup 50.0%
+[verify] spill ok: 18888 spilled IUs, 24026 spilled pages, 92780 table entries
+[verify] ok. fine_valid_pages=116806 fine_blocks=10 coarse_blocks=361 free=2
+[verify] block valid histogram (deciles 0..100%): 2 0 0 0 0 0 3 3 56 289 18
+[trace] warmup done (7382719 pages), reset stats
+[trace] dense space: 20485 MiB regions (20.0 GiB), device utilization 99.6%
+[verify] spill ok: 18914 spilled IUs, 23844 spilled pages, 92623 table entries
+[verify] ok. fine_valid_pages=116467 fine_blocks=10 coarse_blocks=360 free=3
+[verify] block valid histogram (deciles 0..100%): 0 0 0 1 0 0 3 3 63 295 5

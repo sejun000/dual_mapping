@@ -1,0 +1,73 @@
+=== fast params=''
+[15191.721403] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[15191.721403] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=48202416128, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=3620864, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=47500886016, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=47129980928, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=76027461632, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=68319412224, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=28180578304, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=73612754944, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=76383944704, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=48326447104, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=52306608128, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=29041934336, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=46097846272, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=3183677440, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=3883528192, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=7328497664, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=90600026112, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=79880650752, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=3584761856, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=75914027008, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=45663121408, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=27137798144, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=49739276288, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=49609834496, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=48517890048, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=63505133568, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=25207017472, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=58721636352, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=27405971456, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=42251829248, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=24219545600, buflen=4096
+fio: io_u error on file /dev/nvme3n1: No space left on device: write offset=69604384768, buflen=4096
+=== mu params='cache_bytes=17669736'
+[15445.185953] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[15445.185953] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=95586656256, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=34592272384, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=59013570560, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=7010840576, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=93259632640, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=54150422528, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=37595361280, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=41155215360, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=43466297344, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=6021148672, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=25381949440, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=9956888576, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=60480753664, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=4378488832, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=68137242624, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=33255272448, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=63329660928, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=24168353792, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=59090010112, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=88311406592, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=58978672640, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=31285968896, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=20721569792, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=72079630336, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=84339965952, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=33187663872, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=51550916608, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=65067008000, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=80732762112, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=45017305088, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=53883727872, buflen=4096
+fio: io_u error on file /dev/nvme3n1: Input/output error: write offset=974032896, buflen=4096
+[16509.616882] NVMeVirt: [dm final] policy=mu L=23559648 NB=373 P=67584 submitted=34065688 host=34065573 prog=182513425 (host 34065573 gc 127731646 rmw 0 fold 0 map 20716206 other 0) WAFx1000=5357 reads(host 538 gc 127731646 rmw 0 fold 0 map 20720519) host_read_pages=1076 erases=2046 map_miss=20720519 mem=17702877

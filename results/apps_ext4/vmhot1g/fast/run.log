@@ -1,0 +1,91 @@
+[02:39:31] === vmhot1g_fast_20261005T023931Z -> /home/sejun000/dual_mapping/results/apps_ext4/vmhot1g/fast
+[02:39:31] insmod /home/sejun000/nvmevirt_fast/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params=''
+[02:39:31] target /dev/nvme3n1 (CSL_Virt_MN_01 41.1G)
+[02:39:32] memory cgroup dmapp.slice: MemoryMax=8421M MemoryHigh=7368M (20% of 44153438208 B)
+[02:39:32] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[02:39:33] ext4 capacity (used+avail) 40917221376 B, util 0%
+[02:39:33] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40917221376 B)
+[02:39:33] [filebench] varmail-hot1g: nfiles 1184222 -> 1478946 (auto(50% of 40917221376 B; fixed 1073741824 B, 13107 B/entry)), psrun 600
+[02:40:30] measurement start utilisation=50% (window 47-55)
+case=/home/sejun000/dual_mapping/results/apps_ext4/vmhot1g/fast
+workload=vmhot1g
+policy=fast
+status=DONE
+start_util_pct=50.0869
+end_util_pct=50.0869
+ext4_write_kbytes_delta=512951964
+blk_read_ios=1972
+blk_write_ios=2328730
+blk_read_bytes=511528960
+blk_write_bytes=525262811136
+blk_avg_write_req_kb=220.271
+dev_read_lat_ms_avg=1.79868
+dev_write_lat_ms_avg=6.02166
+write_qd_max=32
+blk_read_lat_us_p50=nan
+blk_read_lat_us_p90=nan
+blk_read_lat_us_p99=nan
+blk_read_lat_us_p99.9=nan
+blk_read_lat_us_p99.99=nan
+blk_write_lat_us_mean=5998.85
+blk_write_lat_us_p50=1221.61
+blk_write_lat_us_p90=6584.67
+blk_write_lat_us_p99=86497.4
+blk_write_lat_us_p99.9=164782
+blk_write_lat_us_p99.99=244155
+app_write_bytes=515748921344
+fs_waf=1.01845
+dev_host_write_pages=128233918
+dev_host_read_pages=120597
+dev_nand_progs=275980592
+dev_waf=2.15217
+dev_waf_gc=1.15217
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=147799221
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=8911
+dev_map_miss=0
+dev_mapping_mem_bytes_end=1750786
+total_waf=2.19187
+memcg_max=8830058496
+memcg_high=7725907968
+memcg_peak=7726170112
+memcg_events_high=9414
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=0
+throughput=11570
+throughput_unit=ops/s
+fb_ops=6942415
+fb_mbps=1652.9
+fb_ms_per_op=1.381
+fb_flowops.closefile3.ops=991769
+fb_flowops.closefile3.avg_ms=0.001
+fb_flowops.closefile3.max_ms=0.06
+fb_flowops.readfile3.ops=991769
+fb_flowops.readfile3.avg_ms=0.085
+fb_flowops.readfile3.max_ms=83.79
+fb_flowops.openfile3.ops=991769
+fb_flowops.openfile3.avg_ms=0.004
+fb_flowops.openfile3.max_ms=0.939
+fb_flowops.closefile2.ops=991769
+fb_flowops.closefile2.avg_ms=0.001
+fb_flowops.closefile2.max_ms=0.02
+fb_flowops.fsyncfile2.ops=991769
+fb_flowops.fsyncfile2.avg_ms=9.406
+fb_flowops.fsyncfile2.max_ms=573.767
+fb_flowops.writefile2.ops=991785
+fb_flowops.writefile2.avg_ms=0.169
+fb_flowops.writefile2.max_ms=161.608
+fb_flowops.openfile2.ops=991785
+fb_flowops.openfile2.avg_ms=0.003
+fb_flowops.openfile2.max_ms=1.168
+app_write_lat_ms_avg=9.406
+app_write_lat_ms_max=573.767
+app_read_lat_ms_avg=0.085
+app_read_lat_ms_max=83.79
+[02:51:11] === vmhot1g_fast_20261005T023931Z status DONE

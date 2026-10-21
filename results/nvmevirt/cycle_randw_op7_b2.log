@@ -1,0 +1,13 @@
+=== fast params=''
+[20843.538439] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[20843.538439] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+randwrite 4K QD32: IOPS=26248 BW=102.5 MiB/s  clat p50=108.0us p99=411.6us p99.9=94896.1us
+device WAF during randwrite = 17.149 (host pages 47038464, NAND programs 806681119)
+=== mu params='cache_bytes=17669736'
+[22687.765241] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB
+[22687.765241] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+randwrite 4K QD32: IOPS=4162 BW=16.3 MiB/s  clat p50=897.0us p99=1056.8us p99.9=147849.2us
+device WAF during randwrite = 23.429 (host pages 47119296, NAND programs 1103961467)
+[34052.680184] NVMeVirt: [dm final] policy=mu L=23559648 NB=373 P=67584 submitted=70678944 host=70678454 prog=1127521624 (host 70678454 gc 713568477 rmw 0 fold 0 map 343274693 other 0) WAFx1000=15952 reads(host 807 gc 713568477 rmw 0 fold 0 map 343279006) host_read_pages=1345 erases=11317 map_miss=343279006 mem=17702877

@@ -1,0 +1,128 @@
+{
+ "case": "/home/sejun000/dual_mapping/results/apps/oltp/dftl",
+ "workload": "oltp",
+ "policy": "dftl",
+ "status": "DONE",
+ "start_util_pct": 50,
+ "end_util_pct": 50,
+ "f2fs_ipu_delta": 11013176,
+ "f2fs_ssr_delta": 0,
+ "f2fs_lfs_delta": 6466234,
+ "f2fs_gc_delta": 0,
+ "blk_read_ios": 499154,
+ "blk_write_ios": 15390947,
+ "blk_read_bytes": 2230722560,
+ "blk_write_bytes": 71667449856,
+ "blk_avg_write_req_kb": 4.547331882826963,
+ "dev_read_lat_ms_avg": 0.6291084514999379,
+ "dev_write_lat_ms_avg": 0.2602874274078132,
+ "write_qd_max": 197,
+ "blk_read_lat_us_mean": 596.5931718930252,
+ "blk_read_lat_us_p50": 110.91091907607817,
+ "blk_read_lat_us_p90": 221.76548042704638,
+ "blk_read_lat_us_p99": 1852.6474576271178,
+ "blk_read_lat_us_p99.9": 87082.42857142995,
+ "blk_read_lat_us_p99.99": 205195.5166666594,
+ "blk_write_lat_us_mean": 263.09655722820645,
+ "blk_write_lat_us_p50": 62.53020334432641,
+ "blk_write_lat_us_p90": 147.39039374752673,
+ "blk_write_lat_us_p99": 287.60774011299605,
+ "blk_write_lat_us_p99.9": 72781.27060653309,
+ "blk_write_lat_us_p99.99": 137765.50487803703,
+ "app_write_bytes": 22604435456,
+ "fs_waf": 3.170503859541291,
+ "dev_host_write_pages": 17482354,
+ "dev_host_read_pages": 538543,
+ "dev_nand_progs": 26841878,
+ "dev_waf": 1.5353697791498788,
+ "dev_waf_gc": 0.5490868678211184,
+ "dev_waf_rmw": 0.0,
+ "dev_waf_fold": 0.0,
+ "dev_waf_map": 0.008160285508461847,
+ "dev_waf_other": 0.0,
+ "dev_nand_reads": 12225124,
+ "dev_map_reads_per_host_page": 0.11582386825694636,
+ "dev_map_reads_per_host_read": 3.8757350852206787,
+ "dev_erases": 653,
+ "dev_map_miss": 8156741,
+ "dev_mapping_mem_bytes_end": 8140797,
+ "total_waf": 4.867895810617751,
+ "memcg_max": 8845787136,
+ "memcg_high": 7739539456,
+ "memcg_peak": 7740289024,
+ "memcg_events_high": 6075,
+ "memcg_events_max": 0,
+ "memcg_events_oom_kill": 0,
+ "memcg_swap_current": 0,
+ "throughput": 36243.255,
+ "throughput_unit": "ops/s",
+ "fb_ops": 21752582,
+ "fb_mbps": 71.7,
+ "fb_ms_per_op": 0.046,
+ "fb_flowops": {
+  "random-rate": {
+   "ops": 0,
+   "avg_ms": 0.0,
+   "max_ms": 0.0
+  },
+  "shadow-post-dbwr": {
+   "ops": 10805000,
+   "avg_ms": 10.76,
+   "max_ms": 286.958
+  },
+  "shadow-post-lg": {
+   "ops": 10805200,
+   "avg_ms": 0.03,
+   "max_ms": 15.979
+  },
+  "shadowhog": {
+   "ops": 10805200,
+   "avg_ms": 0.234,
+   "max_ms": 21.623
+  },
+  "shadowread": {
+   "ops": 10830800,
+   "avg_ms": 0.077,
+   "max_ms": 233.539
+  },
+  "dbwr-aiowait": {
+   "ops": 108047,
+   "avg_ms": 1.253,
+   "max_ms": 20.986
+  },
+  "dbwr-block": {
+   "ops": 108048,
+   "avg_ms": 45.733,
+   "max_ms": 281.168
+  },
+  "dbwr-hog": {
+   "ops": 108057,
+   "avg_ms": 0.01,
+   "max_ms": 4.9
+  },
+  "dbwrite-a": {
+   "ops": 10806980,
+   "avg_ms": 0.003,
+   "max_ms": 23.623
+  },
+  "lg-block": {
+   "ops": 3376,
+   "avg_ms": 177.65,
+   "max_ms": 408.945
+  },
+  "lg-aiowait": {
+   "ops": 3377,
+   "avg_ms": 0.001,
+   "max_ms": 2.246
+  },
+  "lg-write": {
+   "ops": 3378,
+   "avg_ms": 0.013,
+   "max_ms": 3.669
+  }
+ },
+ "app_write_lat_ms_avg": 45.733,
+ "app_write_lat_ms_max": 281.168,
+ "app_read_lat_ms_avg": 0.077,
+ "app_read_lat_ms_max": 233.539
+}

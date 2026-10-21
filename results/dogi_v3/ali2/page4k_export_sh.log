@@ -1,0 +1,34 @@
+[cfg] mode=page4k L=90015232 pages (343.4 GB) NP=96056320 NB=365 P=263168 U=16 OP=0.070 fine_quota=365 blocks (extra=1) T=2 zipf=0.00
+[phase] seq fill
+[trace] /home/sejun000/traces_dm/ali2.csv: 977076849 write pages (3727.3 GiB, 10.85x device), warmup 50.0%
+[verify] ok. fine_valid_pages=0 fine_blocks=363 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 0 1 76 262 24
+[trace] warmup done (488538483 pages), reset stats
+[trace] post-buffer pages before measure: 577075851
+[trace] dense space: 351622 MiB regions (343.4 GiB), device utilization 100.0%
+[verify] ok. fine_valid_pages=0 fine_blocks=363 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 0 0 52 310 1
+[trace] post-buffer total pages: 1064231119
+	Command being timed: "/tmp/claude-1001/-home-sejun000-dual-mapping/64054dd3-9fa1-4be8-986a-b7744c0b8ecf/scratchpad/ftlsim_x/ftlsim_x trace=/home/sejun000/traces_dm/ali2.csv capacity=368702390272 P=263168 op=0.07 mode=page4k tag=page4k out_trace=/mnt/nvme_mounted/dogi_v3_runs/ali2_sh/stream.fifo"
+	User time (seconds): 266.33
+	System time (seconds): 8.28
+	Percent of CPU this job got: 4%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:41:55
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 776772
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 198479
+	Voluntary context switches: 272371
+	Involuntary context switches: 1659
+	Swaps: 0
+	File system inputs: 1129840
+	File system outputs: 40
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

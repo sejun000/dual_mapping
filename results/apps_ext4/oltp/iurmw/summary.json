@@ -1,0 +1,125 @@
+{
+ "case": "/home/sejun000/dual_mapping/results/apps_ext4/oltp/iurmw",
+ "workload": "oltp",
+ "policy": "iurmw",
+ "status": "DONE",
+ "start_util_pct": 49.98948696803758,
+ "end_util_pct": 49.98948696803758,
+ "ext4_write_kbytes_delta": 167179508,
+ "blk_read_ios": 861747,
+ "blk_write_ios": 30015146,
+ "blk_read_bytes": 3895496704,
+ "blk_write_bytes": 171194343424,
+ "blk_avg_write_req_kb": 5.569920466153988,
+ "dev_read_lat_ms_avg": 3.18730207357844,
+ "dev_write_lat_ms_avg": 0.21144508175972224,
+ "write_qd_max": 119,
+ "blk_read_lat_us_mean": 3459.8926001029954,
+ "blk_read_lat_us_p50": 3540.575514475061,
+ "blk_read_lat_us_p90": 5617.88829787234,
+ "blk_read_lat_us_p99": 7136.782101167317,
+ "blk_read_lat_us_p99.9": 8614.173684210615,
+ "blk_read_lat_us_p99.99": 10552.691780821713,
+ "blk_write_lat_us_mean": 216.15174160084746,
+ "blk_write_lat_us_p50": 64.43468688578788,
+ "blk_write_lat_us_p90": 584.57298094135,
+ "blk_write_lat_us_p99": 2146.435320641284,
+ "blk_write_lat_us_p99.9": 4074.224604051663,
+ "blk_write_lat_us_p99.99": 9844.932888878717,
+ "app_write_bytes": 61321451520,
+ "fs_waf": 2.7917529539913932,
+ "dev_host_write_pages": 41785851,
+ "dev_host_read_pages": 948458,
+ "dev_nand_progs": 232641200,
+ "dev_waf": 5.567463493803201,
+ "dev_waf_gc": 0.016401724114700932,
+ "dev_waf_rmw": 4.919730149805972,
+ "dev_waf_fold": 0.0,
+ "dev_waf_map": 0.0,
+ "dev_waf_other": 0.0,
+ "dev_nand_reads": 207208822,
+ "dev_map_reads_per_host_page": 0.0,
+ "dev_map_reads_per_host_read": 0.0,
+ "dev_erases": 7311,
+ "dev_map_miss": 0,
+ "dev_mapping_mem_bytes_end": 2699540,
+ "total_waf": 15.54298265506433,
+ "memcg_max": 8845787136,
+ "memcg_high": 7739539456,
+ "memcg_peak": 7740956672,
+ "memcg_events_high": 9577,
+ "memcg_events_max": 0,
+ "memcg_events_oom_kill": 0,
+ "memcg_swap_current": 3178496,
+ "throughput": 98296.214,
+ "throughput_unit": "ops/s",
+ "fb_ops": 59023538,
+ "fb_mbps": 194.7,
+ "fb_ms_per_op": 0.035,
+ "fb_flowops": {
+  "random-rate": {
+   "ops": 0,
+   "avg_ms": 0.0,
+   "max_ms": 0.0
+  },
+  "shadow-post-dbwr": {
+   "ops": 29342000,
+   "avg_ms": 3.736,
+   "max_ms": 54.309
+  },
+  "shadow-post-lg": {
+   "ops": 29342200,
+   "avg_ms": 0.033,
+   "max_ms": 16.01
+  },
+  "shadowhog": {
+   "ops": 29342200,
+   "avg_ms": 0.248,
+   "max_ms": 22.691
+  },
+  "shadowread": {
+   "ops": 29367800,
+   "avg_ms": 0.067,
+   "max_ms": 95.721
+  },
+  "dbwr-aiowait": {
+   "ops": 293417,
+   "avg_ms": 0.219,
+   "max_ms": 13.363
+  },
+  "dbwr-block": {
+   "ops": 293418,
+   "avg_ms": 17.911,
+   "max_ms": 51.355
+  },
+  "dbwr-hog": {
+   "ops": 293427,
+   "avg_ms": 0.006,
+   "max_ms": 4.575
+  },
+  "dbwrite-a": {
+   "ops": 29343980,
+   "avg_ms": 0.002,
+   "max_ms": 25.916
+  },
+  "lg-block": {
+   "ops": 9169,
+   "avg_ms": 65.469,
+   "max_ms": 164.123
+  },
+  "lg-aiowait": {
+   "ops": 9170,
+   "avg_ms": 0.001,
+   "max_ms": 0.062
+  },
+  "lg-write": {
+   "ops": 9171,
+   "avg_ms": 0.006,
+   "max_ms": 1.145
+  }
+ },
+ "app_write_lat_ms_avg": 17.911,
+ "app_write_lat_ms_max": 51.355,
+ "app_read_lat_ms_avg": 0.067,
+ "app_read_lat_ms_max": 95.721
+}

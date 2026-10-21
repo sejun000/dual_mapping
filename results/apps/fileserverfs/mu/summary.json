@@ -1,0 +1,133 @@
+{
+ "case": "/home/sejun000/dual_mapping/results/apps/fileserverfs/mu",
+ "workload": "fileserverfs",
+ "policy": "mu",
+ "status": "DONE",
+ "start_util_pct": 50,
+ "end_util_pct": 54,
+ "f2fs_ipu_delta": 551096,
+ "f2fs_ssr_delta": 38664458,
+ "f2fs_lfs_delta": 4020950,
+ "f2fs_gc_delta": 0,
+ "blk_read_ios": 24373715,
+ "blk_write_ios": 19229053,
+ "blk_read_bytes": 126506569728,
+ "blk_write_bytes": 178423533568,
+ "blk_avg_write_req_kb": 9.061378737684066,
+ "dev_read_lat_ms_avg": 7.505762088380864,
+ "dev_write_lat_ms_avg": 1.199064925350198,
+ "write_qd_max": 767,
+ "blk_read_lat_us_mean": 7542.133787647303,
+ "blk_read_lat_us_p50": 1788.424025933153,
+ "blk_read_lat_us_p90": 3799.8994215194753,
+ "blk_read_lat_us_p99": 153505.1123595514,
+ "blk_read_lat_us_p99.9": 978946.9166666801,
+ "blk_read_lat_us_p99.99": 1397490.7270753458,
+ "blk_write_lat_us_mean": 1131.819735270752,
+ "blk_write_lat_us_p50": 77.92361401285905,
+ "blk_write_lat_us_p90": 508.4378434302799,
+ "blk_write_lat_us_p99": 2761.194573024738,
+ "blk_write_lat_us_p99.9": 394419.29411771253,
+ "blk_write_lat_us_p99.99": 971949.7025640538,
+ "app_write_bytes": 152853977847,
+ "fs_waf": 1.1672809309980403,
+ "dev_host_write_pages": 43524820,
+ "dev_host_read_pages": 30856752,
+ "dev_nand_progs": 174224104,
+ "dev_waf": 4.002867880901058,
+ "dev_waf_gc": 2.8798439373212803,
+ "dev_waf_rmw": 0.0,
+ "dev_waf_fold": 0.0,
+ "dev_waf_map": 0.12302690740593528,
+ "dev_waf_other": 0.0,
+ "dev_nand_reads": 163864242,
+ "dev_map_reads_per_host_page": 0.10302028841229653,
+ "dev_map_reads_per_host_read": 0.24833498353942113,
+ "dev_erases": 5424,
+ "dev_map_miss": 7662811,
+ "dev_mapping_mem_bytes_end": 8131761,
+ "total_waf": 4.672471346680339,
+ "memcg_max": 8845787136,
+ "memcg_high": 7739539456,
+ "memcg_peak": 7748505600,
+ "memcg_events_high": 139067,
+ "memcg_events_max": 0,
+ "memcg_events_oom_kill": 0,
+ "memcg_swap_current": 0,
+ "throughput": 25065.644,
+ "throughput_unit": "ops/s",
+ "fb_ops": 15040343,
+ "fb_mbps": 510.0,
+ "fb_ms_per_op": 1.986,
+ "fb_flowops": {
+  "statfile1": {
+   "ops": 1156925,
+   "avg_ms": 0.031,
+   "max_ms": 33.293
+  },
+  "deletefile1": {
+   "ops": 1156925,
+   "avg_ms": 0.997,
+   "max_ms": 1277.008
+  },
+  "closefile3": {
+   "ops": 1156925,
+   "avg_ms": 0.001,
+   "max_ms": 0.045
+  },
+  "readfile1": {
+   "ops": 1156925,
+   "avg_ms": 5.327,
+   "max_ms": 1744.004
+  },
+  "openfile2": {
+   "ops": 1156942,
+   "avg_ms": 0.037,
+   "max_ms": 33.373
+  },
+  "closefile2": {
+   "ops": 1156942,
+   "avg_ms": 0.001,
+   "max_ms": 7.999
+  },
+  "fsyncappend1": {
+   "ops": 1156942,
+   "avg_ms": 2.926,
+   "max_ms": 1737.159
+  },
+  "appendfilerand1": {
+   "ops": 1156942,
+   "avg_ms": 3.798,
+   "max_ms": 1692.228
+  },
+  "openfile1": {
+   "ops": 1156975,
+   "avg_ms": 0.038,
+   "max_ms": 33.178
+  },
+  "closefile1": {
+   "ops": 1156975,
+   "avg_ms": 0.002,
+   "max_ms": 26.402
+  },
+  "fsyncfile1": {
+   "ops": 1156975,
+   "avg_ms": 12.515,
+   "max_ms": 1738.574
+  },
+  "wrtfile1": {
+   "ops": 1156975,
+   "avg_ms": 0.098,
+   "max_ms": 743.733
+  },
+  "createfile1": {
+   "ops": 1156975,
+   "avg_ms": 0.041,
+   "max_ms": 1145.288
+  }
+ },
+ "app_write_lat_ms_avg": 7.720568376912396,
+ "app_write_lat_ms_max": 1738.574,
+ "app_read_lat_ms_avg": 5.327,
+ "app_read_lat_ms_max": 1744.004
+}

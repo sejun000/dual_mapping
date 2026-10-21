@@ -1,0 +1,10 @@
+[cfg] cuckoo2 fine table: 4936122 buckets x 4 = 19744488 entries (150.64 MiB), budget 0.1875 of page map
+[cfg] mode=proposed L=631823616 pages (2410.2 GB) NP=675384320 NB=365 P=1850368 U=8 OP=0.070 fine_quota=15 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[trace] /home/sejun000/traces_dm/ali3.csv: 2213218202 write pages (8442.8 GiB, 3.50x device), warmup 50.0%
+[verify] ok. fine_valid_pages=850622 fine_blocks=2 coarse_blocks=361 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 2 0 1 0 4 16 52 162 125
+[trace] warmup done (1106609202 pages), reset stats
+[trace] dense space: 2468061 MiB regions (2410.2 GiB), device utilization 100.0%
+[verify] ok. fine_valid_pages=1188222 fine_blocks=3 coarse_blocks=360 free=2
+[verify] block valid histogram (deciles 0..100%): 1 0 1 2 0 1 1 4 37 305 11

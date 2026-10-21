@@ -1,0 +1,43 @@
+=== page4k params=''
+[316599.967983] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[316599.967983] NVMeVirt: dm_ftl policy=page4k params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=   65404  p50=   123.4us  p99=    362.5us  p99.9=    448.5us  max=   943.5ms
+write: IOPS=   65419  p50=    60.2us  p99=    166.9us  p99.9=    252.9us  max=    82.0ms
+device: WAF=4.874  map reads per host read+write page=0.000  map programs per host write page=0.000
+=== proposed params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[317575.165780] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[317575.165780] NVMeVirt: dm_ftl policy=proposed params="U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=   53284  p50=   124.4us  p99=    383.0us  p99.9=    561.2us  max= 28097.2ms
+write: IOPS=   53268  p50=    59.6us  p99=    189.4us  p99.9=    329.7us  max=   969.4ms
+device: WAF=6.688  map reads per host read+write page=0.000  map programs per host write page=0.000
+=== dftl params='cache_bytes=17669736,dftl_tpbuf=1'
+[318627.335761] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=17669736,dftl_tpbuf=1": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[318627.335761] NVMeVirt: dm_ftl policy=dftl params="cache_bytes=17669736,dftl_tpbuf=1": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=   34844  p50=   160.8us  p99=    741.4us  p99.9=   1044.5us  max=  3310.0ms
+write: IOPS=   34836  p50=    31.4us  p99=    158.7us  p99.9=    252.9us  max=    94.9ms
+device: WAF=5.337  map reads per host read+write page=0.443  map programs per host write page=0.449
+=== leaftl params='cache_bytes=17669736'
+[319848.487266] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[319848.487266] NVMeVirt: dm_ftl policy=leaftl params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=   14579  p50=   391.2us  p99=  13172.7us  p99.9=  20054.0us  max=  4434.4ms
+write: IOPS=   14574  p50=   321.5us  p99=   1400.8us  p99.9=   1761.3us  max=   892.9ms
+device: WAF=6.259  map reads per host read+write page=0.768  map programs per host write page=1.340
+=== fast params=''
+[321405.555079] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[321405.555079] NVMeVirt: dm_ftl policy=fast params="": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=   33270  p50=   116.2us  p99=    366.6us  p99.9=    569.3us  max= 32558.9ms
+write: IOPS=   33254  p50=    50.4us  p99=    185.3us  p99.9=    342.0us  max=   877.9ms
+device: WAF=12.871  map reads per host read+write page=0.000  map programs per host write page=0.000
+=== mu params='cache_bytes=17669736'
+[322772.484428] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 89 GiB; zipf:0.99 read=50% QD32 4K; warm writes 1.0x; measure 600s
+[322772.484428] NVMeVirt: dm_ftl policy=mu params="cache_bytes=17669736": NB=373 lines x P=67584 pages, logical 23559648 pages (92029 MiB), physical 98472 MiB
+read : IOPS=   11957  p50=   411.6us  p99=   1237.0us  p99.9=   1646.6us  max= 16898.2ms
+write: IOPS=   11945  p50=    25.5us  p99=    272.4us  p99.9=    321.5us  max=   419.4ms
+device: WAF=18.183  map reads per host read+write page=1.351  map programs per host write page=2.208
+[324561.937356] NVMeVirt: [dm final] policy=mu L=23559648 NB=373 P=67584 submitted=54300749 host=47396582 prog=464536182 (host 47396582 gc 375356901 rmw 0 fold 0 map 41782699 other 0) WAFx1000=8554 reads(host 23839002 gc 375356901 rmw 0 fold 0 map 54694278) host_read_pages=30747000 erases=5930 map_miss=54694278 mem=17702877

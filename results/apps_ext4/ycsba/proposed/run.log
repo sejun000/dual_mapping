@@ -1,0 +1,88 @@
+[06:43:53] === ycsba_proposed_20261005T064353Z -> /home/sejun000/dual_mapping/results/apps_ext4/ycsba/proposed
+[06:43:53] insmod /home/sejun000/nvmevirt_proposed/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500'
+[06:43:53] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[06:43:54] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[06:43:54] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[06:43:54] ext4 capacity (used+avail) 40987148288 B, util 0%
+[06:43:54] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[06:43:55] [ycsb] 16 instances x (records=625000 threads=20 workloada)
+[06:46:01] [ballast] writing 1433 MiB to reach ~76% (pending 0 MiB)
+[06:46:03] [ballast] df util now 75%
+[06:46:14] measurement start utilisation=76% (window 73-85)
+[06:46:14] [ycsb] run 600s, 16 x 20 threads
+case=/home/sejun000/dual_mapping/results/apps_ext4/ycsba/proposed
+workload=ycsba
+policy=proposed
+status=DONE
+start_util_pct=76.0012
+end_util_pct=73.7257
+ext4_write_kbytes_delta=190114596
+blk_read_ios=14195911
+blk_write_ios=14884769
+blk_read_bytes=205672869888
+blk_write_bytes=194673356800
+blk_avg_write_req_kb=12.7722
+dev_read_lat_ms_avg=7.18762
+dev_write_lat_ms_avg=6.64586
+write_qd_max=441
+blk_read_lat_us_mean=7284.96
+blk_read_lat_us_p50=1633.68
+blk_read_lat_us_p90=3540.62
+blk_read_lat_us_p99=238965
+blk_read_lat_us_p99.9=579566
+blk_read_lat_us_p99.99=1.02364e+06
+blk_write_lat_us_mean=6695.91
+blk_write_lat_us_p50=268.6
+blk_write_lat_us_p90=3003.44
+blk_write_lat_us_p99=265186
+blk_write_lat_us_p99.9=586084
+blk_write_lat_us_p99.99=1.00294e+06
+app_write_bytes=194377755136
+fs_waf=1.00152
+dev_host_write_pages=47547431
+dev_host_read_pages=50212661
+dev_nand_progs=224237755
+dev_waf=4.71609
+dev_waf_gc=2.55175
+dev_waf_rmw=0.0945259
+dev_waf_fold=1.17191
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=232059546
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=7682
+dev_map_miss=0
+dev_mapping_mem_bytes_end=8098612
+total_waf=4.72326
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7746285568
+memcg_events_high=126813
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=236404736
+throughput=32640.1
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=9.79373e+06
+ycsb_ops.READ.avg_us=4087.04
+ycsb_ops.READ.p50_us=821.688
+ycsb_ops.READ.p90_us=3117.25
+ycsb_ops.READ.p95_us=4087
+ycsb_ops.READ.p99_us=36633.8
+ycsb_ops.READ.p99.9_us=541183
+ycsb_ops.READ.max_us=4.38682e+06
+ycsb_ops.UPDATE.ops=9.80015e+06
+ycsb_ops.UPDATE.avg_us=15484.8
+ycsb_ops.UPDATE.p50_us=2484.88
+ycsb_ops.UPDATE.p90_us=10368.5
+ycsb_ops.UPDATE.p95_us=31132
+ycsb_ops.UPDATE.p99_us=479007
+ycsb_ops.UPDATE.p99.9_us=729087
+ycsb_ops.UPDATE.max_us=4.4032e+06
+app_write_lat_ms_avg=15.4848
+app_write_lat_ms_p99=479.007
+app_read_lat_ms_avg=4.08704
+app_read_lat_ms_p99=36.6337
+[06:57:18] === ycsba_proposed_20261005T064353Z status DONE

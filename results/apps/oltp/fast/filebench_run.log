@@ -1,0 +1,38 @@
+Running as unit: dmapp-filebench-980675.service
+Filebench Version 1.5-alpha3
+0.000: Allocated 329MB of shared memory
+0.000: Failed to open cvar directory around line 1
+0.001: OLTP 75% Version 3.0 latency profile
+0.001: Populating and pre-allocating filesets
+0.001: logfile populated: 1 files, avg. dir. width = 1024, avg. dir. depth = 0.0, 0 leafdirs, 10.000MB total size
+0.001: Removing logfile tree (if exists)
+0.004: Pre-allocating directories in logfile tree
+0.004: Pre-allocating files in logfile tree
+0.008: datafiles populated: 1930 files, avg. dir. width = 1024, avg. dir. depth = 1.1, 0 leafdirs, 19300.000MB total size
+0.008: Removing datafiles tree (if exists)
+0.009: Pre-allocating directories in datafiles tree
+0.009: Pre-allocating files in datafiles tree
+8.905: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+8.905: Population and pre-allocation of filesets completed
+10.221: prefill sync and cache drop done
+10.221: Attempting to create fileset more than once, ignoring
+10.221: Starting 200 shadow instances
+10.268: Starting 10 dbwr instances
+10.270: Starting 1 lgwr instances
+11.271: Running...
+611.437: Run took 600 seconds...
+611.445: Per-Operation Breakdown
+random-rate          0ops        0ops/s   0.0mb/s    0.000ms/op [0.000ms - 0.000ms]
+shadow-post-dbwr     9275000ops    15454ops/s   0.0mb/s   12.393ms/op [0.007ms - 5342.324ms]
+shadow-post-lg       9275200ops    15454ops/s   0.0mb/s    0.032ms/op [0.001ms - 27.689ms]
+shadowhog            9275200ops    15454ops/s   0.0mb/s    0.227ms/op [0.060ms - 26.257ms]
+shadowread           9300800ops    15497ops/s  30.2mb/s    0.280ms/op [0.001ms - 5315.352ms]
+dbwr-aiowait         92746ops      155ops/s   0.0mb/s    1.487ms/op [0.002ms - 24.458ms]
+dbwr-block           92748ops      155ops/s   0.0mb/s   53.009ms/op [0.001ms - 5339.679ms]
+dbwr-hog             92756ops      155ops/s   0.0mb/s    0.011ms/op [0.003ms - 9.691ms]
+dbwrite-a            9276880ops    15457ops/s  30.2mb/s    0.004ms/op [0.000ms - 47.052ms]
+lg-block             2898ops        5ops/s   0.0mb/s  207.021ms/op [14.262ms - 5618.302ms]
+lg-aiowait           2899ops        5ops/s   0.0mb/s    0.001ms/op [0.001ms - 0.013ms]
+lg-write             2900ops        5ops/s   1.2mb/s    0.019ms/op [0.001ms - 4.017ms]
+611.445: IO Summary: 18676225 ops 31118.450 ops/s 15497/15462 rd/wr  61.6mb/s 0.149ms/op
+611.445: Shutting down processes

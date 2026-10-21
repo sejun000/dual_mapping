@@ -1,0 +1,22 @@
+ capacity |       page4k |  prop 18.75% |       coarse |       cuckoo | +bitmap 4B/IU |  DFTL 18.75% | LeaFTL 18.75% |   IU+RMW U16 |   IU+RMW U32
+--------------------------------------------------------------------------------------------------------------------------------------------------
+    1 TiB |     1.00 GiB |    192.0 MiB |     64.0 MiB |    128.0 MiB |      64.0 MiB |    193.0 MiB |     196.0 MiB |     64.0 MiB |     32.0 MiB
+    4 TiB |     4.00 GiB |    768.0 MiB |    256.0 MiB |    512.0 MiB |     256.0 MiB |    772.0 MiB |     784.0 MiB |    256.0 MiB |    128.0 MiB
+   16 TiB |    16.00 GiB [20.00 GiB] |     3.00 GiB |     1.00 GiB |     2.00 GiB |      1.00 GiB |     3.02 GiB |      3.06 GiB |     1.00 GiB |    512.0 MiB
+   64 TiB |    64.00 GiB [80.00 GiB] |    12.00 GiB |     4.00 GiB |     8.00 GiB |      4.00 GiB |    12.06 GiB |     12.25 GiB |     4.00 GiB |     2.00 GiB
+
+Per logical TiB at other operating points (fraction of the 4 B page map):
+  U= 8 budget 18.75%: coarse 12.50% + table  6.25% =  192.0 MiB/TiB; table holds  3.12% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U= 8 budget 25.00%: coarse 12.50% + table 12.50% =  256.0 MiB/TiB; table holds  6.25% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U= 8 budget 37.50%: coarse 12.50% + table 25.00% =  384.0 MiB/TiB; table holds 12.50% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=16 budget 10.00%: coarse  6.25% + table  3.75% =  102.4 MiB/TiB; table holds  1.88% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=16 budget 12.50%: coarse  6.25% + table  6.25% =  128.0 MiB/TiB; table holds  3.12% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=16 budget 18.75%: coarse  6.25% + table 12.50% =  192.0 MiB/TiB; table holds  6.25% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=16 budget 25.00%: coarse  6.25% + table 18.75% =  256.0 MiB/TiB; table holds  9.38% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=16 budget 37.50%: coarse  6.25% + table 31.25% =  384.0 MiB/TiB; table holds 15.62% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=32 budget  6.25%: coarse  3.12% + table  3.12% =   64.0 MiB/TiB; table holds  1.56% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=32 budget 10.00%: coarse  3.12% + table  6.88% =  102.4 MiB/TiB; table holds  3.44% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=32 budget 12.50%: coarse  3.12% + table  9.38% =  128.0 MiB/TiB; table holds  4.69% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=32 budget 18.75%: coarse  3.12% + table 15.62% =  192.0 MiB/TiB; table holds  7.81% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=32 budget 25.00%: coarse  3.12% + table 21.88% =  256.0 MiB/TiB; table holds 10.94% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)
+  U=32 budget 37.50%: coarse  3.12% + table 34.38% =  384.0 MiB/TiB; table holds 17.19% of L as 4 KiB entries (fine pool at fine_quota 0.0429: 4.59% of L)

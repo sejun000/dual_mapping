@@ -1,0 +1,31 @@
+Running as unit: dmapp-filebench-3517216.service
+Filebench Version 1.5-alpha3
+0.000: Allocated 329MB of shared memory
+0.000: Failed to open cvar directory around line 1
+0.001: Varmail hot-mailbox (1GB fixed active set, in-place rewrite) loaded
+0.001: Populating and pre-allocating filesets
+0.002: hotset populated: 2048 files, avg. dir. width = 128, avg. dir. depth = 1.6, 0 leafdirs, 1024.000MB total size
+0.002: Removing hotset tree (if exists)
+0.004: Pre-allocating directories in hotset tree
+0.005: Pre-allocating files in hotset tree
+0.942: bigfileset populated: 1478946 files, avg. dir. width = 1000000, avg. dir. depth = 1.0, 0 leafdirs, 23108.531MB total size
+0.942: Removing bigfileset tree (if exists)
+0.943: Pre-allocating directories in bigfileset tree
+0.943: Pre-allocating files in bigfileset tree
+44.910: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+44.910: Population and pre-allocation of filesets completed
+48.804: prefill sync and cache drop done
+48.804: Attempting to create fileset more than once, ignoring
+48.804: Starting 1 filereader instances
+49.807: Running...
+649.841: Run took 600 seconds...
+649.842: Per-Operation Breakdown
+closefile3           991769ops     1653ops/s   0.0mb/s    0.001ms/op [0.000ms - 0.060ms]
+readfile3            991769ops     1653ops/s 826.4mb/s    0.085ms/op [0.054ms - 83.790ms]
+openfile3            991769ops     1653ops/s   0.0mb/s    0.004ms/op [0.002ms - 0.939ms]
+closefile2           991769ops     1653ops/s   0.0mb/s    0.001ms/op [0.001ms - 0.020ms]
+fsyncfile2           991769ops     1653ops/s   0.0mb/s    9.406ms/op [0.260ms - 573.767ms]
+writefile2           991785ops     1653ops/s 826.4mb/s    0.169ms/op [0.103ms - 161.608ms]
+openfile2            991785ops     1653ops/s   0.0mb/s    0.003ms/op [0.002ms - 1.168ms]
+649.842: IO Summary: 6942415 ops 11570.029 ops/s 1653/1653 rd/wr 1652.9mb/s 1.381ms/op
+649.842: Shutting down processes

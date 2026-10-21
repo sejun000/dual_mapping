@@ -1,0 +1,21 @@
+[2026-10-08 07:42:07] q_capture start (pid 3307301)
+[2026-10-08 07:42:07] B18 file: 8098620
+[2026-10-08 19:57:09] q_main3.sh has exited
+[2026-10-08 19:57:09] device idle; free space on /mnt/nvme_mounted: 1.2T
+[2026-10-08 19:57:09] run_all start: ycsbb_d_t64 ycsba_d_t64 ycsbfstd_d_t64 fio_randwrite_d fileserverfs tpcc_d_t64 (page4k, CAPTURE_BLKTRACE=1)
+[2026-10-08 21:05:36] run_all exit 0
+[2026-10-08 21:05:36] ycsbb_d_t64: case STATUS DONE; converting /mnt/nvme_mounted/dm_apptrace/ycsbb_d_t64 (4.6G)
+[2026-10-08 21:05:52] ycsbb_d_t64: blk2csv exit 0; write_pages 100278470 read_pages 181577391 warmup_write_pages 38066442 prefill_done_write_pages None dropped 0 markers ['dm_blkcap_start', 'dm_measure_start', 'dm_measure_end']
+[2026-10-08 21:05:52] ycsba_d_t64: case STATUS DONE; converting /mnt/nvme_mounted/dm_apptrace/ycsba_d_t64 (3.6G)
+[2026-10-08 21:06:05] ycsba_d_t64: blk2csv exit 0; write_pages 182438845 read_pages 102295732 warmup_write_pages 38067036 prefill_done_write_pages None dropped 0 markers ['dm_blkcap_start', 'dm_measure_start', 'dm_measure_end']
+[2026-10-08 21:06:05] ycsbfstd_d_t64: case STATUS DONE; converting /mnt/nvme_mounted/dm_apptrace/ycsbfstd_d_t64 (3.5G)
+[2026-10-08 21:06:18] ycsbfstd_d_t64: blk2csv exit 0; write_pages 178860998 read_pages 98298713 warmup_write_pages 38072228 prefill_done_write_pages None dropped 0 markers ['dm_blkcap_start', 'dm_measure_start', 'dm_measure_end']
+[2026-10-08 21:06:18] fio_randwrite_d: case STATUS DONE; converting /mnt/nvme_mounted/dm_apptrace/fio_randwrite_d (2.5G)
+[2026-10-08 21:06:25] fio_randwrite_d: blk2csv exit 0; write_pages 69140390 read_pages 307 warmup_write_pages 235673 prefill_done_write_pages 8100587 dropped 0 markers ['dm_blkcap_start', 'dm_measure_start', 'dm_measure_prefill_done', 'dm_measure_end']
+[2026-10-08 21:06:25] fileserverfs: case STATUS DONE; converting /mnt/nvme_mounted/dm_apptrace/fileserverfs (667M)
+[2026-10-08 21:06:27] fileserverfs: blk2csv exit 0; write_pages 126099950 read_pages 71078276 warmup_write_pages 5397209 prefill_done_write_pages None dropped 0 markers ['dm_blkcap_start', 'dm_measure_start', 'dm_measure_end']
+[2026-10-08 21:06:27] tpcc_d_t64: case STATUS DONE; converting /mnt/nvme_mounted/dm_apptrace/tpcc_d_t64 (828M)
+[2026-10-08 21:06:30] tpcc_d_t64: blk2csv exit 0; write_pages 49504586 read_pages 17672987 warmup_write_pages 11387008 prefill_done_write_pages None dropped 0 markers ['dm_blkcap_start', 'dm_measure_start', 'dm_measure_end']
+[2026-10-08 21:06:30] tools/apps_trace_sim.sh /mnt/nvme_mounted/dm_apptrace start
+[2026-10-08 21:12:20] tools/apps_trace_sim.sh exit 0
+[2026-10-08 21:12:20] q_capture done

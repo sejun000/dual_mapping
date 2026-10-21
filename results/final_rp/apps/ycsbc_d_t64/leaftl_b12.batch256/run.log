@@ -1,0 +1,49 @@
+[13:26:03] === ycsbc_d_t64_leaftl_b12_20261018T132603Z -> /home/sejun000/dual_mapping/results/final_rp/apps/ycsbc_d_t64/leaftl_b12
+[13:26:03] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=5399080,leaftl_batch=256'
+[13:26:04] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[13:26:04] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[13:26:04] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44229263360 B) before mkfs
+[13:26:25] [prefill] done in 21 s
+[13:26:25] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[13:26:25] ext4 capacity (used+avail) 40987148288 B, util 0%
+[13:26:25] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[13:26:25] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[13:28:40] [ballast] writing 7741 MiB to reach ~76% (pending 0 MiB)
+[13:28:58] [ballast] df util now 75%
+[13:29:11] measurement start utilisation=75% (window 73-85)
+[13:29:11] [ycsb] run 600s, 16 x 4 threads
+[13:33:25] [FATAL] signal
+[13:33:29] stopping leftovers in dmapp.slice
+1163991 ycsb.sh dmapp.slice/run-rabfd6e8c768b4253a2de127d200ffa35.scope/cgroup.procs
+1164310 java dmapp.slice/run-rabfd6e8c768b4253a2de127d200ffa35.scope/cgroup.procs
+1163984 ycsb.sh dmapp.slice/run-rbc1d913fdf6c46e7970462e99bbe7dce.scope/cgroup.procs
+1164308 java dmapp.slice/run-rbc1d913fdf6c46e7970462e99bbe7dce.scope/cgroup.procs
+1163983 ycsb.sh dmapp.slice/run-r4af63f1decb242539f5ce7ef5eb4effb.scope/cgroup.procs
+1164306 java dmapp.slice/run-r4af63f1decb242539f5ce7ef5eb4effb.scope/cgroup.procs
+1163996 ycsb.sh dmapp.slice/run-ra24d1f0201bd4359a2d017425748e527.scope/cgroup.procs
+1164303 java dmapp.slice/run-ra24d1f0201bd4359a2d017425748e527.scope/cgroup.procs
+1163989 ycsb.sh dmapp.slice/run-raedb0d300d8b4c878ebe4f5d0dd0a513.scope/cgroup.procs
+1164313 java dmapp.slice/run-raedb0d300d8b4c878ebe4f5d0dd0a513.scope/cgroup.procs
+1163997 ycsb.sh dmapp.slice/run-r334f8e36dacc4aa696fb426f9c9426f4.scope/cgroup.procs
+1164305 java dmapp.slice/run-r334f8e36dacc4aa696fb426f9c9426f4.scope/cgroup.procs
+1163995 ycsb.sh dmapp.slice/run-rf289a32a723641bfaac3d50a999cfb94.scope/cgroup.procs
+1164316 java dmapp.slice/run-rf289a32a723641bfaac3d50a999cfb94.scope/cgroup.procs
+1163986 ycsb.sh dmapp.slice/run-r74c69d1cd1074d0f8dbdbfaca334e400.scope/cgroup.procs
+1164315 java dmapp.slice/run-r74c69d1cd1074d0f8dbdbfaca334e400.scope/cgroup.procs
+1163985 ycsb.sh dmapp.slice/run-r2889ea68962944f38a85545cb4ff37ff.scope/cgroup.procs
+1164317 java dmapp.slice/run-r2889ea68962944f38a85545cb4ff37ff.scope/cgroup.procs
+1164013 ycsb.sh dmapp.slice/run-rc06ce3f3916346689be1d9d94ecb1460.scope/cgroup.procs
+1164307 java dmapp.slice/run-rc06ce3f3916346689be1d9d94ecb1460.scope/cgroup.procs
+1163993 ycsb.sh dmapp.slice/run-r9c907623044b4a31b6d12261c7c8fcb7.scope/cgroup.procs
+1164314 java dmapp.slice/run-r9c907623044b4a31b6d12261c7c8fcb7.scope/cgroup.procs
+1163988 ycsb.sh dmapp.slice/run-r7792a2b9c59647698bd1a437894aafda.scope/cgroup.procs
+1164309 java dmapp.slice/run-r7792a2b9c59647698bd1a437894aafda.scope/cgroup.procs
+1163994 ycsb.sh dmapp.slice/run-r10084186014d4971a3edfdb42d947dfd.scope/cgroup.procs
+1164318 java dmapp.slice/run-r10084186014d4971a3edfdb42d947dfd.scope/cgroup.procs
+1163990 ycsb.sh dmapp.slice/run-rd2c8f220464848cd858d9464b16f05d8.scope/cgroup.procs
+1164311 java dmapp.slice/run-rd2c8f220464848cd858d9464b16f05d8.scope/cgroup.procs
+1163987 ycsb.sh dmapp.slice/run-r9e69db3940a14eeabba2caf2287503fc.scope/cgroup.procs
+1164304 java dmapp.slice/run-r9e69db3940a14eeabba2caf2287503fc.scope/cgroup.procs
+1163992 ycsb.sh dmapp.slice/run-r5aae24e339b14ba5860c079c7715fe21.scope/cgroup.procs
+1164312 java dmapp.slice/run-r5aae24e339b14ba5860c079c7715fe21.scope/cgroup.procs
+[13:33:33] === ycsbc_d_t64_leaftl_b12_20261018T132603Z status FAILED:signal

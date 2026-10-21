@@ -1,0 +1,19 @@
+workload           WAF |  vict   min   cbV  chnk | old1L   hot cold0 |  frag  refC  cpIU |  fexHi  fexRf fexFo | fineB fragL spare
+ycsba_d_t64      6.728 | 0.855 0.813 0.866 0.926 | 0.195 0.363 0.116 | 0.312  1.65  70.5 |  0.006  0.792 0.154 |  17.4 0.035  24.4
+ycsbb_d_t64      6.376 | 0.855 0.808 0.863 0.931 | 0.233 0.390 0.121 | 0.336  1.66  28.6 |  0.003  0.748 0.125 |  16.8 0.034  24.4
+ycsbfstd_d_t64   6.784 | 0.858 0.820 0.870 0.929 | 0.193 0.360 0.113 | 0.307  1.65  69.9 |  0.005  0.806 0.142 |  17.4 0.035  24.4
+tpcc_d_t64       2.763 | 0.737 0.631 0.737 0.788 | 0.342 0.268 0.154 | 0.225  0.42   6.6 |  0.004  0.464 0.389 |  11.4 0.023  24.4
+fio_randwrite_d 11.214 | 0.870 0.870 0.910 0.973 | 0.016 0.926 0.015 | 0.801  7.01  49.3 |  0.000  0.932 0.049 |  18.6 0.038  24.4
+fileserverfs     5.697 | 0.809 0.768 0.814 0.818 | 0.459 0.245 0.039 | 0.067  0.30  50.3 |  0.000  0.591 0.375 |   2.2 0.004  24.4
+ali3             3.358 | 0.766 0.633 0.766 0.768 | 0.568 0.181 0.287 | 0.016  0.04   3.9 |  0.000  0.059 0.121 |   2.3 0.002  24.4
+spfresh         14.026 | 0.889 0.889 0.892 0.972 | 0.003 0.866 0.002 | 0.747  7.98  15.0 |  0.000  0.948 0.052 |  18.4 0.041  24.3
+ali1             3.985 | 0.789 0.656 0.789 0.792 | 0.695 0.181 0.183 | 0.008  0.02  12.4 |  0.000  0.039 0.064 |   2.3 0.002  24.3
+ssd              5.718 | 0.826 0.736 0.826 0.826 | 0.555 0.162 0.244 | 0.000  0.00  12.2 |  0.000  0.133 0.000 |   2.0 0.001  24.4
+
+vict/min/cbV: mean valid fraction of the chosen coarse victim / of the min-valid (greedy) block / of the cb choice, at each coarse GC
+chnk: coarse GC programs per victim / P (live chunk pages incl. the fragments a refold rewrites)
+old1L: share of GC-relocated chunks whose IU was not host-written for >= 1 device write (L host pages); hot: < L/8
+cold0: share of relocations spent on IUs never host-written during the whole measurement
+frag: share of coarse GC programs that are refolds; refC: refold programs per submitted host page; cpIU: GC relocations per IU in the measurement
+fexHi/fexRf/fexFo: fine pages retired by host full-IU writes / refold / fold (rest: host 4K overwrite)
+fineB: mean fine blocks; fragL: mean fine-resident pages / L (double occupancy); spare: NB - L/P blocks

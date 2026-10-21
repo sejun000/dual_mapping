@@ -1,0 +1,170 @@
+DOGI (Kim et al., FAST'26) on the V3 matrix -- artifact port third_party/dogi_port, online ML (PyTorch in ~/venv).
+Stream: ftlsim (private copy of the current source with a MARK line at the measurement reset; mode=page4k, same
+arguments as the reference runs) exports its post-buffer host stream (after the 1 MiB IU-coalescing write buffer,
+one line per 4K page) into a FIFO that DOGI consumes live. Check: the export run reproduces the reference page4k
+WAF and host_pages_ftl exactly, and DOGI's user writes after MARK == host_pages_ftl (section 3).
+WAF = (DOGI user + GC programs after MARK) / host pages submitted in the window (export json host_pages).
+Segment = ftlsim block (P pages, binary built per P); DOGI_LOGICAL_BYTES = L*4096, OP = NB*P/L - 1.
+
+DOGI      = equal physical space: at most NB segments hold data (sealed + open + GC victim), GC while free <= 2,
+            host stalls meanwhile (foreground GC). Dead-end guard only: if the DogiSelect pick comes from its cost-
+            benefit pool and is fully valid (the whole pool is valid, BIR groups not yet expired, and the BIR clock --
+            host writes -- is frozen during GC), take the sealed segment with the most invalid pages; the artifact
+            would relocate full segments forever there. Mean over runs [min..max] n (unguarded completed runs and
+            dead-end-guard runs; DOGI is multi-threaded and its BIR/ML feedback is chaotic -> large run-to-run spread).
+DOGI+     = same, but NEVER collects a fully-valid victim (also overrides fully-valid expired-BIR picks, which DOGI
+            relocates by design) -> an optimistic, stronger-than-published DOGI; use the better of the two when
+            claiming wins (best/... columns).
+DOGI-gp   = artifact accounting: GC when garbage of SEALED segments > OP/(1+OP); its 6 open segments are outside
+            the budget (peak footprint NB+5..7, i.e. ~+25% OP), dead-end guard. Closest to the published setup;
+            NOT equal space. ! = GC without progress (window WAF > 50 or footprint > NB+8).
+Common port changes: synchronous model hand-off (stream pauses while PyTorch trains, so the model applies at the
+stream position where collection ended -- favours DOGI, no adaptation lag); after the 400k-sample phase every
+follow-up write is logged as a true-LBA record (artifact: hot-path only, so low-hot workloads -- uniform, large-
+segment traces -- never finished collecting and never trained); per-LBA tables sized to the device.
+
+== 1. Full-device workloads, OP 7% (results/op7b geometry and stream; refs from results/op7b, DRAM-limited
+      baselines at the 18.75% budget). Full traces for all workloads (no sampled traces needed).
+workload            DOGI          range n   DOGI+          range n  DOGI-gp  page4k      V3    DFTL  LeaFTL  SepBIT best/p4k  best/V3  ML (faithful runs)
+z0                10.302 [10.29..10.31] 3  10.327 [10.30..10.36] 2    9.779   8.746  13.310   9.348   8.817  13.546   +17.8%   -22.6%  ML; trainings 10-10
+z0.8              25.306 [20.15..27.90] 3  31.895 [30.84..32.95] 2   14.728   8.525   9.294   8.901   8.518  10.557  +196.8%  +172.3%  ML; trainings 9-9
+z0.99              8.920  [6.36..12.73] 5   6.699   [6.23..7.17] 2    4.637   5.986   5.937   6.154   5.930   6.373   +11.9%   +12.8%  ML; trainings 7-7
+z1.2               2.082   [2.06..2.12] 4   2.000   [1.95..2.05] 2    1.636   3.089   2.506   3.130   3.101   2.428   -35.3%   -20.2%  ML; trainings 3-4
+ali1               9.003                1   5.377                1    7.526   5.436   4.289   5.467   5.588   5.380    -1.1%   +25.4%  ML; trainings 30-30
+ali2              17.410                1   6.819                1   35.754   6.653   5.759   6.689   6.700   7.720    +2.5%   +18.4%  ML; trainings 64-64
+ali3               3.019   [3.01..3.03] 2   3.113                1    2.848   3.967   3.293   3.972   3.833   3.794   -23.9%    -8.3%  ML; trainings 81-81
+ssd                5.855   [5.84..5.87] 2   5.865                1    5.096   6.032   5.836   6.040   6.104   7.244    -2.9%    +0.3%  ML; trainings 34-34
+kv_w1              3.799   [3.80..3.80] 3   3.799                1    3.489   3.343   3.687   3.349   3.251   4.055   +13.6%    +3.0%  ML; trainings 11-11
+spfresh            5.726   [5.72..5.73] 3   7.741   [7.74..7.74] 2   73.475!  7.746  14.333   9.745  11.424   7.903   -26.1%   -60.0%  ML-mid-window; trainings 1-1
+
+== 2. Captured application traces, aged (full seq fill, identity addresses, NVMeVirt 44G geometry
+      L=10798160 P=30976 NB=373; window = capture markers). Refs from results/sens (OP 7%, 18.75%; SepBIT not run).
+workload            DOGI          range n   DOGI+          range n  DOGI-gp  page4k      V3    DFTL  LeaFTL  SepBIT best/p4k  best/V3  ML (faithful runs)
+ycsbb_d_t64       17.939 [14.07..21.23] 3   4.923                1   86.535!  4.614   6.424   4.811   4.784       -    +6.7%   -23.4%  ML-mid-window; trainings 4-4
+ycsba_d_t64        6.522   [5.10..7.31] 3   5.357                1   20.290   4.847   6.888   5.040   4.912       -   +10.5%   -22.2%  ML-mid-window; trainings 10-10
+ycsbfstd_d_t64     7.713  [5.08..12.86] 3   5.035                1    4.632   4.806   6.929   4.990   4.896       -    +4.8%   -27.3%  ML-mid-window; trainings 9-9
+tpcc_d_t64        21.540 [17.78..23.54] 3   2.398                1   97.589!  2.390   2.802   2.424   2.330       -    +0.3%   -14.4%  ML-mid-window; trainings 1-1
+fio_randwrite_d    6.276   [6.28..6.28] 2   6.278                1    6.013   5.479  11.463   5.646   5.817       -   +14.6%   -45.2%  ML-mid-window; trainings 4-4
+fileserverfs       5.486   [5.49..5.49] 2   5.095                1    5.076   5.965   5.697   6.145   5.978       -   -14.6%   -10.6%  ML-mid-window; trainings 9-9
+
+
+== Bottom line (equal physical space, OP 7%; "best" = better of the DOGI and DOGI+ means)
+- vs V3 18.75%: best-DOGI is lower on z0 (-23%), z1.2 (-20%), ali3 (-8%), spfresh (-60%) and all six aged app traces
+  (-10..-45%; V3 itself is above page4k there); V3 is lower on z0.8 (DOGI +172%), z0.99 (+13%), ali1 (+25%),
+  ali2 (+18%), kv_w1 (+3%); ssd is a tie (+0.3%).
+- vs page4k: best-DOGI is lower on z1.2 (-35%), ali3 (-24%), spfresh (-26%), fileserverfs (-15%), ssd (-3%), ali1 (-1%);
+  higher on z0 (+18%), z0.8 (+197%), z0.99 (+12%), kv_w1 (+14%), ali2 (+2.5%) and five app traces (+0.3..+15%).
+- DRAM: DOGI ~159% of the page4k map (167% with a DRAM-resident per-page category) vs V3 at 18.75%.
+- DOGI is fragile at OP 7% under an equal physical budget: its 6 open groups plus garbage parked in BIR groups (not
+  collectable before their BIR age) can exhaust the 24-segment slack, and GC then grinds through nearly-full
+  segments (z0.8 20-33, faithful tpcc/ycsbb 14-24). With its open segments outside the budget (DOGI-gp, ~+25%
+  effective OP) it is markedly better on most workloads (z0.99 4.6, z1.2 1.6, ssd 5.1), but that accounting also
+  thrashes on some traces. Run-to-run spread is large (z0.99 6.4-12.7): the port is multi-threaded and the BIR/ML
+  feedback amplifies small timing differences; deterministic workloads (kv_w1, z0, fio) repeat exactly.
+- ML: every run trained (retrain count per row; ali3 81 trainings, 66 in the window). Full-device workloads except
+  spfresh had a model applied before the window. spfresh and all app traces: the first model only completes inside
+  the window (training starts after 2x device writes + ~12M collected writes), i.e. ML from mid-window; the
+  window still contains 1-10 trainings. With the artifact's own collection rule (true-LBA follow-ups only from the
+  hot path) low-hot workloads never train: results/dogi_v3/_variant_artifact_collection (ssd: no ML, z0.99: 5 trainings).
+- No sampled traces were needed: full ali3 (2.41 TB device, 2.85 G stream pages) ran in 2-3 h at ~18 GB RSS.
+
+== 3. Checks, every run, and unguarded artifact-accounting variants
+workload                P   NB  p4k exp  p4k ref  same user==  peak  guard# pk gp  runs (WAF) | gp no-guard (peak) | gp OP-6seg no-guard (peak)
+z0                  49152  365    8.746    8.746  True   True   365     0,0   370  u1=10.29 g1=10.31 g2=10.30 p1=10.36 p2=10.30 | 9.60(370) | 13.29(364)
+z0.8                49152  365    8.525    8.525  True   True   365 27,129,85   371  g1=27.87 g2=20.15 g3=27.90 p1=32.95 p2=30.84 | - | -
+z0.99               49152  365    5.986    5.986  True   True   365   0,0,0   371  u1=12.73 u2=8.67 g1=9.87 g2=6.36 g3=6.97 p1=6.23 p2=7.17 | 4.87(371) | 6.34(366)
+z1.2                49152  365    3.089    3.089  True   True   365     0,0   371  u1=2.12 u2=2.06 g1=2.08 g2=2.07 p1=2.05 p2=1.95 | 1.69(371) | 1.98(365)
+ali1               197632  365    5.436    5.436  True   True   365      22   371  g1=9.00 p1=5.38 | - | -
+ali2               263168  365    6.653    6.653  True   True   365      58   371  g1=17.41 p1=6.82 | - | -
+ali3              1850368  365    3.967    3.967  True   True   364       0   371  u1=3.03 g1=3.01 p1=3.11 | 2.82(370) | -
+ssd                302080  366    6.032    6.032  True   True   365       0   372  u1=5.84 g1=5.87 p1=5.87 | 5.35(372) | -
+kv_w1               47104  371    3.343    3.343  True   True   370     0,0   376  u1=3.80 g1=3.80 g2=3.80 p1=3.80 | 3.71(376) | 4.39(371)
+spfresh             30720  365    7.746    7.746  True   True   365     0,0   370  u1=5.72 g1=5.73 g2=5.73 p1=7.74 p2=7.74 | 5.12(370) | 6.84(364)
+ycsbb_d_t64         30976  373    4.614    4.614  True   True   373 32,96,149   381  g1=14.07 g2=18.52 g3=21.23 p1=4.92 | 315.79(400) | -
+ycsba_d_t64         30976  373    4.847    4.847  True   True   373 30,0,25   378  g1=7.31 g2=5.10 g3=7.16 p1=5.36 | 4.63(378) | -
+ycsbfstd_d_t64      30976  373    4.806    4.806  True   True   373 157,0,0   379  g1=12.86 g2=5.19 g3=5.08 p1=5.03 | 5.27(379) | 7.36(373)
+tpcc_d_t64          30976  373    2.390    2.390  True   True   373 176,188,230   379  g1=17.78 g2=23.30 g3=23.54 p1=2.40 | 286.18(425) | 346.66(434)
+fio_randwrite_d     30976  373    5.479    5.479  True   True   372     0,0   379  g1=6.28 g2=6.28 p1=6.28 | 6.20(379) | 7.51(373)
+fileserverfs        30976  373    5.965    5.965  True   True   373     0,0   379  g1=5.49 g2=5.49 p1=5.10 | 5.60(378) | 7.13(372)
+  same = the export run reproduces the reference page4k WAF; user== = DOGI user writes after MARK equal the export
+  host_pages_ftl in every run; peak = max segments holding data over all equal-space runs (must be <= NB);
+  guard# = dead-end guard picks in g1,g2; pk gp = DOGI-gp peak footprint. Runs: u1/u2 = no guard (completed),
+  g1/g2 = dead-end guard, p1/p2 = DOGI+ guard. Artifact accounting without any guard thrashes (GC without
+  progress) on several traces (values > 50).
+
+== 4. DOGI DRAM model (information needed by the algorithm, page map at 4 B/entry like page4k; artifact
+      implementation uses 8 B map entries and 8 B per FrozenFilter flag, i.e. more). Per-4K tables:
+      page map 4 B x L | HotIntervalTracker intervals_ 1 B x L | FreqFeatures freqBits_ 1 B x physical pages |
+      chunkFreq 8 B / 2 MiB chunk | FrozenFilter 1 bit x L | ModelTrainer sampled-LBA bitmap 1 bit x physical
+      pages (persistent member) | MLP 6-32-32-10 + scaler 6488 B. Training working set (truelba hash map, <=400k
+      entries, ~13 MB transient) and the host-side PyTorch trainer / CSV files are NOT counted.
+geometry              page4k MB   DOGI MB DOGI/page4k  B/4K-LBA   breakdown MB (map, intervals, freqBits, chunk, frozen, sampled)
+64 GiB synthetic           67.1     106.5      158.6%     6.345   67.1, 16.8, 17.9, 0.3, 2.1, 2.2
+ali1 (257.6 GB)           270.1     428.4      158.6%     6.344   270.1, 67.5, 72.1, 1.1, 8.4, 9.0
+ali2 (343.4 GB)           360.1     570.9      158.6%     6.342   360.1, 90.0, 96.1, 1.5, 11.3, 12.0
+ali3 (2410 GB)           2527.3    4008.5      158.6%     6.344   2527.3, 631.8, 675.4, 10.6, 79.0, 84.4
+ssd (394.5 GB)            413.6     656.1      158.6%     6.345   413.6, 103.4, 110.6, 1.7, 12.9, 13.8
+kv_w1 (62.4 GB)            65.4     103.8      158.6%     6.344   65.4, 16.4, 17.5, 0.3, 2.0, 2.2
+spfresh (40.0 GB)          42.0      66.6      158.6%     6.345   42.0, 10.5, 11.2, 0.2, 1.3, 1.4
+apps 44G NVMeVirt          43.2      68.5      158.7%     6.346   43.2, 10.8, 11.6, 0.2, 1.3, 1.4
+      (other policies, same axis: page4k 100%, V3 / DFTL / LeaFTL 18.75% budget, SepBIT 200% = map + 4 B last-write
+       timestamp per LBA, see SPEC v3.1 appendix).
+      Not counted (as for page4k): the P2L/reverse map used by GC. DOGI additionally tags every physical page with
+      its predicted category for the first-GC group mapping (artifact: int32 per page); if that lives in DRAM rather
+      than in the page OOB, add >= 0.5 B per physical page (4 bits): ~+8.5 points -> ~167% of page4k.
+
+== 5. Measured max RSS of the artifact implementation (strict run; includes 8 B/entry map + 8 B FrozenFilter +
+      128 Mi-entry floors of the artifact tables + 8 B/physical page segment P2L/category arrays):
+  z0                   2.31 GB
+  z0.8                 2.37 GB
+  z0.99                2.34 GB
+  z1.2                 2.32 GB
+  ali1                 2.93 GB
+  ali2                 3.20 GB
+  ali3                18.25 GB
+  ssd                  3.33 GB
+  kv_w1                2.36 GB
+  spfresh              2.30 GB
+  ycsbb_d_t64          2.32 GB
+  ycsba_d_t64          2.33 GB
+  ycsbfstd_d_t64       2.33 GB
+  tpcc_d_t64           2.32 GB
+  fio_randwrite_d      2.30 GB
+  fileserverfs         2.32 GB
+
+== 6. Feasibility note: porting DOGI into the NVMeVirt kernel FTL framework (~/nvmevirt_page4k, dm/ftlcore.h)
+Framework constraints: one dm/ftl_<policy>.c behind dm_ftl_ops, compiled both in the kernel and in the userspace
+harness, host writes arrive after the shared dm_wbuf, GC must be the foreground free-line-threshold GC (T=2) of the
+glue, no FPU unless the file is built with CC_FLAGS_FPU and every FP region is wrapped in kernel_fpu_begin/end (no
+sleeping/allocation inside), vzalloc only in create(), and the port is validated bit-identically against a
+deterministic userspace reference (ftlsim mode=...).
+Easy parts: the placement/GC engine (6 open lines = groups, hot filter from the per-LBA rewrite-interval byte,
+FrozenFilter bit, first-GC category -> group map, BIR-age victim rule for the BIR groups, cost-benefit
+gp/(1-gp)*sqrt(age) for the rest -> integer cross-multiplication with dm_isqrt, as already done for CB policies).
+The per-4K metadata (intervals 1 B/LBA, freqBits 1 B/physical page, 1 bit frozen, 4-bit category per physical page
+that can live next to rmap[]) is ~24 MB at the 44G device and ~2.3 B/LBA in general: vzalloc'able. Two O(L)
+sweeps sit in the write path (freqBits window advance every 8 Mi writes clears one bit of every LBA; chunkFreq
+halving every 20 GiB) and would need to be made incremental/epoch-based in the kernel to avoid ms-scale stalls.
+MLP inference (6-32-32-10 float, 1.6k MAC per write, batched 128 non-hot writes per 16 MiB buffer in the artifact)
+is cheap; in the kernel it needs an FPU section per batch or an int16 fixed-point rewrite (then it is no longer
+bit-identical with the float reference).
+Hard parts: (1) online training -- the artifact samples 400k feature rows + ~8M follow-up LBAs to CSV files, then
+shells out to Python/PyTorch (15 epochs, StandardScaler, class thresholds), reloads W*.bin, and runs the group
+optimizer (Markov-chain enumeration of K / m_list / BIR in doubles over a PLog CSV). None of this can run in the
+kernel I/O path; it needs a userspace helper (export samples via a char device / relay buffer, train, push weights
++ K/BIR back via ioctl/sysfs). (2) Determinism -- the artifact is multi-threaded (ingest, ML worker, background GC,
+trainer) and its model hand-off is wall-clock dependent; the kernel port has no deterministic reference to be
+validated against unless the userspace port is first refactored into a single-threaded, synchronous-GC,
+synchronous-train form (our DOGI-strict + sync-training run is already close to that). (3) The Markov group
+optimizer is doubles-heavy and file-based: userspace only.
+Faithful variants: an OFFLINE-TRAINED DOGI (weights + K/m_list/BIR frozen from the userspace run's last training
+round on the same workload, loaded at module init; inference in an FPU section; placement/GC as above) is a
+reasonable and faithful baseline for NVMeVirt latency/throughput, if labelled as such (it is optimistic: trained
+on the same trace, no adaptation lag). Caveat from the userspace runs: K/BIR are not always stable across
+retrains (z0.99 switches K=3 <-> 4, z0 settles at K=1, traces wander), and one late switch can move the window WAF
+by 2x, so a frozen configuration is a single sample of DOGI's behaviour -- report it next to the userspace spread.
+The glue's foreground GC at T=2 is exactly our DOGI-strict regime: the port must include the dead-end liveness
+guard (or DOGI livelocks when its cost-benefit pool is fully valid and the BIR clock is frozen). A NON-ML variant (APPLY_ML=0: hot filter + single non-hot group + CB) is NOT DOGI -- it
+drops the invalidation-time prediction and dynamic grouping that define it -- and should not be presented as DOGI.
+Estimate: offline-trained port ~1-2 weeks (incl. userspace reference refactor); online training via a helper
+daemon adds roughly another 1-2 weeks and gives up bit-identical validation.

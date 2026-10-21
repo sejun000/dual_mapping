@@ -1,0 +1,114 @@
+Non-monotonic WAF vs mapping-DRAM budget (proposed V3, U=16, OP 7%) -- cause and fix (2026-10-13)
+
+CAUSE (evidence: sweep/ = 0.25%-step budget sweep with counters, sweep/*/b*.ts time series via sweep/ftlsim_inst.cpp;
+seeds/ = extra seeds; columns of ts: fv = fine-resident valid pages, ev/gf = eviction / greedy folds per 1000 host pages)
+ (A) Fine-pool saturation collapse (spfresh 18.75 -> 20-37.5%: 14.33 -> 16.4-17.9; fio_randwrite >= 21.25%).
+     In uniform mode (adapt=2; fragments are never overwritten) only the cuckoo2 table caps the fragment population:
+     a full bucket pair evicts (folds) the IU with the most fragments of its 8 entries. Once the table's natural
+     eviction point (~426K entries for spfresh at 18.75%) exceeds the fine pool's page capacity (17 blocks x 30720 =
+     522K), nothing caps the population; it grows until the pool is ~99% valid (peak 507-515K), copy GC of ~90%-valid
+     victims makes no block-count progress, and alloc_block's liveness guard (4 stalls) force-folds whole fine blocks
+     (28 forced block folds) plus low-d cost folds (155K greedy folds, d~2.4). fv crashes from ~460K to 90-190K, the
+     coarse tier loses its holes (one per resident fragment), coarse-GC victims get fuller (0.889 -> 0.903 valid) and
+     clean copies double (3.07 -> 5.88 per host page). The ts shows a relaxation oscillation (window WAF 8..25) instead
+     of the stable 14.7 of the table-capped run.
+     A contributing bug: with uni_onefront the fine reclaim run to open a new host fine block (ff) writes its GC copies
+     into ff itself; alloc_block then sees an unchanged fine block count (stall -> forced fold) and fine_alloc_page
+     overwrites ff with yet another block, orphaning the partly filled block the copies opened.
+ (B) Interior tier balance in the table-limited region (fio_randwrite 10 -> 12.5%: 14.32 -> 15.74; fileserverfs 10 ->
+     12.5%; z0.8/z0.99 ~1%): a larger table lets the fine pool hold more fragments, gc_select=cost floats the pool from
+     7 to 10 blocks (taken from the coarse tier's 7% OP), fine GC runs at higher utilisation (copies 1.07 -> 2.79 per
+     host page) while eviction folds fall less (2.07 -> 1.47). Steady state, no collapse; it reverses above ~15%.
+     z0.8 at 12.5% is bistable across seeds (8.79 / 8.90 / 10.01; fine pool 8-9 vs 3-4 blocks); 18.75% is stable
+     (9.29-9.39). z0.99: seeds 2-4 give 5.80+-0.02 (10%), 5.86+-0.03 (18.75%), 5.89 (25%) -- ~1% real effect, the
+     5.80/5.94/5.81 zigzag of seed 1 is trajectory noise (ali3 3.21/3.29 likewise: zero measured evictions at every budget).
+ adapt=2 is NOT involved: spfresh/fio_randwrite are uniform for the whole measured phase at every budget (1 switch at
+ warm-up), ycsb* switch 8 times with the same uniform share (0.22-0.30) at every budget.
+
+FIX (ftlsim options, default off; ported to ~/nvmevirt_proposed with harness parity):
+  onefront_fix=1 : if the reclaim re-opened ff with its copies, keep filling it (no new block, no stall).
+  pool_cap=4     : in uniform mode a new fine page also triggers the existing eviction fold (same candidates/rule)
+                   when fine-resident pages >= (quota - open fine frontiers - 1) x P -- the largest population for
+                   which the min-valid closed fine block is guaranteed to have free slots (pigeonhole), i.e. copy GC
+                   always progresses. No tuning constant. pool_cap=1 = same cap in every mode (+0.3..0.6% on ycsbb/
+                   ycsbfstd at 18.75%: rejected); pool_cap=2/3 = cost-parity rule vs. the last fine victim (+3..8% on
+                   z0/z0.99/ycsbb: rejected).
+  Recommended: onefront_fix=1 pool_cap=4 (column ofpcu). At 18.75% no workload gets worse (spfresh -2.99%, ycsba -0.63%,
+  ycsbfstd -0.51%, fio_randwrite -0.25%, ycsbb -0.05%, the 11 others bit-identical). spfresh 25/37.5%: 17.54/17.45 ->
+  13.95/14.04 (forced folds 28 -> 0, greedy folds 155K -> 255, fv 0.0295 -> 0.0403 L). Remaining increases >0.5% are (B)
+  or noise.
+
+WAF, proposed V3 U=16, OP 7%; budgets = mapping DRAM as % of the 4 B page map
+base = current default; of = onefront_fix=1; ofpc = onefront_fix=1 pool_cap=1; ofpcu = onefront_fix=1 pool_cap=4 (cap in uniform mode only)
+
+[base]    10.00%    12.50%    18.75%    25.00%    37.50%   monotone?   d18.75 vs base
+z0                  13.163    13.184    13.310    13.151    13.151   12.5->18.75              +0.00%
+z0.8                10.278     8.792     9.294     9.262     9.340   12.5->18.75,25->37.5     +0.00%
+z0.99                5.800     5.805     5.937     5.808     5.873   12.5->18.75,25->37.5     +0.00%
+z1.2                 2.649     2.543     2.506     2.433     2.433   yes                      +0.00%
+ali1                 4.280     4.288     4.289     4.274     4.274   yes                      +0.00%
+ali2                 5.780     5.799     5.759     5.759     5.759   yes                      +0.00%
+ali3                 3.272     3.209     3.293     3.293     3.293   12.5->18.75              +0.00%
+ssd                  5.836     5.836     5.836     5.836     5.836   yes                      +0.00%
+kv_w1                3.687     3.687     3.687     3.687     3.687   yes                      +0.00%
+spfresh             30.931    21.627    14.333    17.539    17.451   18.75->25                +0.00%
+ycsbb_d_t64          9.092     7.394     6.424     6.340     6.373   25->37.5                 +0.00%
+ycsba_d_t64          9.035     8.167     6.888     6.691     6.755   25->37.5                 +0.00%
+ycsbfstd_d_t64       8.990     8.123     6.929     6.819     6.801   yes                      +0.00%
+tpcc_d_t64           3.159     2.907     2.802     2.759     2.759   yes                      +0.00%
+fio_randwrite_d     14.316    15.743    11.463    11.411    11.403   10->12.5                 +0.00%
+fileserverfs         5.393     5.697     5.697     5.697     5.697   10->12.5                 +0.00%
+
+[of]    10.00%    12.50%    18.75%    25.00%    37.50%   monotone?   d18.75 vs base
+z0                  13.163    13.184    13.310    13.151    13.151   12.5->18.75              +0.00%
+z0.8                10.278     8.792     9.294     9.262     9.340   12.5->18.75,25->37.5     +0.00%
+z0.99                5.800     5.805     5.937     5.808     5.873   12.5->18.75,25->37.5     +0.00%
+z1.2                 2.649     2.543     2.506     2.433     2.433   yes                      +0.00%
+ali1                 4.280     4.288     4.289     4.274     4.274   yes                      +0.00%
+ali2                 5.780     5.799     5.759     5.759     5.759   yes                      +0.00%
+ali3                 3.272     3.209     3.293     3.293     3.293   12.5->18.75              +0.00%
+ssd                  5.836     5.836     5.836     5.836     5.836   yes                      +0.00%
+kv_w1                3.687     3.687     3.687     3.687     3.687   yes                      +0.00%
+spfresh             30.931    21.627    13.905    18.143    16.817   18.75->25                -2.99%
+ycsbb_d_t64          9.092     7.394     6.421     6.330     6.345   yes                      -0.05%
+ycsba_d_t64          9.035     8.167     6.845     6.677     6.711   yes                      -0.63%
+ycsbfstd_d_t64       8.990     8.123     6.894     6.776     6.775   yes                      -0.51%
+tpcc_d_t64           3.159     2.907     2.802     2.759     2.759   yes                      +0.00%
+fio_randwrite_d     14.316    15.743    11.447    11.469    11.567   10->12.5,25->37.5        -0.14%
+fileserverfs         5.393     5.697     5.697     5.697     5.697   10->12.5                 +0.00%
+
+[ofpc]    10.00%    12.50%    18.75%    25.00%    37.50%   monotone?   d18.75 vs base
+z0                  13.163    13.184    13.310    13.151    13.151   12.5->18.75              +0.00%
+z0.8                10.278     8.792     9.294     9.262     9.340   12.5->18.75,25->37.5     +0.00%
+z0.99                5.800     5.805     5.937     5.808     5.873   12.5->18.75,25->37.5     +0.00%
+z1.2                 2.649     2.543     2.506     2.433     2.433   yes                      +0.00%
+ali1                 4.280     4.288     4.289     4.274     4.274   yes                      +0.00%
+ali2                 5.780     5.799     5.759     5.759     5.759   yes                      +0.00%
+ali3                 3.272     3.209     3.293     3.293     3.293   12.5->18.75              +0.00%
+ssd                  5.836     5.836     5.836     5.836     5.836   yes                      +0.00%
+kv_w1                3.687     3.687     3.687     3.687     3.687   yes                      +0.00%
+spfresh             30.931    21.627    13.912    14.023    14.003   18.75->25                -2.94%
+ycsbb_d_t64          9.092     7.394     6.446     6.396     6.404   yes                      +0.33%
+ycsba_d_t64          9.035     8.167     6.872     6.776     6.760   yes                      -0.23%
+ycsbfstd_d_t64       8.990     8.123     6.973     6.845     6.857   yes                      +0.64%
+tpcc_d_t64           3.159     2.907     2.802     2.759     2.759   yes                      +0.00%
+fio_randwrite_d     14.316    15.743    11.479    11.391    11.228   10->12.5                 +0.14%
+fileserverfs         5.393     5.697     5.697     5.697     5.697   10->12.5                 +0.00%
+
+[ofpcu]    10.00%    12.50%    18.75%    25.00%    37.50%   monotone?   d18.75 vs base
+z0                  13.163    13.184    13.310    13.151    13.151   12.5->18.75              +0.00%
+z0.8                10.278     8.792     9.294     9.262     9.340   12.5->18.75,25->37.5     +0.00%
+z0.99                5.800     5.805     5.937     5.808     5.873   12.5->18.75,25->37.5     +0.00%
+z1.2                 2.649     2.543     2.506     2.433     2.433   yes                      +0.00%
+ali1                 4.280     4.288     4.289     4.274     4.274   yes                      +0.00%
+ali2                 5.780     5.799     5.759     5.759     5.759   yes                      +0.00%
+ali3                 3.272     3.209     3.293     3.293     3.293   12.5->18.75              +0.00%
+ssd                  5.836     5.836     5.836     5.836     5.836   yes                      +0.00%
+kv_w1                3.687     3.687     3.687     3.687     3.687   yes                      +0.00%
+spfresh             30.931    21.627    13.905    13.945    14.039   25->37.5                 -2.99%
+ycsbb_d_t64          9.092     7.394     6.421     6.330     6.345   yes                      -0.05%
+ycsba_d_t64          9.035     8.167     6.845     6.653     6.714   25->37.5                 -0.63%
+ycsbfstd_d_t64       8.990     8.123     6.894     6.756     6.786   yes                      -0.51%
+tpcc_d_t64           3.159     2.907     2.802     2.759     2.759   yes                      +0.00%
+fio_randwrite_d     14.316    15.743    11.434    11.073    11.178   10->12.5,25->37.5        -0.25%
+fileserverfs         5.393     5.697     5.697     5.697     5.697   10->12.5                 +0.00%

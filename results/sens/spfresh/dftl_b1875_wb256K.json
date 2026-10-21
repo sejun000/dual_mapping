@@ -1,0 +1,23 @@
+{
+  "tag": "dftl_b1875_wb256K", "mode": "dftl", "zipf": 0.000, "seed": 1,
+  "capacity_gb": 40.02, "P": 30720, "U": 16, "op": 0.070, "fine_quota": 0.022, "fine_quota_blocks": 365, "NB": 365,
+  "host_pages": 14839894, "host_pages_ftl": 14839954, "buffer_absorbed": -0.0000, "total_prog": 145715465, "WAF": 9.8192, "WAF_ftl": 9.8191,
+  "prog": {"host": 14839954, "finegc": 0, "fold": 0, "cgc_clean": 0, "cgc_refold": 0, "rmw": 0, "pgc": 100943282, "zerofill": 0, "fullmerge": 0, "partialmerge": 0, "map": 29932229, "unfold": 0},
+  "prog_frac": {"host": 0.1018, "finegc": 0.0000, "fold": 0.0000, "cgc_clean": 0.0000, "cgc_refold": 0.0000, "rmw": 0.0000, "pgc": 0.6927, "zerofill": 0.0000, "fullmerge": 0.0000, "partialmerge": 0.0000, "map": 0.2054, "unfold": 0.0000},
+  "reads": {"rmw": 0, "fold_fine": 0, "fold_coarse": 0, "gc_copy": 100943282, "map": 44242629},
+  "RAF": 9.7834, "map_miss": 14839918, "map_flush": 29932229,
+  "erases": 3769, "erase_fine": 3769, "erase_coarse": 0,
+  "events": {"finegc": 0, "blockfold": 0, "fold": 0, "refold": 0, "cgc": 0, "pgc": 3769, "cgc_dead_ext": 0, "cgc_clean_ext": 0, "extent_drop": 0, "wasted_slots": 0, "greedy": 0, "greedy_fold_pages": 0, "greedy_copy_pages": 0, "forced_fold": 0, "eager": 0, "eager_fill": 0, "unfold": 0, "unfold_pages": 0, "budget_fold": 0, "gc_fold": 0, "shrink_fold": 0, "space_capped": 0},
+  "avg_victim_valid": {"finegc": 0.0, "cgc": 0.0, "pgc": 26782.5},
+  "d_hist_fold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_unfold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "d_hist_refold": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "fine_d_hist_end": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "fine_ius_end": 0, "fine_pages_end": 0,
+  "mem": {"total_bytes": 7909140, "total_mib": 7.54, "primary_map": 7868160, "hash_index": 40980, "slots": 0},
+  "vblk_age_mean_turnovers": 0.0000, "vblk_age_hist": [0,0,0,0,0,0],
+  "age_turnovers": [0,0,0,0,0,0,0], "age_turnovers_costfold": [0,0,0,0,0,0,0],
+  "host_fine": 0, "host_coarse": 0,
+  "fine_host_new": 0, "fine_host_ow": 0, "fine_pages_peak": 0,
+  "fine_blocks_end": 363, "coarse_blocks_end": 0, "free_end": 2, "f_end": 0.9945
+}

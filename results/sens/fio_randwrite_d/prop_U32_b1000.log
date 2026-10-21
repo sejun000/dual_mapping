@@ -1,0 +1,10 @@
+[cfg] cuckoo2 fine table: 92796 buckets x 4 = 371184 entries (2.83 MiB), budget 0.1000 of page map
+[cfg] mode=proposed L=10798144 pages (41.2 GB) NP=11554048 NB=373 P=30976 U=32 OP=0.070 fine_quota=16 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_apptrace/fio_randwrite_d/trace.csv: 69140390 write pages (263.7 GiB, 6.40x device), warmup 11.7%
+[verify] ok. fine_valid_pages=135 fine_blocks=1 coarse_blocks=370 free=2
+[verify] block valid histogram (deciles 0..100%): 8 4 2 4 4 2 2 11 4 4 326
+[trace] warmup done (8100587 pages), reset stats
+[trace] identity addresses: 68924418 write pages replayed (16 clipped beyond L)
+[verify] ok. fine_valid_pages=251010 fine_blocks=10 coarse_blocks=361 free=2
+[verify] block valid histogram (deciles 0..100%): 1 0 0 0 1 0 2 3 91 189 84

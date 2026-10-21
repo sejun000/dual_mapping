@@ -1,0 +1,11 @@
+[cfg] mode=leaftl L=10798160 pages (41.2 GB) NP=11554048 NB=373 P=30976 U=16 OP=0.070 fine_quota=373 blocks (extra=1) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_apptrace/fileserverfs/trace.csv: 126099950 write pages (481.0 GiB, 11.68x device), warmup 4.3%
+[verify] leaftl ok: approx-mispredict=3 frames=42181 resident=42181 cached=0.54 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=371 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 9 2 1 2 3 4 1 18 5 81 245
+[trace] warmup done (5397209 pages), reset stats
+[trace] identity addresses: 126099950 write pages replayed
+[verify] leaftl ok: approx-mispredict=26 frames=42181 resident=42181 cached=3.69 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=371 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 1 0 96 202 72

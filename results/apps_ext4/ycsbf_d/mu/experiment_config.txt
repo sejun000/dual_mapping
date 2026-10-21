@@ -1,0 +1,69 @@
+run_id=ycsbf_d_mu_20261006T062110Z
+workload=ycsbf_d
+wl_kind=ycsb-multi
+policy=mu
+dm_params=cache_bytes=8098620
+b18=8098620
+kernel=6.8.0-142-generic
+device=/dev/nvme3n1
+model=CSL_Virt_MN_01
+device_bytes=44229263360
+nvmev_ko=/home/sejun000/nvmevirt_mu/nvmev.ko
+nvmev_args=memmap_start=256G memmap_size=44G cpus=94,95
+nvmev_src_commit=b2abca2 mu: faster leaf search and GC copy loop, kernel preemption points (dm_cond_resched)
+nvmev_src_dirty=5
+63a0e98fa6479e3ddfcb627e65f7fb10f559ada596b3dbdad0203585eb616e10  /home/sejun000/nvmevirt_mu/nvmev.ko
+dm_policy_line=[427070.570242] NVMeVirt: dm_ftl policy=mu params="cache_bytes=8098620": NB=373 lines x P=30976 pages, logical 10798160 pages (42180 MiB), physical 45133 MiB
+fs=ext4
+mount_point=/mnt/dmapp
+mount_options=rw,noatime,data=ordered
+mkfs=mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 (mke2fs 1.47.0 (5-Feb-2023))
+ext4_filesystem_features=has_journal ext_attr resize_inode dir_index filetype needs_recovery extent 64bit flex_bg sparse_super large_file huge_file dir_nlink extra_isize metadata_csum
+ext4_inode_count=2703360
+ext4_block_count=10798160
+ext4_reserved_block_count=539908
+ext4_block_size=4096
+ext4_flex_block_group_size=16
+ext4_inode_size=256
+fs_capacity_bytes=40987148288
+numa_node=1
+wl_cpus=1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67,69,71,73,75,77,79,81,83,85,87,89,91,93
+nvmev_cpus=94,95
+memcg_slice=dmapp.slice
+memcg_pct=20
+memcg_device_bytes=44229263360
+memcg_max_mib=8436
+memcg_high_mib=7381
+memcg_max_bytes=8845787136
+memcg_high_bytes=7739539456
+fill_target_percent=76
+util_window=73-85
+duration=600
+nvme_core_io_timeout_before=255
+nvme_core_max_retries_before=255
+cpu_governor_before=performance
+queue_scheduler=[none] mq-deadline 
+queue_write_cache=write through
+queue_discard_max_bytes=0
+queue_nr_requests=1023
+queue_max_sectors_kb=256
+queue_wbt_lat_usec=2000
+queue_rotational=0
+nvme_core_io_timeout=255
+nvme_core_max_retries=255
+cpu_governor=performance
+instances=16
+recordcount_total=10000000
+threads_total=320
+load_procs_total=8
+ycsb_workload=workloadf
+ycsb_core_options=readproportion=0.5 updateproportion=0.5
+ycsb_extra_options=hdrhistogram.percentiles=50,90,95,99,99.9
+ycsb_java_opts=-Xms64m -Xmx256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -XX:ActiveProcessorCount=16
+synchronous_commit=on
+fsync=on
+wal_sync_method=open_datasync
+postgres_profile=pg16-default
+postgres_extra_conf=none
+postgres_version=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+java_version=openjdk version "21.0.12.1" 2026-08-18

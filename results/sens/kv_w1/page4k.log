@@ -1,0 +1,9 @@
+[cfg] mode=page4k L=16357888 pages (62.4 GB) NP=17475584 NB=371 P=47104 U=16 OP=0.070 fine_quota=371 blocks (extra=1) T=2 zipf=0.00
+[phase] seq fill
+[trace] /mnt/nvme_mounted/kvtrace/w1.packed.csv: 161322195 write pages (615.4 GiB, 9.86x device), warmup 50.0%
+[verify] ok. fine_valid_pages=0 fine_blocks=369 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 5 46 45 42 231
+[trace] warmup done (80661675 pages), reset stats
+[trace] dense space: 63898 MiB regions (62.4 GiB), device utilization 100.0%
+[verify] ok. fine_valid_pages=0 fine_blocks=369 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 1 0 0 0 0 1 8 35 48 49 227

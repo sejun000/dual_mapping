@@ -1,0 +1,81 @@
+{
+ "trace": "/mnt/nvme_mounted/dm_trace_sampled/spfresh.csv",
+ "device": {
+  "host_write_pages": 7382719,
+  "host_read_pages": 146671413,
+  "prog": 87119797,
+  "WAF": 11.800502904146832,
+  "map_reads": 133557591,
+  "map_reads_per_host_page": 0.8669523450367433,
+  "map_progs_per_host_write_page": 4.0491362328703016,
+  "erases": 3789,
+  "map_miss": 110523051,
+  "mem_bytes": 2714113
+ },
+ "device_bytes": 21566324736,
+ "qd": 32,
+ "warmup": 0.5,
+ "trace_ops": 310358854,
+ "trace_writes": 14765438,
+ "trace_write_pages": 14765438,
+ "trace_reads": 295593416,
+ "trace_read_pages": 295593609,
+ "truncated": false,
+ "ops_issued": 310358854,
+ "errors": 0,
+ "precond_s": 9.2,
+ "warm_s": 1933.2,
+ "measure_s": 2570.7,
+ "total_s": 4513.1,
+ "measured": {
+  "reads": 146671413,
+  "writes": 7382719,
+  "read_pages": 146671413,
+  "write_pages": 7382719,
+  "iops": 59928.0,
+  "read_iops": 57056.1,
+  "write_iops": 2871.9,
+  "read_MiBps": 222.9,
+  "write_MiBps": 11.2
+ },
+ "read_lat_us": {
+  "n": 146671413,
+  "mean": 545.2,
+  "p50": 316.4,
+  "p90": 523.3,
+  "p99": 743.4,
+  "p99.9": 1290.2,
+  "p99.99": 1212153.9,
+  "max": 2338091.5
+ },
+ "write_lat_us": {
+  "n": 7382719,
+  "mean": 285.3,
+  "p50": 53.9,
+  "p90": 114.4,
+  "p99": 151.0,
+  "p99.9": 9404.4,
+  "p99.99": 328204.3,
+  "max": 391381.3
+ },
+ "warm_read_lat_us": {
+  "n": 148922003,
+  "mean": 404.4,
+  "p50": 248.3,
+  "p90": 484.4,
+  "p99": 702.5,
+  "p99.9": 1249.3,
+  "p99.99": 78381.1,
+  "max": 1974762.9
+ },
+ "warm_write_lat_us": {
+  "n": 7382719,
+  "mean": 197.8,
+  "p50": 55.7,
+  "p90": 124.7,
+  "p99": 157.2,
+  "p99.9": 9338.9,
+  "p99.99": 253231.1,
+  "max": 337072.0
+ }
+}

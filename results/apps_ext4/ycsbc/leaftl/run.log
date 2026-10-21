@@ -1,0 +1,78 @@
+[07:45:53] === ycsbc_leaftl_20261007T074553Z -> /home/sejun000/dual_mapping/results/apps_ext4/ycsbc/leaftl
+[07:45:54] insmod /home/sejun000/nvmevirt_leaftl/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=8098620'
+[07:45:54] target /dev/nvme3n1 (CSL_Virt_MN_01 41.2G)
+[07:45:55] memory cgroup dmapp.slice: MemoryMax=8436M MemoryHigh=7381M (20% of 44229263360 B)
+[07:45:55] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[07:45:55] ext4 capacity (used+avail) 40987148288 B, util 0%
+[07:45:55] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40987148288 B)
+[07:45:55] [ycsb] 16 instances x (records=625000 threads=20 workloadc)
+[07:47:47] [ballast] writing 1493 MiB to reach ~76% (pending 0 MiB)
+[07:47:49] [ballast] df util now 75%
+[07:48:00] measurement start utilisation=75% (window 73-85)
+[07:48:00] [ycsb] run 600s, 16 x 20 threads
+case=/home/sejun000/dual_mapping/results/apps_ext4/ycsbc/leaftl
+workload=ycsbc
+policy=leaftl
+status=DONE
+start_util_pct=75.9912
+end_util_pct=75.9912
+ext4_write_kbytes_delta=4383548
+blk_read_ios=115993329
+blk_write_ios=545192
+blk_read_bytes=1015356887040
+blk_write_bytes=4488753152
+blk_avg_write_req_kb=8.04037
+dev_read_lat_ms_avg=0.169621
+dev_write_lat_ms_avg=0.334433
+write_qd_max=57
+blk_read_lat_us_mean=167.658
+blk_read_lat_us_p50=137.042
+blk_read_lat_us_p90=247.389
+blk_read_lat_us_p99=421.391
+blk_read_lat_us_p99.9=3160.81
+blk_read_lat_us_p99.99=5039.5
+blk_write_lat_us_mean=358.654
+blk_write_lat_us_p50=159.648
+blk_write_lat_us_p90=551.007
+blk_write_lat_us_p99=3204.13
+blk_write_lat_us_p99.9=13323
+blk_write_lat_us_p99.99=19060.3
+app_write_bytes=4492500992
+fs_waf=0.999166
+dev_host_write_pages=1095887
+dev_host_read_pages=247889640
+dev_nand_progs=1842328
+dev_waf=1.68113
+dev_waf_gc=0.680758
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=248606494
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=60
+dev_map_miss=0
+dev_mapping_mem_bytes_end=7179682
+total_waf=1.67973
+memcg_max=8845787136
+memcg_high=7739539456
+memcg_peak=7748055040
+memcg_events_high=320496
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=354168832
+throughput=388855
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.33517e+08
+ycsb_ops.READ.avg_us=817.47
+ycsb_ops.READ.p50_us=652.312
+ycsb_ops.READ.p90_us=1239.81
+ycsb_ops.READ.p95_us=1451.5
+ycsb_ops.READ.p99_us=3541
+ycsb_ops.READ.p99.9_us=10964.5
+ycsb_ops.READ.max_us=8.66714e+06
+app_read_lat_ms_avg=0.81747
+app_read_lat_ms_p99=3.541
+[07:58:52] === ycsbc_leaftl_20261007T074553Z status DONE

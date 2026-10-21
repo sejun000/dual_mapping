@@ -1,0 +1,11 @@
+[cfg] mode=leaftl L=103404032 pages (394.5 GB) NP=110561280 NB=366 P=302080 U=16 OP=0.070 fine_quota=366 blocks (extra=1) T=2 zipf=0.00
+[phase] seq fill
+[trace] /home/sejun000/traces_dm/ssd.csv: 536871106 write pages (2048.0 GiB, 5.19x device), warmup 50.0%
+[verify] leaftl ok: approx-mispredict=2 frames=403922 resident=403922 cached=4.86 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=364 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 0 0 0 0 114 170 80
+[trace] warmup done (268435804 pages), reset stats
+[trace] dense space: 403922 MiB regions (394.5 GiB), device utilization 100.0%
+[verify] leaftl ok: approx-mispredict=1 frames=403922 resident=403922 cached=4.91 MiB
+[verify] ok. fine_valid_pages=0 fine_blocks=364 coarse_blocks=0 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 0 1 0 0 0 74 282 7

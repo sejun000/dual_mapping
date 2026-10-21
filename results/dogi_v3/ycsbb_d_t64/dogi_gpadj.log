@@ -1,0 +1,202 @@
+==============================
+             Setup            
+==============================
+Configuration Info
+PlacementName: DOGI
+Trace Path: /home/dogi-ae/dogi-prototype/prototype/app/workload/test-fio-small
+GpThreshold: 0.0910, OpRatio: 0.1000, LogicalSizeGb: 8
+==============================
+[PORT] logicalBytes=44229263360 OpRatio=0.05279 GpThreshold=0.05014 segBlocks=30976 trace=/mnt/nvme_mounted/dogi_v3_runs/ycsbb_d_t64_gpadj/gpadj/in.fifo
+[PORT] deviceBytes=46564114432 deviceSegs=367.00 lbaCapacity=134217728 strictNSEG=0 gcReserve=2 maxLines=0 trueLbaAll=1 syncTrain=1
+Placement algorithm: DOGI
+Selection algorithm: DogiSelect
+[MLP] No existing model found
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 0.000 MiB/s, Total Throughput: 10240.000 MiB
+UserWrite: 20.0 GiB
+Per20GiB WAF: 1.000, Total WAF: 1.000
+Group 0[0]: -nan (Erase: 0) (Age: -nan)
+Group 1[169]: -nan (Erase: 0) (Age: -nan)
+Group 2[0]: -nan (Erase: 0) (Age: -nan)
+Group 3[0]: -nan (Erase: 0) (Age: -nan)
+Group 4[0]: -nan (Erase: 0) (Age: -nan)
+Group 5[0]: -nan (Erase: 0) (Age: -nan)
+============================================
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 20480.000 MiB/s, Total Throughput: 13653.333 MiB
+UserWrite: 40.0 GiB
+Per20GiB WAF: 1.000, Total WAF: 1.000
+Group 0[0]: -nan (Erase: 0) (Age: -nan)
+Group 1[338]: -nan (Erase: 0) (Age: -nan)
+Group 2[0]: -nan (Erase: 0) (Age: -nan)
+Group 3[0]: -nan (Erase: 0) (Age: -nan)
+Group 4[0]: -nan (Erase: 0) (Age: -nan)
+Group 5[0]: -nan (Erase: 0) (Age: -nan)
+============================================
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 538.947 MiB/s, Total Throughput: 1498.537 MiB
+UserWrite: 60.0 GiB
+Per20GiB WAF: 1.945, Total WAF: 1.315
+Group 0[0]: 0.896 (Erase: 43) (Age: 403305.884)
+Group 1[310]: 0.480 (Erase: 192) (Age: 6622190.615)
+Group 2[26]: 0.505 (Erase: 17) (Age: 661514.882)
+Group 3[5]: 0.496 (Erase: 3) (Age: 541730.667)
+Group 4[1]: 0.832 (Erase: 1) (Age: 15231301.000)
+Group 5[22]: 0.412 (Erase: 45) (Age: 769189.222)
+============================================
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 731.429 MiB/s, Total Throughput: 1187.246 MiB
+UserWrite: 80.0 GiB
+Per20GiB WAF: 3.128, Total WAF: 1.768
+Group 0[0]: 0.899 (Erase: 28) (Age: 189113.536)
+Group 1[252]: 0.738 (Erase: 225) (Age: 5615094.031)
+Group 2[30]: 0.674 (Erase: 106) (Age: 1531003.943)
+Group 3[29]: 0.713 (Erase: 47) (Age: 2382483.894)
+Group 4[33]: 0.718 (Erase: 6) (Age: 1948197.833)
+Group 5[20]: 0.510 (Erase: 117) (Age: 597084.607)
+============================================
+Saved 100000 samples so far.
+Saved 200000 samples so far.
+Saved 300000 samples so far.
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 620.606 MiB/s, Total Throughput: 1003.922 MiB
+UserWrite: 100.0 GiB
+Per20GiB WAF: 3.524, Total WAF: 2.119
+Group 0[0]: 0.998 (Erase: 3) (Age: 784321.667)
+Group 1[264]: 0.782 (Erase: 157) (Age: 6191098.796)
+Group 2[30]: 0.733 (Erase: 92) (Age: 1981501.217)
+Group 3[22]: 0.744 (Erase: 75) (Age: 2159601.400)
+Group 4[25]: 0.685 (Erase: 201) (Age: 1276895.517)
+Group 5[21]: 0.579 (Erase: 70) (Age: 1018973.557)
+============================================
+Saved 400000 samples so far.
+Reached maximum sample number. Closing feature file.
+- First feature time: 22736395, Last feature time: 26776182
+- Interval: 4039787
+[PORT] MARK at logicalTime=29325292 trainings=0 APPLY_ML=0
+[RAW MARK] user=29325292 gc=33887218 used_segs=369 peak_segs=372 over_cap=0 stall_us=0
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 640.000 MiB/s, Total Throughput: 917.015 MiB
+UserWrite: 120.0 GiB
+Per20GiB WAF: 3.491, Total WAF: 2.348
+Group 0[0]: 0.963 (Erase: 7) (Age: 1178220.714)
+Group 1[160]: 0.771 (Erase: 273) (Age: 8005128.212)
+Group 2[135]: 0.694 (Erase: 74) (Age: 2426843.338)
+Group 3[12]: 0.662 (Erase: 61) (Age: 1488229.639)
+Group 4[36]: 0.730 (Erase: 111) (Age: 1681397.775)
+Group 5[19]: 0.486 (Erase: 65) (Age: 2339411.385)
+============================================
+Model training start
+Epoch [1/15] Train Loss: 1.8090, Train Acc: 40.15% | Val Loss: 1.5091, Val Acc: 49.73%
+Epoch [2/15] Train Loss: 1.5736, Train Acc: 49.12% | Val Loss: 1.3727, Val Acc: 56.01%
+Epoch [3/15] Train Loss: 1.4699, Train Acc: 52.84% | Val Loss: 1.2920, Val Acc: 58.69%
+Epoch [4/15] Train Loss: 1.4076, Train Acc: 54.91% | Val Loss: 1.2541, Val Acc: 60.27%
+Epoch [5/15] Train Loss: 1.3710, Train Acc: 56.09% | Val Loss: 1.2274, Val Acc: 60.85%
+Epoch [6/15] Train Loss: 1.3473, Train Acc: 56.83% | Val Loss: 1.2098, Val Acc: 60.57%
+Epoch [7/15] Train Loss: 1.3319, Train Acc: 57.31% | Val Loss: 1.2019, Val Acc: 61.00%
+Epoch [8/15] Train Loss: 1.3209, Train Acc: 57.67% | Val Loss: 1.1911, Val Acc: 60.95%
+Epoch [9/15] Train Loss: 1.3097, Train Acc: 58.02% | Val Loss: 1.1836, Val Acc: 61.34%
+Epoch [10/15] Train Loss: 1.3028, Train Acc: 58.16% | Val Loss: 1.1753, Val Acc: 61.27%
+Epoch [11/15] Train Loss: 1.2962, Train Acc: 58.37% | Val Loss: 1.1701, Val Acc: 61.38%
+Epoch [12/15] Train Loss: 1.2907, Train Acc: 58.53% | Val Loss: 1.1650, Val Acc: 61.72%
+Epoch [13/15] Train Loss: 1.2871, Train Acc: 58.64% | Val Loss: 1.1645, Val Acc: 62.27%
+Epoch [14/15] Train Loss: 1.2843, Train Acc: 58.79% | Val Loss: 1.1620, Val Acc: 62.20%
+Epoch [15/15] Train Loss: 1.2797, Train Acc: 58.82% | Val Loss: 1.1582, Val Acc: 62.45%
+Model training completed, and export completed
+[Trainer] Reached maximum true LBA number. Closing true LBA file
+[PORT] sync training: stream paused at logicalTime=34776476
+[PORT] training #1 starts at logicalTime~34776476
+[Trainer] Training dataset collection completed.
+[ModelTrainer] Running: ../venv/bin/python3 '../DOGI-Train/model_trainer.py' '../DOGI-Train/0_training.csv'
+[MLP] Reloaded trained model from ../DOGI-Train/TrainedModel/Model0
+==== Selected configuration ====
+WAF=1.8665 K=1 m_list=[0,10] BIR=[660]
+GC relocation (category -> first GC group): c1->G1 c2->G1 c3->G1 c4->G1 c5->G1 c6->G1 c7->G1 c8->G1 c9->G1 c10->G1 
+[GCONF] applied from group optimizer: K=1 waf=1.8665 m_list=[0,10] BIR=[660] (Unit: Segment)
+[GCONF] group optimizer success
+Saved 100000 samples so far.
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 196.923 MiB/s, Total Throughput: 602.353 MiB
+UserWrite: 140.0 GiB
+Per20GiB WAF: 6.249, Total WAF: 2.905
+Group 0[0]: 0.953 (Erase: 15) (Age: 358519.400)
+Group 1[141]: 0.816 (Erase: 188) (Age: 1944648.814)
+Group 2[25]: 0.855 (Erase: 256) (Age: 1338616.809)
+Group 3[37]: 0.872 (Erase: 194) (Age: 1712054.227)
+Group 4[139]: 0.823 (Erase: 376) (Age: 976509.846)
+Group 5[20]: 0.800 (Erase: 29) (Age: 1303045.724)
+============================================
+Saved 200000 samples so far.
+Saved 300000 samples so far.
+Saved 400000 samples so far.
+Reached maximum sample number. Closing feature file.
+- First feature time: 34776455, Last feature time: 39151042
+- Interval: 4374587
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 296.812 MiB/s, Total Throughput: 533.681 MiB
+UserWrite: 160.0 GiB
+Per20GiB WAF: 7.093, Total WAF: 3.429
+Group 0[0]: 0.946 (Erase: 14) (Age: 380213.429)
+Group 1[130]: 0.827 (Erase: 179) (Age: 1577885.223)
+Group 2[24]: 0.855 (Erase: 144) (Age: 1052426.389)
+Group 3[25]: 0.879 (Erase: 135) (Age: 1414203.711)
+Group 4[163]: 0.864 (Erase: 692) (Age: 1141843.301)
+Group 5[20]: 0.822 (Erase: 37) (Age: 1440967.486)
+============================================
+Model training start
+Epoch [1/15] Train Loss: 2.1816, Train Acc: 19.23% | Val Loss: 2.0928, Val Acc: 23.84%
+Epoch [2/15] Train Loss: 2.1111, Train Acc: 22.60% | Val Loss: 2.0452, Val Acc: 26.54%
+Epoch [3/15] Train Loss: 2.0777, Train Acc: 24.17% | Val Loss: 2.0135, Val Acc: 27.32%
+Epoch [4/15] Train Loss: 2.0558, Train Acc: 24.89% | Val Loss: 1.9891, Val Acc: 27.92%
+Epoch [5/15] Train Loss: 2.0370, Train Acc: 25.50% | Val Loss: 1.9688, Val Acc: 28.29%
+Epoch [6/15] Train Loss: 2.0264, Train Acc: 25.94% | Val Loss: 1.9581, Val Acc: 28.34%
+Epoch [7/15] Train Loss: 2.0165, Train Acc: 26.16% | Val Loss: 1.9471, Val Acc: 28.52%
+Epoch [8/15] Train Loss: 2.0090, Train Acc: 26.52% | Val Loss: 1.9392, Val Acc: 28.50%
+Epoch [9/15] Train Loss: 2.0034, Train Acc: 26.71% | Val Loss: 1.9322, Val Acc: 28.78%
+Epoch [10/15] Train Loss: 1.9979, Train Acc: 26.92% | Val Loss: 1.9271, Val Acc: 28.86%
+Epoch [11/15] Train Loss: 1.9939, Train Acc: 27.14% | Val Loss: 1.9213, Val Acc: 29.11%
+Epoch [12/15] Train Loss: 1.9903, Train Acc: 27.38% | Val Loss: 1.9161, Val Acc: 29.42%
+Epoch [13/15] Train Loss: 1.9860, Train Acc: 27.58% | Val Loss: 1.9145, Val Acc: 29.89%
+Epoch [14/15] Train Loss: 1.9821, Train Acc: 27.81% | Val Loss: 1.9109, Val Acc: 29.95%
+Epoch [15/15] Train Loss: 1.9797, Train Acc: 27.87% | Val Loss: 1.9059, Val Acc: 30.22%
+Model training completed, and export completed
+[Trainer] Reached maximum true LBA number. Closing true LBA file
+[PORT] sync training: stream paused at logicalTime=47151265
+[PORT] training #2 starts at logicalTime~47151265
+[Trainer] Training dataset collection completed.
+[ModelTrainer] Running: ../venv/bin/python3 '../DOGI-Train/model_trainer.py' '../DOGI-Train/1_training.csv'
+[MLP] Reloaded trained model from ../DOGI-Train/TrainedModel/Model1
+==== Selected configuration ====
+WAF=1.6867 K=3 m_list=[0,2,4,10] BIR=[32,145,535]
+GC relocation (category -> first GC group): c1->G2 c2->G2 c3->G2 c4->G2 c5->G3 c6->G3 c7->G3 c8->G3 c9->G3 c10->G3 
+[GCONF] applied from group optimizer: K=3 waf=1.6867 m_list=[0,2,4,10] BIR=[32,145,535] (Unit: Segment)
+[GCONF] group optimizer success
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 186.182 MiB/s, Total Throughput: 442.014 MiB
+UserWrite: 180.0 GiB
+Per20GiB WAF: 7.220, Total WAF: 3.850
+Group 0[0]: 0.956 (Erase: 5) (Age: 1067971.600)
+Group 1[95]: 0.937 (Erase: 204) (Age: 16964304.887)
+Group 2[69]: 0.837 (Erase: 84) (Age: 782290.750)
+Group 3[8]: 0.842 (Erase: 94) (Age: 929116.383)
+Group 4[116]: 0.847 (Erase: 825) (Age: 1004603.052)
+Group 5[75]: 0.854 (Erase: 10) (Age: 1030445.200)
+============================================
+Saved 100000 samples so far.
+Saved 200000 samples so far.
+Saved 300000 samples so far.
+Saved 400000 samples so far.
+Reached maximum sample number. Closing feature file.
+- First feature time: 47151267, Last feature time: 51346521
+- Interval: 4195254
+============== Per 20GiB Info ==============
+Per20GiB Throughput: 51.328 MiB/s, Total Throughput: 250.980 MiB
+UserWrite: 200.0 GiB
+Per20GiB WAF: 668.998, Total WAF: 70.365
+Group 0[0]: 0.972 (Erase: 10) (Age: 503293.200)
+Group 1[5]: 0.954 (Erase: 130) (Age: 1501299.485)
+Group 2[73]: 0.756 (Erase: 100) (Age: 4530663.500)
+Group 3[32]: 0.955 (Erase: 199) (Age: 749300.020)
+Group 4[177]: 0.999 (Erase: 112739) (Age: 6727.617)
+Group 5[75]: 0.990 (Erase: 54) (Age: 4472966.519)
+============================================
