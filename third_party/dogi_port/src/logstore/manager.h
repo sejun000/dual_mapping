@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include <memory>
 #include <unordered_map>
 #include <list>
@@ -30,7 +31,11 @@ public:
     void Read(void *buf, off64_t addr);
 
     double GetGp() const;
-    void PrintRawStats(const char* tag) const { printf("[RAW %s] user=%llu gc=%llu\n", tag, (unsigned long long)mTotalUserWrites, (unsigned long long)mTotalGcWrites); fflush(stdout); }
+    void PrintRawStats(const char* tag) const { printf("[RAW %s] user=%llu gc=%llu used_segs=%lld peak_segs=%lld over_cap=%llu stall_us=%llu emergency=%llu\n", tag, (unsigned long long)mTotalUserWrites, (unsigned long long)mTotalGcWrites, (long long)mUsedSegs.load(), (long long)mPeakUsed.load(), (unsigned long long)mOverCap.load(), (unsigned long long)mStallUs.load(), (unsigned long long)mEmergency.load()); fflush(stdout); }
+    // Port: strict physical budget (gNumSegCap > 0)
+    void NoteEmergency() { ++mEmergency; }
+    bool NeedGc() const { return gNumSegCap - mUsedSegs.load() <= gGcReserve; }
+    void NoteFirstBlock() { int64_t u = ++mUsedSegs; int64_t p = mPeakUsed.load(); while (u > p && !mPeakUsed.compare_exchange_weak(p, u)) {} if (gNumSegCap > 0 && u > gNumSegCap) ++mOverCap; }
     uint64_t GetnBlocks() const;
     uint64_t GetnValidBlocks() const;
     uint64_t GetnInvalidBlocks() const;
@@ -78,6 +83,8 @@ private:
     std::condition_variable mStopTheWorldCv;
 
     std::unique_ptr<StorageAdapter> mStorageAdapter;
+    std::atomic<int64_t> mUsedSegs{0}, mPeakUsed{0};
+    std::atomic<uint64_t> mOverCap{0}, mStallUs{0}, mEmergency{0};
 };
 
 

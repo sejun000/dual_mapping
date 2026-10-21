@@ -3,3 +3,24 @@ ftlsim/ftlsim
 *.pdf
 *.tar
 results/readpath/
+# raw per-run logs and time series (GBs; summaries are kept)
+results/**/ycsb_run_*.log
+results/**/ycsb_load_*.log
+results/**/pg_ycsbm_*.log
+results/**/pg_start_*.log
+results/**/pg_tpccm_*.log
+results/**/tpcc_run_*.log
+results/**/tpcc_load_*.log
+results/**/tpcc_*.raw.json
+results/**/dmesg.txt
+results/**/data_device_timeseries.txt
+results/**/fs_timeseries.txt
+results/**/blklat.txt
+results/**/memcg_*.txt
+results/**/mixbs_*.log
+results/**/*.bin
+ftlsim/ftlsim_cgc
+tools/trace_replay
+# paper figures are kept despite *.pdf above
+!paper/**/*.pdf
+!results/paper_dac/*.pdf

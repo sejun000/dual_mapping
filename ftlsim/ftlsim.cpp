@@ -19,6 +19,7 @@
 #include <map>
 #include <cmath>
 #include <vector>
+#include <type_traits>
 
 using u32 = uint32_t;
 using u64 = uint64_t;
@@ -42,6 +43,7 @@ struct Cfg {
     double zipf = 0.0;
     int min_k = 0, max_k = 6;     // request size = 2^k pages, log-uniform by request count
     u64 wbuf_pages = 256;         // device write buffer (default 1 MiB) (pages): coalesce fragments per IU; full IU -> aligned write, LRU IU evicted as fragments. 0 = off
+    bool align_req = false;       // synthetic: align each request start to its own size (128K request -> 128K-aligned)
     bool seq_pattern = false;     // sequential host writes (request starts advance sequentially, wrap at end) instead of zipf/uniform
     std::string size_weights;     // optional comma list of weights for k=min_k..max_k (e.g. "64,32,16,8,4,2,1" = small-heavy)
     u64 seed = 1;
@@ -106,6 +108,93 @@ struct Cfg {
     double janus_u = 0.7;         // janus: PMA utilization target (defuse when above, else GC)
     int janus_cap = 0;            // janus: max fused blocks (0 = from 10% RAM budget; -1 = unlimited)
     u64 last_k = 0;               // hot update-interval threshold in pages (0 = auto: hot partition capacity)    // true: random rank->IU permutation (hot IUs scattered); false: rank==IU (hot region contiguous)
+    // ---- partially filled device (file-system-like): defaults reproduce the full-device workload exactly
+    double fill_frac = 1.0;       // seq fill writes only the first fill_frac of the LBA space (the rest is never written)
+    double foot_frac = 1.0;       // random/zipf workload writes only over the first foot_frac of the IUs
+    double app_frac = 0.0;        // fraction of workload pages issued by sequential append streams (WAL-like)
+    u64 app_region = 1ull << 30;  // bytes of the (circular) append region, split evenly among the streams
+    double app_off = -1;          // append region start as a fraction of L (<0: right after the footprint)
+    int app_k = 1;                // append request = 2^app_k pages
+    int app_rep = 1;              // each append request is issued app_rep times (WAL tail-page rewrites) before advancing
+    int app_streams = 1;          // number of interleaved append streams (e.g. one WAL per database cluster)
+    // ---- elastic fine pool (proposed): see Sim::elastic_quota()
+    int fine_elastic = 0;         // 0 = fixed quota (default). 1 = fine quota grows into physical space the coarse tier
+                                  //     does not need (never-written / freed LBA space), shrinking back as coarse data grows
+    double elastic_keep = 0;      // coarse headroom kept free of fine blocks, as a fraction of coarse-resident pages
+                                  //     (0 = auto: OP fraction, i.e. the coarse tier keeps at least its nominal OP ratio)
+    int pool_cap = 0;             // cuckoo2: 1 = the eviction fold also fires when the fine-resident pages reach the fine
+                                  //     pool's copy-GC liveness bound (quota - open fine frontiers - 1) x P (see Sim::ct_ensure);
+                                  //     2 = cost parity with the last fine-GC victim; 3 = either (studied, rejected);
+                                  //     4 = the liveness-bound cap in uniform mode only
+    int onefront_fix = 0;         // 1 = uniform mode with uni_onefront: when the fine reclaim run to open a new host fine block
+                                  //     already re-opened ff with its GC copies, keep filling that block (default 0 orphans it,
+                                  //     and the unchanged block count is taken for a stall -> forced block fold)
+    int evict_pol = 0;            // cuckoo2 eviction among the 8 candidates: 0 = most fragments (then coldest),
+                                  //     1 = max fragments x age, 2 = coldest (then most fragments)
+    // ---- trace replay with original addresses (block traces captured on the 44G NVMeVirt device)
+    int trace_remap = 1;          // 1 = dense first-touch 1 MiB remap (default); 0 = identity (LBA = byte_off / 4096; must fit in L)
+    long long trace_warmup_pages = -1; // >= 0: absolute write pages before the measurement starts (overrides trace_warmup)
+    long long trace_stop_pages = -1;
+    int trace_clip = 0;
+    int dram_stats = 0;           // 1 = count mapping-structure DRAM accesses (cache-line touches) per host read / host write /
+                                  //     GC page / fold page; also replays trace reads (and, in synthetic mode, one read probe per
+                                  //     write request from the write distribution) through each policy's read lookup. Reads change
+                                  //     DFTL / LeaFTL cache state, so WAF from a dram_stats run is not the reference WAF.           // trace_remap=0: 1 = drop write pages beyond L (L is rounded down to a multiple of U) instead of dying
+    double gc_fine_bias = 1.0;    // sensitivity knob (study only): gc_select=cost reclaims the fine victim iff v_f < bias x v_c   // >= 0: stop the replay after this many write pages (end-of-measurement marker)
+    // ---- cuckoo2 spill + lazy fold (default off = the eviction fold). See Sim::spill().
+    int spill = 0;                // 1 = a full bucket pair SPILLS its victim IU (fragment pointers -> its flash translation page,
+                                  //     FTP; table entries freed; coarse-entry "spilled" bit set) instead of folding it;
+                                  //     2 = as 1, and the same FTP program also spills every other table-resident IU of that FTP
+    int spill_ipf = 0;            // IUs per FTP (0 = 4096 / (U x 4 B) = 64 at U = 16): dense, fixed-location FTPs, GTD = 4 B per FTP
+    int age_sep = 0;              // coarse GC / fold outputs placed by chunk age (now - last host write of the IU, as carried in
+                                  //     the chunk's OOB): N >= 2 classes, class k for age >= age_base x 4^(k-1); class 0 -> the GC
+                                  //     frontier, class k -> its own frontier. Replaces the coarse_class cascade, also in uniform mode
+    int oracle = 0;               // study (trace replay, future knowledge; not implementable): a dry pre-pass records every IU's
+                                  //     full-IU host write times. 1 = coarse victim by cost-benefit with the block's true mean residual
+                                  //     chunk lifetime instead of its age; 2 = age_sep placement by true residual lifetime; 3 = both
+    int age_pred = 0;             // age_sep lifetime estimate: 0 = chunk age (OOB time stamp); 1 = LBA-region write rate: per region of
+                                  //     rt_r IUs a decayed host-page counter (DRAM: 8 B per region, taken from the fine table), estimated
+                                  //     IU write interval = region pages / region rate; 2 = max(age, region interval);
+                                  //     3 = per-IU 2-bit write counter (DRAM: NIU/4 B, taken from the fine table), halved every rt_h x L
+                                  //     host pages: class = (age_sep - 1) - min(counter, age_sep - 1); 4 = as 3, counting full-IU writes only
+    int rt_r = 256;               // age_pred: IUs per region
+    double rt_h = 1.0;            // age_pred: counter half-life, x L host pages
+    // ---- deferred fold in fine GC (default off): copy live fragments forward instead of folding, fold only when
+    int fine_borrow = 0;          // fine pool may grow up to fine_borrow blocks past its (canonical or uniform-mode) quota,
+                                  //     borrowing from the shared free pool; the coarse-starvation guard and the global cost-based
+                                  //     victim choice (gc_select=cost) decide when blocks go back (0 = off)
+    int ffold = 0;                // 1 = on: fold iff d >= ffold_d, or the fragment's copy count (per-page OOB) >= ffold_n, or the
+    int ffold_d = 0;              //     occupancy guard holds (fine-resident pages >= ffold_occ x fine cap x P) and the default
+    int ffold_n = 0;              //     fine_policy rule (cost[/cold]) says fold. 0 disables a cap; ffold_occ < 0 = guard always on
+    double ffold_occ = 2.0;       //     (default rule kept as a fallback), > 1 = never (only the caps fold)
+    int refold_cls = -1;          // age_sep: fixed class for refold outputs (-1 = by age like every GC write)
+    int age_uni = -1;             // age_sep: number of age classes used in uniform mode (-1 = age_sep; 0/1 = none)
+    int age_ref = 0;              // age_sep: 0 = age since the IU's last host write (any size), 1 = since its chunk's last birth by a
+                                  //     host full-IU write or a fold (fragments do not kill a chunk; refold / clean copy are moves)
+    double age_base = 0.25;       // age_sep: first threshold, x L host pages (> 0) or x the EWMA age of GC-copied chunks (< 0)
+    int uni_cc = 0;               // adapt: coarse_class age cascade kept in uniform mode (0 = none, the default)
+    std::string uni_vict;         // adapt: coarse victim policy in uniform mode (empty = greedy, the default)
+    double uni_quota = 0;         // adapt: uniform-mode fine quota as a fraction of NB (0 = geometric default: all spare blocks)
+    int cgc_diag = 0;             // 1 = coarse-GC diagnostics (report only, no behaviour change): victim valid histogram, chosen vs
+                                  //     min-valid victim, chunk copies by IU write age / write count, coarse block valid bands, fine exits
+    int fold_on_read = 0;         // spill: a host read of a spilled IU folds it right after the read (needs dram_stats=1 for the
+                                  //     read replay). 1 = always, 2 = only if the IU has >= 2 fragments, 3 = on the 2nd read hit,
+                                  //     4 = only if write-cold (no fragment in a host fine block opened within one pool turnover)
+    int spill_rp = 0;             // spill: read-promotion. A host read of a spilled IU un-spills it right after its FTP read (its
+                                  //     fragment pointers go back into the table exactly as on a host write, possibly spilling
+                                  //     others; no data moves). Needs dram_stats=1 (read replay). 1 = on every read of a spilled IU;
+                                  //     K >= 2 = on its K-th read since it was spilled: per-IU read counter of ceil(log2 K) bits taken
+                                  //     from the coarse entry (no extra DRAM), reset on spill; consecutive page lookups of the same IU
+                                  //     (one multi-page request) count once (one SRAM register: the last IU looked up)
+    int spill_rp_rate = 0;        // spill_rp rate guard (0 = off): promotions may spend at most this many FTP programs per 1000
+                                  //     host write pages (token bucket in 1/1000 programs, refilled per host page reaching the FTL,
+                                  //     burst = ipf programs; a promotion runs only with credit > 0 and is charged its FTP programs)
+    int spill_rp_clean = 0;       // spill_rp: 1 = a read-promoted IU stays CLEAN: its FTP image is left valid (one more coarse-entry
+                                  //     bit), so evicting it while clean just drops its table entries and sets the spilled bit again
+                                  //     (no FTP read or program, no spill=2 group spill). Any change of its fragment set / locations
+                                  //     (host fine write, fold / refold / overwrite, fine-GC copy) makes it dirty (ordinary table IU).
+                                  //     Eviction candidates that will be spilled prefer clean IUs (then the usual most-fragments /
+                                  //     coldest rule); pool_cap folds keep the usual rule. Needs evict_pol=0.
 };
 
 enum Src { S_HOST = 0, S_FINEGC, S_FOLD, S_CGC_CLEAN, S_CGC_REFOLD, S_RMW, S_PGC, S_ZEROFILL, S_FULLMERGE, S_PARTIALMERGE, S_MAP, S_UNFOLD, S_N };
@@ -128,7 +217,7 @@ struct Stats {
     u64 frag_folded = 0, frag_freed = 0;   // fine pages retired by an explicit fold vs. for free (refold / overwrite)
     u64 fine_host_new = 0, fine_host_ow = 0, uni_host = 0;
     u64 fine_peak = 0;
-    u64 n_evict_fold = 0;                    // cuckoo2: folds forced by a full bucket pair (the table is the DRAM budget)                       // max fine-resident valid pages, sampled at each fine block allocation // host pages entering the fine pool as a new fragment vs. overwriting a fine-resident page
+    u64 n_evict_fold = 0, n_pool_evict = 0, n_onefront_reuse = 0;                    // cuckoo2: folds forced by a full bucket pair (the table is the DRAM budget)                       // max fine-resident valid pages, sampled at each fine block allocation // host pages entering the fine pool as a new fragment vs. overwriting a fine-resident page
     u64 host_fine = 0, host_coarse = 0;  // host pages by tier
     u64 n_unfold = 0, unfold_pages = 0; std::vector<u64> d_unfold;
     u64 n_budget_fold = 0, n_gcfold = 0;
@@ -138,6 +227,31 @@ struct Stats {
     u64 age_hist[7] = {0,0,0,0,0,0,0};   // (fine_clock-flast)/pool turnovers: <.125 .25 .5 1 2 4 4+
     u64 age_hist_fold[7] = {0,0,0,0,0,0,0};  // ... among those the cost test wanted to fold
     u64 n_switch = 0, n_partial = 0, n_full = 0, n_dead_reclaim = 0, n_merge_reclaim = 0, full_assoc_sum = 0, n_seq_req = 0, n_rand_req = 0, n_hot_pages = 0, n_cold_pages = 0;
+    // diagnostics (report only): fine victim valid at greedy/cost reclaim, folds by reason, pool occupancy at erases
+    u64 greedy_v_sum = 0, n_greedy_fold = 0, n_shrink_reclaim = 0, shrink_v_sum = 0, n_elastic_shrink = 0;
+    u64 occ_n = 0; double occ_fv = 0, occ_fb = 0, occ_free = 0, occ_cv = 0, occ_quota = 0;
+    // dram_stats: contexts 0 host read, 1 host write, 2 GC (relocation), 3 fold (incl. cuckoo2 eviction folds)
+    u64 dacc[4] = {0, 0, 0, 0}, dfr[4] = {0, 0, 0, 0};   // DRAM accesses / flash map reads (translation pages, LeaFTL frames, mispredictions)
+    u64 d_rd_ops = 0, d_rd_max = 0, d_rd_hist[16] = {0}, d_rd_fr_max = 0, d_rd_buf = 0, d_rd_unmapped = 0;
+    u64 d_wp_ops = 0, d_wp_max = 0, d_wiu_ops = 0, d_wiu_max = 0, d_wiu_pages = 0, d_evict = 0, d_evict_acc = 0, d_evict_max = 0, d_lf_mispredict = 0;
+    // spill: events, FTP reads by reason (0 host read, 1 un-spill on host write, 2 fold/refold/overwrite of a spilled IU,
+    // 3 fine-GC batch, 4 spill read-modify-write), FTP programs by reason (0 spill, 1 fine-GC pointer update)
+    u64 n_spill = 0, n_spill_ius = 0, spill_pages = 0, n_unspill = 0, unspill_pages = 0, ftp_rd[5] = {0,0,0,0,0}, ftp_wr[2] = {0,0};
+    u64 n_spilled_fold = 0, n_spilled_refold = 0, n_spilled_gcfold = 0, n_spilled_copy = 0;
+    u64 rd_spilled = 0, rd_spilled_frag = 0, rd_ftp = 0;
+    u64 n_rfold = 0, rfold_frags = 0, rfold_prog = 0, rfold_prog_fold = 0, n_rfold_skip = 0;
+    // spill_rp: promotions (+ pages), reads that only advanced the counter / were refused by the rate guard,
+    // FTP programs / FTP reads spent inside promotions (spills of the evicted IUs' FTPs and their read-modify-writes)
+    u64 n_rp = 0, rp_pages = 0, n_rp_wait = 0, n_rp_rate = 0, rp_ftp_wr = 0, rp_ftp_rd = 0;
+    u64 n_clean_evict = 0, n_clean_dirty = 0;   // spill_rp_clean: clean IUs re-spilled without FTP I/O / made dirty while in the table
+    // cgc_diag (report only)
+    u64 dg_vbin[20] = {}, dg_vsum_chosen = 0, dg_vsum_min = 0, dg_vsum_cb = 0, dg_cls_n[8] = {}, dg_cls_v[8] = {};
+    double dg_band_blocks[7] = {}, dg_band_garb[7] = {}; u64 dg_snaps = 0;
+    u64 dg_copy_age[9] = {}, dg_refold_age[9] = {}, dg_vict_chunks = 0, dg_vict_cold = 0, dg_vict_hot = 0;
+    u64 dg_ar[9][9] = {};   // oracle diag: GC relocations by (age bin, true residual-life bin), same L-relative edges
+    u64 fb_hist[64] = {}, fb_hist_uni[64] = {};   // fine block count at each erase (all / uniform mode)
+    u64 n_ff_d = 0, n_ff_n = 0, n_ff_guard = 0;   // ffold: folds by reason
+    u64 dg_fexit[4] = {};   // fine pages retired by: 0 host 4K overwrite, 1 host full-IU / eager write, 2 refold, 3 fold
     u64 total_prog() const { u64 s = 0; for (auto p : prog) s += p; return s; }
     void reset(int U) { *this = Stats(); d_fold.assign(U + 1, 0); d_refold.assign(U + 1, 0); d_unfold.assign(U + 1, 0); }
 };
@@ -157,7 +271,21 @@ struct Sim {
     // adapt=1 state: canonical quota vs. uniform-mode quota (all spare OP), absorption window counters
     int fine_quota_base = 0, fine_quota_uni = 0; bool uni = false;
     u64 aw_new = 0, aw_ow = 0, n_mode_switch = 0;
-    int cc_eff() const { return uni ? 0 : c.coarse_class; }
+    int cc_eff() const { return uni ? (c.uni_cc > 0 ? c.uni_cc : 0) : c.coarse_class; }
+    // ---- fine_elastic: the fine pool may grow beyond its quota into physical space the coarse tier does not need.
+    // Coarse need = live chunks x U (what the coarse tier occupies when compacted; never-written IUs own nothing),
+    // plus headroom, plus its open frontiers and the GC reserve. O(1): one counter of live chunks.
+    u64 n_chunks = 0;                 // IUs with a live coarse chunk
+    u64 fpages = 0;                   // fine-resident valid pages (= fine table entries)
+    // live coarse pages: chunk slots minus the pages fragments supersede (as L - fv for a full device)
+    u64 coarse_live() const { u64 a = n_chunks * (u64)U; return a > fpages ? a - fpages : 0; }
+    int fine_cap() const {
+        if (!c.fine_elastic) return fine_quota_blocks + c.fine_borrow;   // fine_borrow: may grow past the quota (both modes)
+        double keep = c.fine_elastic == 2 ? 1.0 / 32 : (c.elastic_keep > 0 ? c.elastic_keep : c.op);
+        u64 need = (u64)std::ceil((double)coarse_live() * (1.0 + keep) / P);
+        long cap = (long)NB - (long)need - (2 + cc_eff()) - c.T - 1;
+        return (int)std::max<long>(fine_quota_blocks, cap);
+    }
 
     // maps
     std::vector<u32> coarse_map;   // IU -> extent start ppn
@@ -176,6 +304,7 @@ struct Sim {
     std::vector<u32> p2l;          // ppn -> lpn
     std::vector<Tag> btag;
     std::vector<int32_t> bvalid;   // valid 4K pages per block
+    std::vector<int32_t> bsup;     // coarse blocks: chunk pages superseded by a live fragment (block metadata; dead = written - valid - sup)
     std::vector<u64> bseq;         // block allocation sequence (FIFO victim)
     u64 alloc_seq = 0; u64 alt_turn = 0;
     std::vector<int32_t> freelist;
@@ -239,13 +368,32 @@ struct Sim {
                 // four open frontiers (host/GC x fine/coarse) -- geometry only, no tuning constant
                 int data_blocks = (int)((L + P - 1) / P);
                 fine_quota_uni = std::max(fine_quota_base, NB - data_blocks - c.T - (c.uni_onefront ? 3 : 4) - 1);
+                // extra open coarse GC frontiers kept in uniform mode (age_sep classes, uni_cc cascade) come out of the spare blocks
+                // (the geometry above keeps one spare block, which absorbs one extra frontier)
+                fine_quota_uni = std::max(fine_quota_base, fine_quota_uni - std::max(0, age_n(true) - 2) - (c.uni_cc > 0 ? c.uni_cc : 0));
+                if (c.uni_quota > 0) fine_quota_uni = std::max(1, (int)(NB * c.uni_quota));   // study: explicit uniform-mode quota
             }
             if (c.fine_index == "cuckoo2") {
                 if (c.unfold != "off") DIE("cuckoo2 does not support unfold");
                 double ent = 4 + 4 + (!c.rec_block && (c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0);
                 double fine_bytes = c.map_budget * (double)L * 4 - (double)(L / U) * 4;
+                if (c.spill) {   // the FTP directory (GTD) comes out of the same budget
+                    spl_on = true;
+                    ipf = c.spill_ipf > 0 ? (u64)c.spill_ipf : std::max<u64>(1, 4096 / ((u64)U * 4));
+                    n_ftp = (NIU + ipf - 1) / ipf; gtd_bytes = (double)n_ftp * 4;
+                    fine_bytes -= gtd_bytes;
+                    spl.assign(NIU, 0); grp_spilled.assign(n_ftp, 0); ftp.assign(L, NONE);
+                    if (c.fold_on_read == 3) rhits.assign(NIU, 0);
+                    if (c.spill_rp >= 2) { rp_cnt.assign(NIU, 0); while ((1 << rp_bits) < c.spill_rp) rp_bits++; }
+                    if (c.spill_rp_clean) rp_cln.assign(NIU, 0);
+                }
+                if (c.age_sep && c.age_pred >= 3) fine_bytes -= (double)NIU / 4;   // 2-bit per-IU counters
+                if (c.age_sep && (c.age_pred == 1 || c.age_pred == 2)) { rt_n = (NIU + c.rt_r - 1) / c.rt_r; fine_bytes -= (double)rt_n * 8; }   // region counters
                 if (fine_bytes < 4 * ent * 16) DIE("map_budget %.4f leaves no room for the fine table (coarse map alone is %.4f of the page map)", c.map_budget, 1.0 / U);
                 ct_nb = (u64)(fine_bytes / (4 * ent)); ct.assign(ct_nb * 4, NONE); ct_on = true;
+                if (spl_on) fprintf(stderr, "[cfg] spill=%d: %llu FTPs x %llu IUs, GTD %.3f MiB; DRAM split coarse %.3f / GTD %.3f / table %.3f MiB (budget %.3f MiB)\n",
+                                    c.spill, (unsigned long long)n_ftp, (unsigned long long)ipf, gtd_bytes / (1 << 20), (double)NIU * 4 / (1 << 20),
+                                    gtd_bytes / (1 << 20), ct_nb * 4 * ent / (1 << 20), c.map_budget * (double)L * 4 / (1 << 20));
                 fprintf(stderr, "[cfg] cuckoo2 fine table: %llu buckets x 4 = %llu entries (%.2f MiB), budget %.4f of page map\n",
                         (unsigned long long)ct_nb, (unsigned long long)(ct_nb * 4), ct_nb * 4 * ent / (1 << 20), c.map_budget);
             }
@@ -263,6 +411,14 @@ struct Sim {
             by_d.resize(U + 1);
         } else fine_quota_blocks = NB;  // page4k/cftl: no limit; iu_rmw: unused
         NP = (u64)NB * P;
+        if (c.spill && !spl_on) DIE("spill needs mode=proposed fine_index=cuckoo2");
+        if (spl_on && chunk_bits() + 2 > 32) DIE("spill: chunk index needs %d bits, no room for the flag + spilled bits", chunk_bits());
+        if (c.fold_on_read && (!spl_on || !c.dram_stats)) DIE("fold_on_read needs spill and dram_stats=1 (host reads are replayed only with dram_stats)");
+        if (c.spill_rp && (!spl_on || !c.dram_stats)) DIE("spill_rp needs spill and dram_stats=1 (host reads are replayed only with dram_stats)");
+        if (c.spill_rp && c.fold_on_read) DIE("spill_rp and fold_on_read are exclusive");
+        if (c.spill_rp_clean && (!c.spill_rp || c.evict_pol)) DIE("spill_rp_clean needs spill_rp and evict_pol=0");
+        if (c.spill_rp < 0 || c.spill_rp > 16 || c.spill_rp_rate < 0) DIE("spill_rp must be 0..16, spill_rp_rate >= 0");
+        if (spl_on && chunk_bits() + 2 + rp_bits + (c.spill_rp_clean ? 1 : 0) > 32) DIE("spill_rp: chunk index needs %d bits, no room for the 2 flag bits + %d read-counter bits", chunk_bits(), rp_bits);
         coarse_map.assign(NIU, NONE);
         bccls.assign(NB + 1, 0);
         fbirth.assign(NB + 1, 0); bhost.assign(NB + 1, 0);
@@ -271,11 +427,12 @@ struct Sim {
         fine_idx.assign(NIU, -1);
         p2l.assign(NP, NONE);
         btag.assign(NB, B_FREE);
-        bvalid.assign(NB, 0); bseq.assign(NB, 0);
+        bvalid.assign(NB, 0); bseq.assign(NB, 0); bsup.assign(NB, 0);
         freelist.reserve(NB);
         for (int b = NB - 1; b >= 0; --b) freelist.push_back(b);
         st.reset(U);
         rng.seed(c.seed);
+        if (c.adapt == 9 && c.mode == "proposed") { uni = true; fine_quota_blocks = fine_quota_uni; }
         if (mixed || ram_cap) fprintf(stderr, "[cfg] %s: fine map budget = %.2f MiB\n", mixed ? "mixed" : "ram-cap", fine_budget / (1 << 20));
         fprintf(stderr, "[cfg] mode=%s L=%llu pages (%.1f GB) NP=%llu NB=%d P=%d U=%d OP=%.3f fine_quota=%d blocks (extra=%d) T=%d zipf=%.2f\n",
                 c.mode.c_str(), (unsigned long long)L, L * 4096.0 / (1 << 30), (unsigned long long)NP, NB, P, U, c.op,
@@ -288,6 +445,13 @@ struct Sim {
     bool is_pg() const { return c.mode == "page4k" || c.mode == "dftl" || c.mode == "sepbit" || c.mode == "leaftl"; }
     bool is_lf() const { return c.mode == "leaftl"; }
     bool is_sb() const { return c.mode == "sepbit"; }
+    // ---- dram_stats: one access = one random cache-line touch of a mapping structure (L2P / CMT / cuckoo bucket /
+    // IU bitmap / coarse map / LeaFTL frame directory or segment). Block-level metadata (valid counters, P2L in OOB) is
+    // common to every policy and not counted.
+    int dctx = 1;
+    void DA(u64 n = 1) { if (c.dram_stats) st.dacc[dctx] += n; }
+    void MR() { st.read_map++; if (c.dram_stats) st.dfr[dctx]++; }
+    struct DCtx { Sim* s; int saved; DCtx(Sim* sp, int x) : s(sp), saved(sp->dctx) { s->dctx = x; } ~DCtx() { s->dctx = saved; } };
 
     // ---- DFTL (Gupta et al., ASPLOS'09) cached page mapping (CFTL's write path is identical): tier-2 translation pages (1024 entries) in flash, CMT in RAM (LRU).
     static const int TP_ENTRIES = 1024;
@@ -298,22 +462,27 @@ struct Sim {
     void cmt_evict_one() {
         u64 victim = cmt_lru.back(); cmt_lru.pop_back();
         auto it = cmt.find(victim); bool dirty = it->second.second; cmt.erase(it);
+        DA(1);
         if (!dirty) return;
         // batch update: write back the translation page, cleaning every cached dirty entry of the same page
         u64 tp = victim / TP_ENTRIES;
-        if (!c.dftl_tpbuf || tp != tp_buf) st.read_map++;
+        if (!c.dftl_tpbuf || tp != tp_buf) MR();
         if (c.dftl_tpbuf) tp_buf = tp;
         st.prog[S_MAP]++; st.map_flush++;
-        for (u64 l = tp * TP_ENTRIES; l < (tp + 1) * TP_ENTRIES; ++l) { auto j = cmt.find(l); if (j != cmt.end()) j->second.second = false; }
+        u64 cleaned = 0;
+        for (u64 l = tp * TP_ENTRIES; l < (tp + 1) * TP_ENTRIES; ++l) { auto j = cmt.find(l); if (j != cmt.end()) { j->second.second = false; cleaned++; } }
+        DA(cleaned);
     }
     // mapping update for lpn on a host write (DFTL: miss -> read translation page, insert; dirty)
     void cmt_update(u64 lpn) {
         if (c.mode != "dftl") return;
         auto it = cmt.find(lpn);
+        DA(1);                                                  // CMT probe (+ in-place update / LRU relink)
         if (it != cmt.end()) { cmt_lru.erase(it->second.first); cmt_lru.push_front(lpn); it->second = {cmt_lru.begin(), true}; return; }
+        DA(1);                                                  // GTD entry of the translation page
         st.map_miss++;
         u64 tp = lpn / TP_ENTRIES;
-        if (!c.dftl_tpbuf || tp != tp_buf) st.read_map++;
+        if (!c.dftl_tpbuf || tp != tp_buf) MR();
         while (cmt.size() >= cmt_cap) cmt_evict_one();
         if (c.dftl_tpbuf) tp_buf = tp;
         cmt_lru.push_front(lpn); cmt[lpn] = {cmt_lru.begin(), true};
@@ -323,10 +492,24 @@ struct Sim {
     void cmt_gc_update(u64 lpn) {
         if (c.mode != "dftl") return;
         auto it = cmt.find(lpn);
+        DA(1);
         if (it != cmt.end()) { it->second.second = true; return; }
+        DA(1);
         gc_tps.insert(lpn / TP_ENTRIES);
     }
-    void cmt_gc_flush() { for (u64 tp : gc_tps) { (void)tp; st.read_map++; st.prog[S_MAP]++; st.map_flush++; } gc_tps.clear(); }
+    void cmt_read(u64 lpn) {
+        auto it = cmt.find(lpn);
+        DA(1);
+        if (it != cmt.end()) { cmt_lru.erase(it->second.first); cmt_lru.push_front(lpn); it->second.first = cmt_lru.begin(); return; }
+        DA(1);
+        st.map_miss++;
+        u64 tp = lpn / TP_ENTRIES;
+        if (!c.dftl_tpbuf || tp != tp_buf) MR();
+        while (cmt.size() >= cmt_cap) cmt_evict_one();
+        if (c.dftl_tpbuf) tp_buf = tp;
+        cmt_lru.push_front(lpn); cmt[lpn] = {cmt_lru.begin(), false};
+    }
+    void cmt_gc_flush() { for (u64 tp : gc_tps) { (void)tp; MR(); st.prog[S_MAP]++; st.map_flush++; } gc_tps.clear(); }
 
 
     // ---- LeaFTL (Sun et al., ASPLOS'23; port of platformxlab/LeaFTL wiscsim/learnedftl.py).
@@ -408,7 +591,7 @@ struct Sim {
     }
     void lf_make_resident(u64 fno, LFrame& f, bool load) {
         if (f.resident) { lf_lru.erase(f.lru); lf_lru.push_front(fno); f.lru = lf_lru.begin(); return; }
-        if (load) { st.map_miss++; st.read_map++; f.partial = false; }
+        if (load) { st.map_miss++; MR(); f.partial = false; }
         else if (!f.segs.empty()) f.partial = true;          // update without loading: merged (read) at eviction
         f.resident = true; lf_lru.push_front(fno); f.lru = lf_lru.begin(); lf_cached += f.mem;
     }
@@ -416,17 +599,26 @@ struct Sim {
         while (lf_cached > (double)c.cache_bytes && lf_lru.size() > 1) {
             u64 v = lf_lru.back(); lf_lru.pop_back();
             LFrame& f = lframes[v];
-            if (f.dirty) { if (f.partial) st.read_map++; st.prog[S_MAP]++; st.map_flush++; }
+            DA(1);
+            if (f.dirty) { if (f.partial) MR(); st.prog[S_MAP]++; st.map_flush++; }
             f.resident = false; f.dirty = false; f.partial = false; lf_cached -= f.mem;
         }
     }
     // mapping lookup needed to invalidate a page's previous copy (write path) or serve a read
+    u64 lf_scan_cost(u64 lpn) {
+        u64 fno = lpn / LF_FRAME; auto it = lframes.find(fno);
+        if (it == lframes.end()) return 1;
+        int r = (int)(lpn - fno * LF_FRAME); u64 n = 1;
+        for (auto& g : it->second.segs) { n++; if (cov_get(g.cov, r)) break; }
+        return n;
+    }
     void lf_touch_lookup(u64 lpn) {
+        if (c.dram_stats) DA(lf_scan_cost(lpn));
         u64 fno = lpn / LF_FRAME; LFrame& f = lframes[fno];
         lf_lookups++;
         if (!f.resident) lf_make_resident(fno, f, true);
         else {
-            if (f.partial) { st.map_miss++; st.read_map++; f.partial = false; }   // merge with the flash copy
+            if (f.partial) { st.map_miss++; MR(); f.partial = false; }   // merge with the flash copy
             lf_make_resident(fno, f, false);
         }
     }
@@ -450,6 +642,7 @@ struct Sim {
                 keep.push_back(g);
             }
             f.segs.swap(keep); f.dirty = true;
+            DA(1 + f.segs.size());                              // rewrite the frame's segment list
             lf_set_mem(f, fno);
             i = j;
         }
@@ -497,6 +690,7 @@ struct Sim {
 
     // adapt=1: after each canonical fine-pool turnover of host fine pages, pick the mode by majority rule
     void adapt_tick(bool ow) {
+        if (c.adapt == 9) return;                                    // study: uniform mode forced from the start
         if (ow) aw_ow++; else aw_new++;
         if (aw_ow + aw_new < (u64)fine_quota_base * P) return;
         // adapt=1: majority rule (absorbs less than half); adapt=2: absorbs no more than a random cache of the
@@ -511,7 +705,12 @@ struct Sim {
             for (int j = fgf.next; j < P; ++j) p2l[(u32)fgf.blk * P + j] = NONE;
             fgf.blk = -1; fgf.next = 0;
         }
-        if (uni)   // close the age-cascade frontiers: their unwritten tails become ordinary garbage, not stuck OP
+        if (uni && c.age_sep)      // age classes not used in uniform mode: close their frontiers (tails become garbage)
+            for (int i = std::max(0, age_n(true) - 1); i < MAXCC; ++i) if (ccf[i].blk >= 0) {
+                for (int j = ccf[i].next; j < P; ++j) p2l[(u32)ccf[i].blk * P + j] = NONE;
+                ccf[i].blk = -1; ccf[i].next = 0;
+            }
+        if (uni && !c.age_sep && c.uni_cc <= 0)   // close the age-cascade frontiers: their unwritten tails become ordinary garbage, not stuck OP
             for (int i = 0; i < MAXCC; ++i) if (ccf[i].blk >= 0) {
                 for (int j = ccf[i].next; j < P; ++j) p2l[(u32)ccf[i].blk * P + j] = NONE;
                 ccf[i].blk = -1; ccf[i].next = 0;
@@ -528,6 +727,20 @@ struct Sim {
     int ct_free_in(u64 b) const { for (int k = 0; k < 4; ++k) if (ct[b * 4 + k] == NONE) return k; return -1; }
     int ct_load(u64 b) const { int n = 0; for (int k = 0; k < 4; ++k) n += ct[b * 4 + k] != NONE; return n; }
     bool ct_room(u64 lpn) const { return ct_free_in(ct_b1(lpn)) >= 0 || ct_free_in(ct_b2(lpn)) >= 0; }
+    int ct_depth(u64 lpn) const { u64 b = ct_b1(lpn); for (int k = 0; k < 4; ++k) if (ct[b * 4 + k] == (u32)lpn) return 1; return 2; }
+    u64 fine_lookup_cost(u64 lpn) const { return ct_on ? (u64)ct_depth(lpn) : 1; }   // pool mode: one slot access
+    u64 hb_cost(int32_t fi, u64 iu) const { u64 n = 0; u32 bm = fbitmap[fi]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; n += fine_lookup_cost(iu * U + off); } return n; }
+    // cuckoo2 keeps no per-IU fragment bitmap (fine_idx/fbitmap are simulator bookkeeping, outside the RAM model):
+    // the only per-IU state is the 4 B coarse entry = chunk index + one "has fragments" flag bit. Finding an IU's
+    // fragment set (d, fragment ppns for fold/invalidate/recency) therefore looks up all U pages in the table:
+    // present page = its depth (1-2 buckets), absent page = 2 buckets. 0 when the flag is clear (or not cuckoo2).
+    u64 iu_scan_cost(u64 iu) const {
+        int32_t fi = fine_idx[iu]; if (!ct_on || fi < 0 || is_spilled(iu)) return 0;   // spilled: pointers come from the FTP
+        u64 n = 0; for (int k = 0; k < U; ++k) n += (fbitmap[fi] >> k & 1) ? (u64)ct_depth(iu * U + k) : 2;
+        return n;
+    }
+    // one page's table lookup behind a set flag: 1-2 buckets if present, 2 if absent
+    u64 flag_lookup_cost(int32_t fi, u64 lpn) const { return fi < 0 || is_spilled(lpn / U) ? 0 : (fbitmap[fi] >> (lpn % U) & 1) ? (u64)ct_depth(lpn) : 2; }
     void ct_insert(u64 lpn) {
         u64 a = ct_b1(lpn), b = ct_b2(lpn); u64 t = ct_load(a) <= ct_load(b) ? a : b;
         int k = ct_free_in(t); if (k < 0) { t = (t == a) ? b : a; k = ct_free_in(t); }
@@ -538,28 +751,317 @@ struct Sim {
         for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) if (ct[b * 4 + k] == (u32)lpn) { ct[b * 4 + k] = NONE; return; }
         DIE("cuckoo2: remove of absent lpn %llu", (unsigned long long)lpn);
     }
+
+    // ---- spill (c.spill): when a bucket pair is full, the victim IU's fragment pointers move to its flash translation
+    // page (FTP) instead of being folded. FTPs are dense and fixed: FTP g holds the U x 4 B fragment pointers of IUs
+    // [g*ipf, (g+1)*ipf) (ipf = 64 at U = 16, one 4 KiB page), so the DRAM directory (GTD) is one 4 B flash address per
+    // FTP (= L/1024 x 4 B at U = 16, like DFTL's GTD) and no per-IU DRAM state is added beyond a second bit stolen from
+    // the coarse entry ("spilled"). FTPs are modelled as DFTL translation pages are here: programs count as prog 'map',
+    // reads as read_map, no simulated block space; one FTP is held in controller SRAM (as dftl_tpbuf=1).
+    // A spilled IU's fragments stay in the fine pool; they are retired lazily: for free when coarse GC relocates the
+    // chunk (refold, after one FTP read), by the fine-GC cost rule (fold, or copy + batched FTP update), or when the
+    // host writes the IU (un-spill: one FTP read, its pointers go back into the table; the FTP copy is just stale).
+    bool spl_on = false; u64 ipf = 64, n_ftp = 0; double gtd_bytes = 0;
+    std::vector<uint8_t> spl;          // IU -> spilled (the coarse entry's 2nd flag bit)
+    std::vector<uint16_t> grp_spilled; // FTP -> number of its IUs currently spilled (sim bookkeeping: RMW needs the old FTP?)
+    std::vector<u32> ftp;              // lpn -> fragment pointer as stored in its FTP (NONE = not a fragment / IU not spilled)
+    std::vector<uint8_t> rhits;        // fold_on_read=3: read hits since the IU was spilled
+    std::vector<uint8_t> rp_cnt;       // spill_rp >= 2: reads since the IU was spilled (rp_bits bits of the coarse entry)
+    int rp_bits = 0;                   // spill_rp: read-counter bits per coarse entry (ceil(log2 spill_rp))
+    u64 rp_last = ~0ull;               // spill_rp >= 2: last IU looked up by a host read (SRAM register)
+    long long rp_credit = 0;           // spill_rp_rate: token bucket, 1/1000 FTP programs
+    std::vector<uint8_t> rp_cln;       // spill_rp_clean: table-resident IU whose FTP image is still valid (coarse-entry bit)
+    bool is_clean(u64 iu) const { return !rp_cln.empty() && rp_cln[iu]; }
+    // a clean IU's fragment set / locations are about to change: its FTP image becomes stale (sim: forget it)
+    void rp_dirty(u64 iu) {
+        if (!is_clean(iu)) return;
+        rp_cln[iu] = 0; st.n_clean_dirty++;
+        for (int k = 0; k < U; ++k) ftp[iu * U + k] = NONE;
+    }
+    u64 spages = 0;                    // fine pages of spilled IUs (not in the table)
+    u64 ftp_buf = ~0ull;               // FTP held in SRAM
+    int gc_batch = 0; std::unordered_set<u64> gc_ftp_rd, gc_ftp_dirty;   // fine GC: FTPs read / to rewrite for this victim
+    bool is_spilled(u64 iu) const { return spl_on && spl[iu]; }
+    void ftp_read(u64 g, int why) {
+        if (gc_batch && gc_ftp_rd.count(g)) return;
+        if (g == ftp_buf) return;
+        MR(); st.ftp_rd[why]++; ftp_buf = g;
+        if (gc_batch) gc_ftp_rd.insert(g);
+    }
+    void ftp_write(u64 g, int why) { st.prog[S_MAP]++; st.map_flush++; st.ftp_wr[why]++; ftp_buf = g; }
+    void gc_batch_begin() { if (spl_on && gc_batch++ == 0) { gc_ftp_rd.clear(); gc_ftp_dirty.clear(); } }
+    void gc_batch_end() {
+        if (!spl_on || --gc_batch > 0) return;
+        for (u64 g : gc_ftp_dirty) if (grp_spilled[g]) ftp_write(g, 1);   // FTPs whose IUs all left the spilled state need no update
+        gc_ftp_rd.clear(); gc_ftp_dirty.clear();
+    }
+    // move one table-resident IU to the spilled state (no FTP program here; the caller programs the FTP once)
+    void spill_one(u64 iu) {
+        int32_t fi = fine_idx[iu]; u32 bm = fbitmap[fi]; int d = popc(bm);
+        DA(iu_scan_cost(iu));                                        // fragment-set scan + removal
+        while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; u64 l = iu * U + off; ct_remove(l); ftp[l] = fslot[(u64)fi * U + off]; }
+        spl[iu] = 1; grp_spilled[iu / ipf]++; spages += d;
+        if (!rp_cln.empty()) rp_cln[iu] = 0;
+        if (!rhits.empty()) rhits[iu] = 0;
+        if (!rp_cnt.empty()) { rp_cnt[iu] = 0; if (rp_last == iu) rp_last = ~0ull; }
+        st.n_spill_ius++; st.spill_pages += d;
+    }
+    // spill victim iu (c.spill=2: plus every other table-resident IU of its FTP except cur_iu): one FTP read-modify-write
+    void spill(u64 iu, u64 cur_iu) {
+        u64 g = iu / ipf;
+        if (is_clean(iu)) {   // FTP image still valid: no FTP I/O (sim check: the image equals the table)
+            int32_t fi = fine_idx[iu];
+            for (int k = 0; k < U; ++k) if (ftp[iu * U + k] != ((fbitmap[fi] >> k & 1) ? fslot[(u64)fi * U + k] : NONE)) DIE("spill_rp_clean: stale FTP image of clean IU %llu", (unsigned long long)iu);
+            st.n_clean_evict++; spill_one(iu); return;
+        }
+        if (grp_spilled[g]) ftp_read(g, 4);                          // keep the pointers of the FTP's other spilled IUs
+        st.n_spill++;
+        spill_one(iu);
+        if (c.spill == 2) {
+            u64 lo = g * ipf, hi = std::min(NIU, lo + ipf);
+            DA((hi - lo + 15) / 16);                                 // the FTP's coarse entries (64 B per cache line)
+            for (u64 j = lo; j < hi; ++j) if (j != iu && j != cur_iu && !spl[j] && fine_idx[j] >= 0 && fbitmap[fine_idx[j]]) spill_one(j);
+        }
+        ftp_write(g, 0);
+    }
+    // eviction candidate among the (<= 8) entries of lpn's bucket pair, excluding cur_iu (same rule as ct_ensure)
+    u64 ct_pick(u64 lpn, u64 cur_iu) {
+        u64 best = ~0ull; int bd = -1; u64 bl = ~0ull; double bsc = -1; int bcl = -1;
+        for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) {
+            u32 e = ct[b * 4 + k]; if (e == NONE) continue;
+            u64 iu = e / U; if (iu == cur_iu) continue;
+            int32_t f2 = fine_idx[iu]; if (f2 < 0) continue;
+            int d = popc(fbitmap[f2]);
+            u64 rc = c.rec_block ? host_birth(f2) : flast[f2];
+            if (!rp_cln.empty()) {   // spill_rp_clean: clean first, then most fragments, then coldest
+                int cl = rp_cln[iu];
+                if (cl > bcl || (cl == bcl && (d > bd || (d == bd && rc < bl)))) { bcl = cl; bd = d; bl = rc; best = iu; }
+            } else if (c.evict_pol == 1) {
+                double sc = (double)d * (double)(fine_clock - std::min(rc, fine_clock) + 1);
+                if (sc > bsc) { bsc = sc; bd = d; bl = rc; best = iu; }
+            } else if (c.evict_pol == 2) {
+                if (rc < bl || (rc == bl && d > bd)) { bd = d; bl = rc; best = iu; }
+            } else if (d > bd || (d == bd && rc < bl)) { bd = d; bl = rc; best = iu; }
+        }
+        return best;
+    }
+    // host write to a spilled IU: read its FTP, put its fragment pointers back into the table (making room by spilling
+    // others: no flash data writes, so no GC can run in here), clear the spilled bit; the FTP copy becomes stale
+    void unspill(u64 iu, bool rd = false) {   // rd: read-promotion (spill_rp; the FTP was just read by the lookup)
+        u64 g = iu / ipf;
+        ftp_read(g, 1);
+        int32_t fi = fine_idx[iu]; u32 bm = fbitmap[fi]; int d = popc(bm);
+        spl[iu] = 0; grp_spilled[g]--; spages -= d;
+        if (rd) { st.n_rp++; st.rp_pages += d; } else { st.n_unspill++; st.unspill_pages += d; }
+        bool keep = rd && !rp_cln.empty();                           // clean promotion: the FTP image stays valid
+        if (keep) rp_cln[iu] = 1;
+        while (bm) {
+            int off = __builtin_ctz(bm); bm &= bm - 1; u64 l = iu * U + off;
+            if (!keep) ftp[l] = NONE;
+            for (int tries = 0; !ct_room(l); ++tries) {
+                DA(2);
+                u64 v = ct_pick(l, iu);
+                if (v == ~0ull || tries > 16) DIE("spill: cannot make room to un-spill IU %llu", (unsigned long long)iu);
+                spill(v, iu);
+            }
+            DA(1); ct_insert(l);
+        }
+    }
+    // read-triggered fold of a spilled IU (fold_on_read), right after the read that paid its FTP read
+    void read_fold(u64 iu) {
+        int32_t fi = fine_idx[iu]; int d = popc(fbitmap[fi]);
+        if (c.fold_on_read == 2 && d < 2) { st.n_rfold_skip++; return; }
+        if (c.fold_on_read == 3 && ++rhits[iu] < 2) { st.n_rfold_skip++; return; }
+        // 4: write-cold guard -- no fragment in a host fine block opened within the last fine-pool turnover (the block
+        // ids come from the FTP pointers just read; same block metadata as rec_block)
+        if (c.fold_on_read == 4 && host_birth(fi) + (u64)fine_quota_blocks * P > fine_clock) { st.n_rfold_skip++; return; }
+        u64 p0 = st.total_prog(), f0 = st.prog[S_FOLD] + st.prog[S_ZEROFILL];
+        st.n_rfold++; st.rfold_frags += d;
+        fold(iu, false);
+        st.rfold_prog += st.total_prog() - p0; st.rfold_prog_fold += st.prog[S_FOLD] + st.prog[S_ZEROFILL] - f0;
+    }
+    // read-promotion of a spilled IU (spill_rp), right after the read that paid its FTP read: un-spill it like a host
+    // write would (pointers back into the table, spilling others; FTP programs count as prog 'map'); no data moves.
+    // same: the previous host-read lookup was of this IU (one request) -> it does not advance the K-th-read counter.
+    void read_promote(u64 iu, bool same) {
+        if (c.spill_rp >= 2) {
+            if (same) return;
+            if (rp_cnt[iu] < c.spill_rp - 1) { rp_cnt[iu]++; st.n_rp_wait++; return; }
+        }
+        if (c.spill_rp_rate && rp_credit <= 0) { st.n_rp_rate++; return; }
+        u64 w0 = st.prog[S_MAP], r0 = st.read_map;
+        unspill(iu, true);
+        u64 dw = st.prog[S_MAP] - w0;
+        st.rp_ftp_wr += dw; st.rp_ftp_rd += st.read_map - r0;
+        if (c.spill_rp_rate) rp_credit -= 1000 * (long long)dw;
+    }
+    // pool_cap: largest fine population that still guarantees copy-GC progress. With the pool at quota, the closed
+    // fine blocks are quota - (open fine frontiers); if they hold at most one block less than their capacity, the
+    // min-valid one has free slots (pigeonhole), so a fine reclaim always frees space without the forced block fold.
+    bool pool_cap_on() const { return (c.pool_cap & 1) || ((c.pool_cap & 4) && uni); }   // 4: uniform mode only
+    u64 pool_cap_pages() const {
+        long nb = (long)fine_cap() - ((uni && c.uni_onefront) ? 1 : 2) - 1;
+        return nb > 0 ? (u64)nb * P : 0;
+    }
     // make room for a NEW fine page of cur_iu before the host write enters the fine pool
     void ct_ensure(u64 lpn) {
         if (!ct_on) return;
         u64 cur_iu = lpn / U; int32_t fi = fine_idx[cur_iu];
-        if (fi >= 0 && (fbitmap[fi] >> (lpn % U) & 1)) return;           // overwrite of a resident page: no new entry
-        for (int tries = 0; !ct_room(lpn); ++tries) {
+        if (is_spilled(cur_iu)) unspill(cur_iu);                         // spilled bit: FTP read, pointers back into the table
+        // membership: the coarse entry (charged by the caller) has the flag; flag set -> one table lookup
+        if (fi >= 0 && (fbitmap[fi] >> (lpn % U) & 1)) { DA(ct_depth(lpn)); return; }   // overwrite of a resident page: no new entry
+        if (fi >= 0) DA(2);                                              // flag set, page absent: both buckets were read
+        for (int tries = 0; ; ++tries) {
+            bool room = ct_room(lpn);
+            if (tries > 0 || fi < 0) DA(ct_free_in(ct_b1(lpn)) >= 0 ? 1 : 2);   // candidate buckets read
+            // pool_cap: a fine pool at its liveness bound evicts like a full bucket pair (at most once per new page:
+            // a quota drop on a mode switch is drained gradually)
+            // pool_cap=2 (cost parity): evict the best candidate when folding it is cheaper per freed fine slot than
+            // copying the last fine-GC victim, d * v > U * (P - v) (the fine-reclaim cost test); no scan unless v > P/2.
+            // pool_cap=3: either rule.
+            bool over = room && c.pool_cap && tries == 0 &&
+                        ((pool_cap_on() && fpages >= pool_cap_pages()) || ((c.pool_cap & 2) && 2 * (long)victim_v > (long)P));
+            if (room && !over) break;
             if (tries > 16) DIE("cuckoo2: cannot make room for lpn %llu", (unsigned long long)lpn);
-            u64 best = ~0ull; int bd = -1; u64 bl = ~0ull;
+            DCtx g(this, 3); u64 a0 = st.dacc[3];
+            u64 best = ~0ull; int bd = -1; u64 bl = ~0ull; double bsc = -1; int bcl = -1;
+            bool pcl = !rp_cln.empty() && !over;   // spill_rp_clean: a spilling eviction prefers clean IUs
+            u64 seen[8]; int nseen = 0;
             for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) {
                 u32 e = ct[b * 4 + k]; if (e == NONE) continue;
                 u64 iu = e / U; if (iu == cur_iu) continue;
                 int32_t f2 = fine_idx[iu]; if (f2 < 0) continue;
                 int d = popc(fbitmap[f2]);                                   // most fragments first (cheapest fold), then coldest
+                if (c.dram_stats) {   // candidate's fragment set (d + recency from its fragments' blocks): U lookups, once per IU
+                    bool dup = false; for (int q = 0; q < nseen; ++q) dup |= seen[q] == iu;
+                    if (!dup) { seen[nseen++] = iu; DA(iu_scan_cost(iu)); }
+                }
                 u64 rc = c.rec_block ? host_birth(f2) : flast[f2];
-                if (d > bd || (d == bd && rc < bl)) { bd = d; bl = rc; best = iu; }
+                if (pcl) {
+                    int cl = rp_cln[iu];
+                    if (cl > bcl || (cl == bcl && (d > bd || (d == bd && rc < bl)))) { bcl = cl; bd = d; bl = rc; best = iu; }
+                } else if (c.evict_pol == 1) {        // fragments x age: cheap AND cold folds first
+                    double sc = (double)d * (double)(fine_clock - std::min(rc, fine_clock) + 1);
+                    if (sc > bsc) { bsc = sc; bd = d; bl = rc; best = iu; }
+                } else if (c.evict_pol == 2) { // coldest first, then most fragments
+                    if (rc < bl || (rc == bl && d > bd)) { bd = d; bl = rc; best = iu; }
+                } else if (d > bd || (d == bd && rc < bl)) { bd = d; bl = rc; best = iu; }
             }
-            if (best == ~0ull) DIE("cuckoo2: both buckets hold only the IU being written");
-            st.n_evict_fold++;
-            fold(best, false);
+            if (best == ~0ull) { if (over) break; DIE("cuckoo2: both buckets hold only the IU being written"); }
+            if (over && !(pool_cap_on() && fpages >= pool_cap_pages()) && !((double)bd * victim_v > (double)U * (P - victim_v))) break;
+            if (over) st.n_pool_evict++; else st.n_evict_fold++;
+            // eviction cost = candidate scan + the fold's own map work (coarse entry + fragment-set scan incl. removals);
+            // a coarse GC nested in the fold's extent allocation is accounted as GC, not to the eviction
+            u64 a = c.dram_stats ? st.dacc[3] - a0 + 1 + iu_scan_cost(best) : 0;
+            if (spl_on && !over) spill(best, cur_iu);                   // DRAM-driven eviction: spill instead of fold
+            else fold(best, false);
+            if (c.dram_stats) { st.d_evict++; st.d_evict_acc += a; if (a > st.d_evict_max) st.d_evict_max = a; }
         }
     }
 
+    // ---- cgc_diag: per-IU write age / count and coarse-GC relocation counters (simulator bookkeeping, report only)
+    u64 hclk = 0; bool dg_started = false;
+    std::vector<u64> dg_lhw, dg_lfw; std::vector<u32> dg_hw, dg_copies, dg_refolds, dg_fw;   // lfw: last chunk birth by a host full-IU write or a fold
+    void dg_host(u64 lpn, u64 n) {
+        if (dg_lhw.empty()) { dg_lhw.assign(NIU, 0); dg_lfw.assign(NIU, 0); dg_hw.assign(NIU, 0); dg_copies.assign(NIU, 0); dg_refolds.assign(NIU, 0); dg_fw.assign(NIU, 0); }
+        if (measuring && !dg_started) { dg_started = true; for (auto* v : {&dg_hw, &dg_copies, &dg_refolds, &dg_fw}) std::fill(v->begin(), v->end(), 0); }
+        for (u64 iu = lpn / U; iu <= (lpn + n - 1) / U; ++iu) {
+            dg_lhw[iu] = hclk; if (measuring) dg_hw[iu]++;
+            if (iu * U >= lpn && (iu + 1) * U <= lpn + n) { dg_lfw[iu] = hclk; if (measuring) dg_fw[iu]++; }
+        }
+        hclk += n;
+    }
+    // ---- oracle (study): next full-IU host write time per IU from a dry pre-pass
+    bool rec = false; u64 rclk = 0, t_end = 0;
+    std::vector<std::vector<u64>> fw_t; std::vector<u32> fw_ptr;
+    std::vector<u64> nd_cur;            // next-death time recorded for the IU's current chunk
+    std::vector<double> bnd; std::vector<int32_t> bnk;   // per block: sum of live chunks' next-death times, live chunk count
+    void rec_host(u64 lpn, u64 n) {
+        if (fw_t.empty()) fw_t.resize(NIU);
+        for (u64 iu = lpn / U; iu <= (lpn + n - 1) / U; ++iu) if (iu * U >= lpn && (iu + 1) * U <= lpn + n) fw_t[iu].push_back(rclk);
+        rclk += n;
+    }
+    void oracle_ready() { t_end = rclk; fw_ptr.assign(NIU, 0); nd_cur.assign(NIU, 0); bnd.assign(NB, 0); bnk.assign(NB, 0); if (fw_t.empty()) fw_t.resize(NIU); }
+    u64 next_death(u64 iu) {
+        auto& v = fw_t[iu]; u32& p = fw_ptr[iu];
+        while (p < v.size() && v[p] <= hclk) p++;
+        return p < v.size() ? v[p] : t_end + 2 * L;      // never rewritten: beyond the end of the trace
+    }
+    void ora_add(u64 iu, u32 ppn) { if (bnd.empty()) return; u64 nd = next_death(iu); nd_cur[iu] = nd; bnd[blk_of(ppn)] += (double)nd; bnk[blk_of(ppn)]++; }
+    void ora_del(u64 iu, u32 ppn) { if (bnd.empty()) return; bnd[blk_of(ppn)] -= (double)nd_cur[iu]; bnk[blk_of(ppn)]--; }
+    int pick_victim_ora() {
+        int best = -1; double bs = -1;
+        for (int b = 0; b < NB; ++b) {
+            if (btag[b] != B_COARSE || is_frontier(b)) continue;
+            double res = bnk[b] ? std::max(1.0, bnd[b] / bnk[b] - (double)hclk) : 1.0;
+            double score = bvalid[b] == 0 ? 1e308 : (double)(P - bvalid[b]) / (double)bvalid[b] * std::sqrt(res);
+            if (score > bs) { bs = score; best = b; }
+        }
+        return best;
+    }
+    // age_sep: class of a GC-written chunk from its age (OOB write time of its newest content)
+    double age_ewma = 0;
+    u64 rt_n = 0; std::vector<double> rt_c; std::vector<u64> rt_t;   // region rate counters (age_pred)
+    void rt_host(u64 lpn, u64 n) {
+        if (rt_c.empty()) { if (!rt_n) rt_n = (NIU + c.rt_r - 1) / c.rt_r; rt_c.assign(rt_n, 0); rt_t.assign(rt_n, 0); }
+        u64 r = lpn / U / c.rt_r;
+        rt_c[r] = rt_c[r] * std::exp2(-(double)(hclk - rt_t[r]) / (c.rt_h * (double)L)) + (double)n; rt_t[r] = hclk;
+    }
+    double rt_interval(u64 iu) const {   // estimated host pages between writes of one IU of this region
+        u64 r = iu / c.rt_r; double cnt = rt_c.empty() ? 0 : rt_c[r] * std::exp2(-(double)(hclk - rt_t[r]) / (c.rt_h * (double)L));
+        double rate = cnt * std::log(2.0) / (c.rt_h * (double)L);          // region host pages per host page
+        return rate > 0 ? (double)c.rt_r * U / rate : 1e30;
+    }
+    std::vector<uint8_t> wcnt; u64 wc_next = 0;   // age_pred 3/4: per-IU 2-bit write counters, periodic halving
+    void wc_host(u64 lpn, u64 n) {
+        if (wcnt.empty()) { wcnt.assign(NIU, 0); wc_next = (u64)(c.rt_h * (double)L); }
+        if (hclk >= wc_next) { for (auto& x : wcnt) x >>= 1; wc_next += (u64)(c.rt_h * (double)L); }
+        for (u64 iu = lpn / U; iu <= (lpn + n - 1) / U; ++iu)
+            if (c.age_pred == 3 || (iu * U >= lpn && (iu + 1) * U <= lpn + n)) { if (wcnt[iu] < 3) wcnt[iu]++; }
+    }
+    int age_n(bool u) const { return u && c.age_uni >= 0 ? c.age_uni : c.age_sep; }   // age classes in the current mode
+    int age_class(u64 iu) {
+        double age = (c.oracle & 2) ? (double)(next_death(iu) - hclk) : (double)(hclk - (c.age_ref ? dg_lfw[iu] : dg_lhw[iu]));
+        if (c.age_pred == 1) age = rt_interval(iu); else if (c.age_pred == 2) age = std::max(age, rt_interval(iu));
+        double base = c.age_base > 0 ? c.age_base * (double)L : -c.age_base * age_ewma;
+        if (c.age_pred >= 3) { int n = age_n(uni); if (n <= 1) return 0; int w = wcnt.empty() ? 0 : wcnt[iu]; return (n - 1) - std::min(w, n - 1); }
+        int k = 0, n = age_n(uni); double t = base; while (k < n - 1 && age >= t) { k++; t *= 4; }
+        return k;
+    }
+    int dg_agebin(u64 iu) const {
+        double x = (double)(hclk - dg_lhw[iu]) / (double)L;
+        return x < 1.0/16 ? 0 : x < 1.0/8 ? 1 : x < 0.25 ? 2 : x < 0.5 ? 3 : x < 1 ? 4 : x < 2 ? 5 : x < 4 ? 6 : x < 8 ? 7 : 8;
+    }
+    void dg_victim(int b) {
+        if (dg_lhw.empty()) return;
+        int vmin = INT32_MAX; double bs = -1; int vcb = 0;
+        static const double edge[6] = {0.70, 0.80, 0.85, 0.90, 0.95, 0.99};
+        for (int x = 0; x < NB; ++x) {
+            if (btag[x] != B_COARSE || is_frontier(x)) continue;
+            if (bvalid[x] < vmin) vmin = bvalid[x];
+            double sc = bvalid[x] == 0 ? 1e308 : (double)(P - bvalid[x]) / (double)bvalid[x] * std::sqrt((double)(alloc_seq - bseq[x]));
+            if (sc > bs) { bs = sc; vcb = bvalid[x]; }
+            double f = (double)bvalid[x] / P; int k = 0; while (k < 6 && f >= edge[k]) k++;
+            st.dg_band_blocks[k] += 1; st.dg_band_garb[k] += (double)(P - bvalid[x]) / P;
+        }
+        st.dg_snaps++;
+        st.dg_vsum_chosen += bvalid[b]; st.dg_vsum_min += vmin; st.dg_vsum_cb += vcb;
+        st.dg_vbin[std::min(19, bvalid[b] * 20 / P)]++;
+        int cl = std::min(7, (int)bccls[b]); st.dg_cls_n[cl]++; st.dg_cls_v[cl] += bvalid[b];
+    }
+    void dg_copy(u64 iu, bool refold) {
+        if (dg_lhw.empty()) return;
+        int a = dg_agebin(iu);
+        st.dg_copy_age[a]++; if (refold) st.dg_refold_age[a]++;
+        st.dg_vict_chunks++; if (a >= 4) st.dg_vict_cold++; if (a <= 1) st.dg_vict_hot++;
+        if (measuring) { dg_copies[iu]++; if (refold) dg_refolds[iu]++; }
+        if (!fw_ptr.empty()) {
+            double x = (double)(next_death(iu) - hclk) / (double)L;
+            int r = x < 1.0/16 ? 0 : x < 1.0/8 ? 1 : x < 0.25 ? 2 : x < 0.5 ? 3 : x < 1 ? 4 : x < 2 ? 5 : x < 4 ? 6 : x < 8 ? 7 : 8;
+            st.dg_ar[a][r]++;
+        }
+    }
+    std::vector<uint8_t> fcopy;   // ffold: per fine page (OOB) number of fine-GC copies since the host wrote it
     std::vector<uint8_t> bhost;   // fine block opened as the host frontier
     // rec_block: latest birth of a host-frontier fine block holding one of the IU's fragments (0 = none)
     u64 host_birth(int32_t fi) const {
@@ -567,6 +1069,8 @@ struct Sim {
         while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; int b = blk_of(fslot[(u64)fi * U + off]); if (bhost[b] && fbirth[b] > m) m = fbirth[b]; }
         return m;
     }
+    // bits of the coarse entry's chunk index: chunk ids 0..NP/U-1 plus one "no chunk" code (cuckoo2 adds a flag bit)
+    int chunk_bits() const { u64 nc = NP / U; int b = 0; while ((1ull << b) <= nc) b++; return b; }
     double cuckoo_entry() const { return 4 + 4 + (!c.rec_block && (c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0); }
     int32_t fine_get(u64 iu) const { return fine_idx[iu]; }
     int32_t fine_get_or_create(u64 iu) {
@@ -581,14 +1085,27 @@ struct Sim {
     void fine_release(u64 iu) {
         int32_t i = fine_idx[iu];
         if (i < 0) return;
-        if (ct_on) { u32 bm = fbitmap[i]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; ct_remove(iu * U + off); } }
+        rp_dirty(iu);
+        if (is_spilled(iu)) {   // pointers live in the FTP (read by the caller); its copy just becomes stale
+            u32 bm = fbitmap[i]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; ftp[iu * U + off] = NONE; }
+            spl[iu] = 0; grp_spilled[iu / ipf]--; spages -= popc(fbitmap[i]);
+        }
+        else if (ct_on) { u32 bm = fbitmap[i]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; ct_remove(iu * U + off); } }   // DRAM cost: install_extent's scan
+        else DA(popc(fbitmap[i]));
         fine_idx[iu] = -1;
+        fpages -= popc(fbitmap[i]);
         fbitmap[i] = 0;
         fpool_free.push_back(i);
     }
 
     void erase_block(int b) {
         if (bvalid[b] != 0) DIE("erase block %d with valid=%d tag=%d", b, bvalid[b], btag[b]);
+        if (bsup[b] != 0) DIE("erase block %d with %d superseded chunk pages", b, bsup[b]);
+        if (c.mode == "proposed") {   // occupancy sample (diagnostics only)
+            u64 fv = 0, cv = 0; for (int x = 0; x < NB; ++x) { if (btag[x] == B_FINE) fv += bvalid[x]; else if (btag[x] == B_COARSE) cv += bvalid[x]; }
+            st.fb_hist[std::min(63, fine_blocks)]++; if (uni) st.fb_hist_uni[std::min(63, fine_blocks)]++;
+            st.occ_n++; st.occ_fv += fv; st.occ_cv += cv; st.occ_fb += fine_blocks; st.occ_free += freelist.size(); st.occ_quota += fine_cap();
+        }
         if (btag[b] == B_FINE) { fine_blocks--; st.erase_fine++; }
         else if (btag[b] == B_COARSE) { coarse_blocks--; st.erase_coarse++; }
         else DIE("erase free block");
@@ -616,13 +1133,16 @@ struct Sim {
             // chunks plus the GC reserve; otherwise reclaim fine space first (quota is only a cap).
             auto coarse_starved = [&] {
                 u64 fv = 0; for (int b = 0; b < NB; ++b) if (btag[b] == B_FINE) fv += bvalid[b];
-                u64 resident = L - fv;
+                u64 resident = c.fine_elastic ? coarse_live() : L - fv;
                 u64 slack = std::max((u64)P, resident / 32);   // min coarse OP ~3%: below this GC degenerates to full-block copies
                 return (u64)(NB - fine_blocks - 1 - c.T) * (u64)P < resident + slack;
             };
             int stall = 0;
-            while (fine_blocks >= fine_quota_blocks || coarse_starved()) {
-                if (fine_blocks < fine_quota_blocks) st.n_space_capped++;
+            while (fine_blocks >= fine_cap() || coarse_starved()) {
+                // onefront_fix: the reclaim's GC copies (uniform mode, uni_onefront) re-opened the host frontier this
+                // allocation is for; it has room, so no new block is needed (the caller keeps the re-opened ff)
+                if (c.onefront_fix && want_ff && ff.blk >= 0 && ff.next < P) { st.n_onefront_reuse++; return -1; }
+                if (fine_blocks < fine_cap()) st.n_space_capped++;
                 int before = fine_blocks;
                 fine_reclaim(stall >= 4);        // after 4 reclaims without net progress, force fold (copying cannot free space)
                 if (fine_blocks >= before) stall++; else stall = 0;
@@ -635,6 +1155,10 @@ struct Sim {
                 size_t before = freelist.size();
                 // A fully valid best victim is direct evidence of over-commitment: coarse GC would
                 // copy a whole block (P pages) for zero gain. Skip the copy and go shrink instead.
+                if (c.fine_elastic && !in_shrink && !in_fine_reclaim && fine_blocks > fine_cap() && pick_victim(B_FINE) >= 0) {
+                    in_shrink = true; fine_reclaim(); in_shrink = false; st.n_elastic_shrink++;
+                    if (freelist.size() > before) { stall = 0; continue; }
+                }
                 bool useless = false;
                 if (!is_pg() && !mixed && !ram_cap) {
                     int cv = pick_victim(B_COARSE);
@@ -652,7 +1176,7 @@ struct Sim {
                         // pick the cheaper tier: copy cost per freed block = v/(P-v); the fine pool
                         // gives back its slack whenever its victim is cheaper than the coarse one.
                         int vc = pick_victim(B_COARSE), vf = pick_victim(B_FINE);
-                        bool use_fine = vf >= 0 && (vc < 0 || bvalid[vf] < bvalid[vc]);
+                        bool use_fine = vf >= 0 && (vc < 0 || (c.gc_fine_bias == 1.0 ? bvalid[vf] < bvalid[vc] : bvalid[vf] < c.gc_fine_bias * bvalid[vc]));
                         if (use_fine) { in_shrink = true; fine_reclaim(); in_shrink = false; st.n_shrink_fold++; }
                         else coarse_gc();
                     }
@@ -687,16 +1211,22 @@ struct Sim {
     }
 
     // get one page slot on the fine frontier
+    bool want_ff = false;   // onefront_fix: the fine block being allocated is for the host frontier ff
     u32 fine_alloc_page(bool gc = false) {
         if (c.mode == "proposed" && !mixed && !ram_cap) { Frontier& g = (gc && c.gc_frontier) ? fgf : ff; if (g.blk < 0 || g.next == P) sample_fine_peak(); }
         bool sep = gc && c.gc_frontier && !(uni && c.uni_onefront);
         Frontier& f = mixed ? ((gc && c.gc_frontier) ? cgf : cf) : (sep ? fgf : ff);
-        if (f.blk < 0 || f.next == P) { f.blk = alloc_block(mixed ? B_COARSE : B_FINE); f.next = 0; fbirth[f.blk] = fine_clock; bhost[f.blk] = (&f == &ff); }
+        if (f.blk < 0 || f.next == P) {
+            bool saved = want_ff; want_ff = !mixed && &f == &ff;
+            int nb = alloc_block(mixed ? B_COARSE : B_FINE);
+            want_ff = saved;
+            if (nb >= 0) { f.blk = nb; f.next = 0; fbirth[f.blk] = fine_clock; bhost[f.blk] = (&f == &ff); }
+        }
         return (u32)f.blk * P + f.next++;
     }
     // get U consecutive slots on the coarse frontier
-    u32 coarse_alloc_extent(bool gc = false, int cls = 0) {
-        int ccls = std::min(cls, std::min(cc_eff(), MAXCC));
+    u32 coarse_alloc_extent(bool gc = false, int cls = 0, bool by_age = false) {
+        int ccls = by_age ? std::min(cls, (int)MAXCC) : std::min(cls, std::min(cc_eff(), (int)MAXCC));
         Frontier* fp = (gc && c.gc_frontier) ? (ccls > 0 ? &ccf[ccls - 1] : &cgf) : &cf;
         // Cascade fallback: opening an extra class frontier must not drain the GC reserve --
         // reroute to the shared GC frontier (or any open class frontier) instead of dying.
@@ -735,6 +1265,7 @@ struct Sim {
         st.prog[src]++; if (src == S_HOST) { st.host_fine++; fine_clock++; }
         u64 iu = lpn / U; int off = (int)(lpn % U);
         int32_t fi = fine_get_or_create(iu);
+        rp_dirty(iu);
         if (src == S_HOST) {
             if (freq[fi] != req_id) {   // count once per host request
                 double tau = c.unfold_tau * (double)fine_quota_blocks * P;
@@ -744,6 +1275,7 @@ struct Sim {
             flast[fi] = fine_clock;
         }
         u32 bit = 1u << off;
+        if (c.dram_stats && src == S_HOST && !ct_on) DA((fbitmap[fi] & bit) ? fine_lookup_cost(lpn) : 1);   // overwrite: find entry; new: coarse entry (cuckoo2: ct_ensure)
         if (fbitmap[fi] & bit) {
             u32 old = fslot[(u64)fi * U + off];
             bvalid[blk_of(old)]--;
@@ -751,13 +1283,14 @@ struct Sim {
         } else {
             if (src == S_HOST) { st.fine_host_new++; if (c.adapt) adapt_tick(false); }
             if (ct_on) ct_insert(lpn);
-            if (coarse_map[iu] != NONE) bvalid[blk_of(coarse_map[iu])]--;  // superseded in extent
+            if (coarse_map[iu] != NONE) { bvalid[blk_of(coarse_map[iu])]--; bsup[blk_of(coarse_map[iu])]++; }  // superseded in extent
             int od = popc(fbitmap[fi]);
-            fbitmap[fi] |= bit;
+            fbitmap[fi] |= bit; fpages++;
             track_d(iu, od, od + 1);
-            if (popc(fbitmap[fi]) == U && coarse_map[iu] != NONE) { coarse_map[iu] = NONE; st.n_extent_drop++; }  // extent fully dead
+            if (popc(fbitmap[fi]) == U && coarse_map[iu] != NONE) { bsup[blk_of(coarse_map[iu])] -= U; if (c.oracle) ora_del(iu, coarse_map[iu]); coarse_map[iu] = NONE; n_chunks--; st.n_extent_drop++; }  // extent fully dead
         }
         fslot[(u64)fi * U + off] = ppn;
+        if (c.ffold) { if (fcopy.empty()) fcopy.assign(NP, 0); fcopy[ppn] = 0; }
         if ((mixed || ram_cap) && src == S_HOST) mixed_enforce_budget();
     }
 
@@ -770,6 +1303,13 @@ struct Sim {
         if (fi >= 0) mask |= fbitmap[fi];
         return __builtin_popcount(mask);
     }
+    // cost-based eager test as a function of u alone; it is monotone in u (true for small u), so the request's own
+    // n pages (u >= n) and a full IU (u <= U) bound it: only between the two does the fragment set matter
+    bool eager_test_u(int n, int u) const {
+        double p = (st.frag_folded + st.frag_freed) ? (double)st.frag_folded / (st.frag_folded + st.frag_freed) : 0.5;
+        return (double)U / n < 1.0 + p * (double)U / std::max(1, u);
+    }
+    bool eager_ambiguous(int n) const { return eager_test_u(n, n) && !eager_test_u(n, U); }
     bool eager_worth(u64 iu, u64 start, int n) {
         if (c.eager_u <= -10) return n > -c.eager_u - 10;   // -1x: threshold on this request's pages only
         int u = eager_union(iu, start, n);
@@ -797,18 +1337,25 @@ struct Sim {
         // Age cascade: only untouched survivors of coarse GC advance a class; host writes,
         // refolds and folds carry fresh content and restart at class 0/1.
         int cls = 0;
+        if (c.age_sep && src != S_HOST) { u32 ppn = coarse_alloc_extent(true, age_class(iu), true); install_extent(iu, ppn, src, nprog_src, src2); return; }
         if (cc_eff() > 0 && src != S_HOST) cls = (src == S_CGC_CLEAN) ? cgc_cls + 1 : 1;
         u32 ppn = coarse_alloc_extent(src != S_HOST, cls);
         install_extent(iu, ppn, src, nprog_src, src2);
     }
     void install_extent(u64 iu, u32 ppn, Src src, u64 nprog_src = 0, Src src2 = S_HOST) {
+        if (c.cgc_diag && fine_idx[iu] >= 0)
+            st.dg_fexit[src == S_HOST ? 1 : src == S_CGC_REFOLD ? 2 : 3] += popc(fbitmap[fine_idx[iu]]);
+        if (ct_on) DA(1 + iu_scan_cost(iu));                         // coarse entry (flag) + fragment-set scan / removal
+        else DA(2);                                                  // IU bitmap + coarse entry
         for (int k = 0; k < U; ++k) p2l[ppn + k] = (u32)(iu * U + k);
         bvalid[blk_of(ppn)] += U;
         if (nprog_src) { st.prog[src] += nprog_src; st.prog[src2] += U - nprog_src; }
         else st.prog[src] += U;
         if (src == S_HOST) st.host_coarse += U;
         invalidate_iu(iu);
+        if (coarse_map[iu] == NONE) n_chunks++;
         coarse_map[iu] = ppn;
+        if (c.oracle) ora_add(iu, ppn);
     }
 
     // invalidate old extent + fine fragments of IU (does not touch coarse_map)
@@ -816,6 +1363,7 @@ struct Sim {
         int32_t fi = fine_idx[iu];
         int d = 0;
         if (fi >= 0) {
+            if (is_spilled(iu)) ftp_read(iu / ipf, 2);                // the fragment pointers to invalidate / fold in
             u32 bm = fbitmap[fi];
             d = popc(bm);
             while (bm) {
@@ -826,12 +1374,14 @@ struct Sim {
             fine_release(iu);
         }
         u32 old = coarse_map[iu];
-        if (old != NONE) bvalid[blk_of(old)] -= (U - d);
+        if (old != NONE) { bvalid[blk_of(old)] -= (U - d); bsup[blk_of(old)] -= d; if (c.oracle) ora_del(iu, old); }
     }
 
     // Fold(IU): merge fine d + extent (U-d) into a new extent. refold=true when done by coarse GC.
     void fold(u64 iu, bool refold) {
-        u32 ppn = coarse_alloc_extent(true);   // may run nested coarse GC -> evaluate state AFTER
+        DCtx g(this, 3);
+        u32 ppn = c.age_sep ? coarse_alloc_extent(true, (refold && c.refold_cls >= 0) ? std::min(c.refold_cls, std::max(0, age_n(uni) - 1)) : age_class(iu), true)
+                            : coarse_alloc_extent(true);   // may run nested coarse GC -> evaluate state AFTER
         int32_t fi = fine_idx[iu];
         int d = fi >= 0 ? popc(fbitmap[fi]) : 0;
         u32 old = coarse_map[iu];
@@ -841,6 +1391,8 @@ struct Sim {
         else if (d == U) src = refold ? S_CGC_REFOLD : S_FOLD;  // whole IU lives in fine
         else src = S_ZEROFILL;  // IU never had an extent: remaining pages are zero-fill
         if (refold) { st.n_refold++; st.d_refold[d]++; st.frag_freed += d; } else { st.n_fold++; st.d_fold[d]++; st.frag_folded += d; }
+        if (is_spilled(iu)) { if (refold) st.n_spilled_refold++; else st.n_spilled_fold++; }
+        if (!refold && !dg_lfw.empty()) dg_lfw[iu] = hclk;              // a fold is a chunk birth (age_ref=1)
         install_extent(iu, ppn, src);
     }
 
@@ -874,18 +1426,20 @@ struct Sim {
             u64 lpn = iu * U + off;
             st.read_fold_coarse++;
             p2l[np] = (u32)lpn; bvalid[blk_of(np)]++; st.prog[S_UNFOLD]++; st.unfold_pages++;
-            { int od = popc(fbitmap[fi]); fbitmap[fi] |= (1u << off); track_d(iu, od, od + 1); } fslot[(u64)fi * U + off] = np;
-            bvalid[blk_of(old)]--;                    // that chunk page is now superseded
+            { int od = popc(fbitmap[fi]); fbitmap[fi] |= (1u << off); fpages++; track_d(iu, od, od + 1); } fslot[(u64)fi * U + off] = np;
+            bvalid[blk_of(old)]--; bsup[blk_of(old)]++;   // that chunk page is now superseded
         }
-        if (popc(fbitmap[fi]) == U) { coarse_map[iu] = NONE; st.n_extent_drop++; }
+        if (popc(fbitmap[fi]) == U) { if (coarse_map[iu] != NONE) { n_chunks--; bsup[blk_of(old)] -= U; } coarse_map[iu] = NONE; st.n_extent_drop++; }
         in_fine_reclaim = saved;
     }
 
     // ------------------------------------------------------------------ reclaim
     // FineGC(block): copy valid 4K pages to fine frontier, erase
     void fine_gc_block(int b) {
+        DCtx g(this, 2);
         int rv_save = reclaim_victim; reclaim_victim = b;
         int v0 = bvalid[b];
+        gc_batch_begin();
         st.n_finegc++; st.finegc_valid_sum += v0;
         u32 base = (u32)b * P;
         for (int s = 0; s < P && bvalid[b] > 0; ++s) {
@@ -894,6 +1448,7 @@ struct Sim {
             if (lpn == NONE) continue;
             u64 iu = lpn / U; int off = (int)(lpn % U);
             int32_t fi = fine_idx[iu];
+            if (c.dram_stats) DA(1 + (ct_on ? flag_lookup_cost(fi, lpn) : (fi >= 0 && (fbitmap[fi] & (1u << off))) ? fine_lookup_cost(lpn) : 0));
             if (fi < 0 || !(fbitmap[fi] & (1u << off)) || fslot[(u64)fi * U + off] != ppn) continue;
             // allocate new page first: this may run nested coarse GC which can re-fold this IU
             u32 np = fine_alloc_page(true);
@@ -903,17 +1458,22 @@ struct Sim {
             p2l[np] = lpn;
             bvalid[blk_of(np)]++;
             st.prog[S_FINEGC]++;
+            rp_dirty(iu);
             fslot[(u64)fi * U + off] = np;
+            if (is_spilled(iu)) { ftp_read(iu / ipf, 3); ftp[lpn] = np; gc_ftp_dirty.insert(iu / ipf); st.n_spilled_copy++; }
             bvalid[b]--;
         }
+        gc_batch_end();
         erase_block(b);
         reclaim_victim = rv_save;
     }
 
     // fold every IU that has valid pages in block b (block-wise fold), then erase
     void fold_block(int b) {
+        DCtx g(this, 2);
         int rv_save = reclaim_victim; reclaim_victim = b;
         st.n_blockfold++;
+        gc_batch_begin();
         u32 base = (u32)b * P;
         for (int s = 0; s < P && bvalid[b] > 0; ++s) {
             u32 ppn = base + s;
@@ -921,10 +1481,12 @@ struct Sim {
             if (lpn == NONE) continue;
             u64 iu = lpn / U; int off = (int)(lpn % U);
             int32_t fi = fine_idx[iu];
+            if (c.dram_stats) DA(1 + (ct_on ? flag_lookup_cost(fi, lpn) : (fi >= 0 && (fbitmap[fi] & (1u << off))) ? fine_lookup_cost(lpn) : 0));
             if (fi < 0 || !(fbitmap[fi] & (1u << off)) || fslot[(u64)fi * U + off] != ppn) continue;
             fold(iu, false);  // invalidates all fragments of iu incl. this one
         }
         if (bvalid[b] != 0) DIE("fold_block left valid=%d", bvalid[b]);
+        gc_batch_end();
         erase_block(b);
         reclaim_victim = rv_save;
     }
@@ -933,8 +1495,10 @@ struct Sim {
     // greedy: per valid page in victim, fold its IU if the IU has >= fold_d fragments (fold retires all of them,
     // in this and other fine blocks), otherwise copy the page within the fine tier. Then erase.
     void greedy_reclaim_block(int b) {
+        DCtx g(this, 2);
         int rv_save = reclaim_victim; reclaim_victim = b;
         st.n_greedy++;
+        gc_batch_begin();
         u32 base = (u32)b * P;
         for (int s0 = 0; s0 < P && bvalid[b] > 0; ++s0) {
             u32 ppn = base + s0;
@@ -942,8 +1506,11 @@ struct Sim {
             if (lpn == NONE) continue;
             u64 iu = lpn / U; int off = (int)(lpn % U);
             int32_t fi = fine_idx[iu];
+            if (c.dram_stats) DA(1 + (ct_on ? flag_lookup_cost(fi, lpn) : (fi >= 0 && (fbitmap[fi] & (1u << off))) ? fine_lookup_cost(lpn) : 0));
             if (fi < 0 || !(fbitmap[fi] & (1u << off)) || fslot[(u64)fi * U + off] != ppn) continue;
             int d = popc(fbitmap[fi]);
+            bool sp = is_spilled(iu);
+            if (sp) ftp_read(iu / ipf, 3);                               // d + recency of a spilled IU come from its FTP
             if (s0 == 0 || st.vblk_age_n == 0 || last_vblk != b) {   // once per victim block
                 last_vblk = b;
                 double bt = (double)(fine_clock - fbirth[b]) / ((double)fine_quota_blocks * P);
@@ -956,6 +1523,8 @@ struct Sim {
               st.age_hist[bk]++; if ((double)popc(fbitmap[fi]) * victim_v > (double)U * (P - victim_v)) st.age_hist_fold[bk]++; }
             // Parameter-free (fold_tau < 0): cold iff the IU was never rewritten while this block lived.
             // The block's own residence time is the pool's natural turnover clock, so no constant is needed.
+            if (c.dram_stats && ct_on) DA(iu_scan_cost(iu));                 // d (+ rec_block recency): fragment-set scan
+            else if (c.dram_stats && c.rec_block && c.fold_tau < 0) DA(hb_cost(fi, iu));
             bool cold = c.fold_tau < 0 ? (c.rec_block ? host_birth(fi) <= fbirth[b] : flast[fi] <= fbirth[b])
                                        : (double)(fine_clock - flast[fi]) >= c.fold_tau * (double)fine_quota_blocks * P;
             bool do_fold;
@@ -964,16 +1533,27 @@ struct Sim {
                 bool cheaper = (double)d * victim_v > (double)U * (P - victim_v);
                 do_fold = c.fine_policy == "cost" ? cheaper : (cheaper && cold);
             } else do_fold = c.fine_policy == "cold" ? (fold_allowed && cold && d >= c.fold_d) : (d >= c.fold_d);
-            if (do_fold) { st.greedy_fold_pages += d; fold(iu, false); continue; }
+            if (c.ffold) {   // deferred fold: the default rule only behind the occupancy guard, plus the explicit caps
+                bool guard = c.ffold_occ < 0 || (double)fpages >= c.ffold_occ * (double)fine_cap() * P;
+                bool capd = c.ffold_d > 0 && d >= c.ffold_d;
+                bool capn = c.ffold_n > 0 && !fcopy.empty() && fcopy[ppn] >= c.ffold_n;
+                if (capd) st.n_ff_d++; else if (capn) st.n_ff_n++; else if (guard && do_fold) st.n_ff_guard++;
+                do_fold = capd || capn || (guard && do_fold);
+            }
+            if (do_fold) { st.greedy_fold_pages += d; st.n_greedy_fold++; if (sp) st.n_spilled_gcfold++; fold(iu, false); continue; }
             // copy within fine tier (same as fine_gc_block's per-page path)
             u32 np = fine_alloc_page(true);
             fi = fine_idx[iu];
             if (fi < 0 || !(fbitmap[fi] & (1u << off)) || fslot[(u64)fi * U + off] != ppn) { st.wasted_slots++; continue; }
             st.read_gc_copy++; st.greedy_copy_pages++;
+            if (c.ffold && !fcopy.empty()) fcopy[np] = (uint8_t)std::min(255, fcopy[ppn] + 1);   // copy count rides in the page's OOB
             p2l[np] = lpn; bvalid[blk_of(np)]++; st.prog[S_FINEGC]++;
+            rp_dirty(iu);
             fslot[(u64)fi * U + off] = np; bvalid[b]--;
+            if (is_spilled(iu)) { ftp_read(iu / ipf, 3); ftp[lpn] = np; gc_ftp_dirty.insert(iu / ipf); st.n_spilled_copy++; }
         }
         if (bvalid[b] != 0) DIE("greedy_reclaim left valid=%d", bvalid[b]);
+        gc_batch_end();
         erase_block(b);
         reclaim_victim = rv_save;
     }
@@ -1020,6 +1600,7 @@ struct Sim {
             extra--;                                                  // ... minus the ones in this block
         }
         if (force_fold) { st.n_forced_fold++; fold_block(b); in_fine_reclaim = false; return; }
+        st.greedy_v_sum += v; if (in_shrink) { st.n_shrink_reclaim++; st.shrink_v_sum += v; }
         if (c.fine_policy == "greedy" || c.fine_policy == "cold" || c.fine_policy == "cost" || c.fine_policy == "cost_cold") { fold_allowed = (double)v / P >= c.fold_gate; victim_v = v; greedy_reclaim_block(b); in_fine_reclaim = false; return; }
         double k = (double)ius.size();
         // cost (writes) per freed fine slot
@@ -1040,12 +1621,41 @@ struct Sim {
         }
         return best;
     }
+    // study victim policies (s = chunk pages superseded by live fragments: a refold rewrites them, dead = P - v - s on a full block)
+    //   gd  : min v + s (fewest live chunk pages = most dead chunk slots)       gs : min (v + s) / (P - v) (programs per freed page)
+    //   cbd : max (P - v - s) / (v + s) x sqrt(age)                              cbs: max (P - v) / (v + s) x sqrt(age)
+    //   cb1 : max (P - v) / v x age                                              cbq: max (P - v) / v x age^0.25
+    //   cbx : max (P - v + s) / v x sqrt(age)                                    gx : min v - s
+    int pick_victim_pol(const std::string& pol) {
+        int best = -1; double bs = -1e300;
+        int k = pol == "gd" ? 0 : pol == "gs" ? 1 : pol == "cbd" ? 2 : pol == "cbs" ? 3 : pol == "cb1" ? 4 : pol == "cbq" ? 5 : pol == "cbx" ? 6 : pol == "gx" ? 7 : -1;
+        if (k < 0) DIE("unknown coarse victim policy %s", pol.c_str());
+        for (int b = 0; b < NB; ++b) {
+            if (btag[b] != B_COARSE || is_frontier(b)) continue;
+            double v = bvalid[b], sp = bsup[b], age = (double)(alloc_seq - bseq[b]), sc;
+            if (bvalid[b] == 0) sc = 1e308;
+            else if (k == 0) sc = -(v + sp) - v * 1e-9;
+            else if (k == 1) sc = -(v + sp) / (P - v);
+            else if (k == 2) sc = (P - v - sp) / (v + sp) * std::sqrt(age);
+            else if (k == 3) sc = (P - v) / (v + sp) * std::sqrt(age);
+            else if (k == 4) sc = (P - v) / v * age;
+            else if (k == 5) sc = (P - v) / v * std::sqrt(std::sqrt(age));
+            else if (k == 6) sc = (P - v + sp) / v * std::sqrt(age);   // superseded pages count twice (coarse + fine slot freed)
+            else sc = -(v - sp) - v * 1e-9;
+            if (sc > bs) { bs = sc; best = b; }
+        }
+        return best;
+    }
     // CoarseGC(block): victim = min valid coarse block (or cost-benefit with cgc_vict=cb)
     void coarse_gc() {
+        DCtx g(this, 2);
         in_cgc = true;
-        int b = (c.cgc_vict == "cb" && !uni) ? pick_victim_cb() : pick_victim(B_COARSE);
+        const std::string& pol = uni ? (c.uni_vict.empty() ? std::string("greedy") : c.uni_vict) : c.cgc_vict;
+        int b = (c.oracle & 1) ? pick_victim_ora() : pol == "cb" ? pick_victim_cb() : pol == "greedy" ? pick_victim(B_COARSE) : pick_victim_pol(pol);
         if (b < 0) DIE("no coarse victim (free=%zu fine=%d coarse=%d)", freelist.size(), fine_blocks, coarse_blocks);
         st.n_cgc++; st.cgc_valid_sum += bvalid[b];
+        if (c.cgc_diag) dg_victim(b);
+        gc_batch_begin();                                            // refolds of spilled IUs: one FTP read per FTP per victim
         cgc_cls = bccls[b];
         u32 base = (u32)b * P;
         for (int e = 0; e < P / U && bvalid[b] > 0; ++e) {
@@ -1053,8 +1663,13 @@ struct Sim {
             u32 lpn = p2l[ppn];
             if (lpn == NONE) continue;
             u64 iu = lpn / U;
-            if (coarse_map[iu] != ppn) { st.cgc_dead_extents++; continue; }
+            if (coarse_map[iu] != ppn) {
+                DA(1 + (coarse_map[iu] == NONE && fine_idx[iu] >= 0 && popc(fbitmap[fine_idx[iu]]) == U ? iu_scan_cost(iu) : 0));
+                st.cgc_dead_extents++; continue;
+            }
             int32_t fi = fine_idx[iu];
+            if (c.cgc_diag) dg_copy(iu, fi >= 0 && fbitmap[fi]);
+            if (c.age_sep && c.age_base < 0) { double a = (double)(hclk - (c.age_ref ? dg_lfw[iu] : dg_lhw[iu])); age_ewma = age_ewma == 0 ? a : 0.999 * age_ewma + 0.001 * a; }
             if (fi >= 0 && fbitmap[fi]) {
                 bool un = c.unfold == "any" || (c.unfold == "hot" && iu_hot(iu));
                 if (un && can_unfold(U - popc(fbitmap[fi]))) unfold(iu); else fold(iu, true);
@@ -1069,6 +1684,7 @@ struct Sim {
             }
         }
         if (bvalid[b] != 0) DIE("coarse_gc left valid=%d", bvalid[b]);
+        gc_batch_end();
         erase_block(b);
         in_cgc = false;
     }
@@ -1150,6 +1766,8 @@ struct Sim {
         bvalid[blk_of(ppn)]++;
         st.prog[src]++;
         u32 old = pmap[lpn];
+        if (c.mode == "page4k" || is_sb()) DA(1);                    // L2P entry (read old + write new)
+        else if (src != S_HOST) DA(1);                                // dftl / leaftl GC: page validity check
         if (old != NONE) bvalid[blk_of(old)]--;
         pmap[lpn] = ppn;
         if (src == S_HOST) cmt_update(lpn); else cmt_gc_update(lpn);
@@ -1166,6 +1784,7 @@ struct Sim {
         return best;
     }
     void page_gc() {
+        DCtx g(this, 2);
         in_cgc = true;
         int b = is_sb() ? sb_pick_victim() : pick_victim(B_FINE);
         if (b < 0) DIE("no page4k victim");
@@ -1207,30 +1826,40 @@ struct Sim {
 
     // ------------------------------------------------------------------ host write
     void host_write(u64 lpn, u64 n) {
+        if (rec) { rec_host(lpn, n); return; }
+        DCtx dg(this, 1);
         st.host_pages += n; req_id++;
+        if (c.spill_rp_rate) { rp_credit += (long long)n * c.spill_rp_rate; if (rp_credit > 1000 * (long long)ipf) rp_credit = 1000 * (long long)ipf; }
         u64 end = lpn + n;
         if (is_pg()) {
             if (is_lf()) { for (u64 p = lpn; p < end; ++p) lf_host(p); }
             else for (u64 p = lpn; p < end; ++p) page_write(p, S_HOST);
         } else if (c.mode == "proposed" || c.mode == "mixed") {
+            if (c.cgc_diag || c.age_sep || c.oracle) dg_host(lpn, n);
+            if (c.age_sep && (c.age_pred == 1 || c.age_pred == 2)) rt_host(lpn, n);
+            if (c.age_sep && c.age_pred >= 3) wc_host(lpn, n);
             if (uni) st.uni_host += n;
             u64 cur = lpn;
             while (cur < end) {
                 if (cur % U == 0 && cur + U <= end) {
                     u64 iu = cur / U;
-                    if (c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_quota_blocks) {
+                    if (c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_cap()) {
                         // hot (fine-resident) IU fully overwritten: keep it page-mapped instead of re-chunking
-                        for (int i = 0; i < U; ++i) { ct_ensure(cur + i); fine_write(cur + i, S_HOST); }
-                    } else coarse_write(iu, S_HOST);
+                        for (int i = 0; i < U; ++i) { u64 a0 = st.dacc[1]; DA(1); ct_ensure(cur + i); fine_write(cur + i, S_HOST); d_wp(a0); }
+                    } else { u64 a0 = st.dacc[1]; DA(1); coarse_write(iu, S_HOST); d_wiu(a0, U); }
                     cur += U;
                 }
                 else {
                     u64 iu = cur / U;
                     u64 e = std::min(end, (iu + 1) * U);          // this request's part of the IU
                     int n = (int)(e - cur);
-                    bool keep_fine = c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_quota_blocks;
-                    if (!keep_fine && c.eager_u != 0 && eager_worth(iu, cur, n)) { eager_write(iu, cur, n); cur = e; }
-                    else { while (cur < e) { ct_ensure(cur); fine_write(cur, S_HOST); cur++; } }
+                    bool keep_fine = c.fine_full && fine_idx[iu] >= 0 && fine_blocks < fine_cap();
+                    u64 a_pre = st.dacc[1];
+                    if (c.dram_stats && ct_on && !keep_fine && fine_idx[iu] >= 0 &&
+                        ((c.eager_u < 0 && c.eager_u > -10 && eager_ambiguous(n)) || (c.eager_u > 0 && n <= c.eager_u && c.eager_u < U)))
+                        DA(iu_scan_cost(iu));   // u = |request | fragments| matters: scan the fragment set
+                    if (!keep_fine && c.eager_u != 0 && eager_worth(iu, cur, n)) { u64 a0 = a_pre; DA(1); eager_write(iu, cur, n); d_wiu(a0, n); cur = e; }
+                    else { bool first = true; while (cur < e) { u64 a0 = first ? a_pre : st.dacc[1]; first = false; DA(1); ct_ensure(cur); fine_write(cur, S_HOST); d_wp(a0); cur++; } }
                 }
             }
         } else if (c.mode == "iu_rmw") {
@@ -1246,6 +1875,46 @@ struct Sim {
         } else DIE("unknown mode %s", c.mode.c_str());
         if (measuring && ts && st.host_pages >= ts_next) { ts_sample(); ts_next += ts_interval; }
         u64 fv = 0; (void)fv;
+    }
+
+    void d_wp(u64 a0) { if (!c.dram_stats) return; u64 a = st.dacc[1] - a0; st.d_wp_ops++; if (a > st.d_wp_max) st.d_wp_max = a; }
+    void d_wiu(u64 a0, u64 pages) { if (!c.dram_stats) return; u64 a = st.dacc[1] - a0; st.d_wiu_ops++; st.d_wiu_pages += pages; if (a > st.d_wiu_max) st.d_wiu_max = a; }
+    // host read of one page through the mapping (dram_stats only)
+    void read_lookup(u64 lpn) {
+        DCtx dg(this, 0);
+        u64 a0 = st.dacc[0], f0 = st.dfr[0];
+        if (c.mode == "page4k" || is_sb()) { DA(1); if (pmap[lpn] == NONE) st.d_rd_unmapped++; }
+        else if (c.mode == "dftl") { cmt_read(lpn); }
+        else if (is_lf()) {
+            if (lf_stage_set.count((u32)lpn)) DA(1);                 // still in the sort batch (DRAM)
+            else if (pmap[lpn] == NONE) { DA(1); st.d_rd_unmapped++; }
+            else {
+                lf_touch_lookup(lpn); lf_enforce();
+                bool acc = true; u64 pr = lf_predict(lpn, &acc);
+                if (pr != pmap[lpn]) { st.d_lf_mispredict++; MR(); }   // approximate segment: read the wrong page first
+            }
+        } else if (c.mode == "proposed") {
+            u64 iu = lpn / U; int off = (int)(lpn % U); int32_t fi = fine_idx[iu];
+            bool same = iu == rp_last; if (c.spill_rp >= 2) rp_last = iu;
+            if (is_spilled(iu)) {   // spilled bit: the page may be a fragment or in the chunk -> read the FTP (unless in SRAM)
+                DA(1);
+                st.rd_spilled++; if (fbitmap[fi] >> off & 1) st.rd_spilled_frag++;
+                u64 m0 = st.read_map; ftp_read(iu / ipf, 0); if (st.read_map > m0) st.rd_ftp++;
+                if (c.fold_on_read) read_fold(iu);
+                else if (c.spill_rp) read_promote(iu, same);
+            } else
+            if (ct_on) {   // coarse entry (chunk + flag); flag set -> one table lookup (<= 2 buckets); never a flash map read
+                DA(1 + flag_lookup_cost(fi, lpn));
+                if (!(fi >= 0 && (fbitmap[fi] & (1u << off))) && coarse_map[iu] == NONE) st.d_rd_unmapped++;
+            } else {
+            DA(1);                                                     // IU bitmap
+            if (fi >= 0 && (fbitmap[fi] & (1u << off))) DA(fine_lookup_cost(lpn));
+            else { DA(1); if (coarse_map[iu] == NONE) st.d_rd_unmapped++; }
+            }
+        } else if (c.mode == "iu_rmw") { DA(1); }
+        u64 a = st.dacc[0] - a0, fr = st.dfr[0] - f0;
+        st.d_rd_ops++; if (a > st.d_rd_max) st.d_rd_max = a; st.d_rd_hist[std::min<u64>(a, 15)]++;
+        if (fr > st.d_rd_fr_max) st.d_rd_fr_max = fr;
     }
 
     void ts_header() { fprintf(ts, "host_pages,waf_cum,f,fine_blocks,coarse_blocks,free\n"); }
@@ -1269,8 +1938,43 @@ struct Sim {
             else if (coarse_map[iu] != NONE) v[blk_of(coarse_map[iu] + off)]++;
         }
         for (int b = 0; b < NB; ++b) if (v[b] != bvalid[b]) DIE("verify: block %d tag=%d computed=%d tracked=%d", b, btag[b], v[b], bvalid[b]);
+        if (!is_pg()) {
+            std::vector<int32_t> sp(NB, 0);
+            for (u64 iu = 0; iu < NIU; ++iu) if (coarse_map[iu] != NONE && fine_idx[iu] >= 0) sp[blk_of(coarse_map[iu])] += popc(fbitmap[fine_idx[iu]]);
+            for (int b = 0; b < NB; ++b) if (sp[b] != bsup[b]) DIE("verify: block %d superseded computed=%d tracked=%d", b, sp[b], bsup[b]);
+        }
+        if (!is_pg() && fpages != fine_valid) DIE("verify: fine page counter %llu != %llu", (unsigned long long)fpages, (unsigned long long)fine_valid);
+        if (!is_pg()) { u64 nc = 0; for (u64 i = 0; i < NIU; ++i) nc += coarse_map[i] != NONE; if (nc != n_chunks) DIE("verify: chunk counter %llu != %llu", (unsigned long long)n_chunks, (unsigned long long)nc); }
         if (ct_on) {   // table <-> fine pool consistency: every fine page has exactly one entry, nothing else does
             u64 used = 0; for (u32 e : ct) if (e != NONE) { used++; int32_t f = fine_idx[e / U]; if (f < 0 || !(fbitmap[f] >> (e % U) & 1)) DIE("verify: cuckoo2 stale entry %u", e); }
+            if (spl_on) {   // spilled IUs: no table entry, FTP pointer = the fragment's ppn; nothing else in any FTP
+                u64 sp_pages = 0; std::vector<uint16_t> gs(n_ftp, 0);
+                for (u32 e : ct) if (e != NONE && spl[e / U]) DIE("verify: spilled IU %u has a table entry", e / U);
+                for (u64 iu = 0; iu < NIU; ++iu) {
+                    int32_t f = fine_idx[iu];
+                    if (is_clean(iu) && (spl[iu] || f < 0 || !fbitmap[f])) DIE("verify: clean IU %llu is spilled or has no fragments", (unsigned long long)iu);
+                    if (spl[iu]) {
+                        if (f < 0 || !fbitmap[f]) DIE("verify: spilled IU %llu without fragments", (unsigned long long)iu);
+                        gs[iu / ipf]++; sp_pages += popc(fbitmap[f]);
+                    }
+                    for (int k = 0; k < U; ++k) {
+                        u64 l = iu * U + k; bool frag = (spl[iu] || is_clean(iu)) && (fbitmap[f] >> k & 1);
+                        if (frag ? ftp[l] != fslot[(u64)f * U + k] : ftp[l] != NONE)
+                            DIE("verify: FTP pointer of lpn %llu = %u, expected %u", (unsigned long long)l, ftp[l], frag ? fslot[(u64)f * U + k] : NONE);
+                    }
+                }
+                for (u64 g = 0; g < n_ftp; ++g) if (gs[g] != grp_spilled[g]) DIE("verify: FTP %llu spilled count %u != %u", (unsigned long long)g, grp_spilled[g], gs[g]);
+                if (sp_pages != spages) DIE("verify: spilled pages %llu != %llu", (unsigned long long)spages, (unsigned long long)sp_pages);
+                if (used + spages != fine_valid) DIE("verify: table %llu + spilled %llu != fine pool %llu pages", (unsigned long long)used, (unsigned long long)spages, (unsigned long long)fine_valid);
+                // every LPN maps to exactly one physical page that maps back to it
+                for (u64 l = 0; l < L; ++l) {
+                    u64 iu = l / U; int k = (int)(l % U); int32_t f = fine_idx[iu];
+                    u32 p = (f >= 0 && (fbitmap[f] >> k & 1)) ? fslot[(u64)f * U + k] : (coarse_map[iu] != NONE ? coarse_map[iu] + k : NONE);
+                    if (p != NONE && p2l[p] != (u32)l) DIE("verify: lpn %llu -> ppn %u, but p2l = %u", (unsigned long long)l, p, p2l[p]);
+                }
+                fprintf(stderr, "[verify] spill ok: %llu spilled IUs, %llu spilled pages, %llu table entries\n",
+                        (unsigned long long)std::count(spl.begin(), spl.end(), 1), (unsigned long long)spages, (unsigned long long)used);
+            } else
             if (used != fine_valid) DIE("verify: cuckoo2 has %llu entries, fine pool %llu pages", (unsigned long long)used, (unsigned long long)fine_valid);
         }
         if (is_lf()) lf_verify();
@@ -1329,7 +2033,7 @@ struct Sim {
           else if (c.mode == "dftl") { a = hash_bytes((double)cmt.size(), 8); b2 = (double)(L / TP_ENTRIES) * 4; mem = a + b2; }
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
           else if (is_lf()) { a = lf_cached; b2 = (double)((L + LF_FRAME - 1) / LF_FRAME) * 4; mem = a + b2; }   // resident frames + GTD
-          else if (ct_on) { a = (double)NIU * 4; c2 = (double)ct_nb * 4 * cuckoo_entry(); mem = a + c2; }
+          else if (ct_on) { a = (double)NIU * 4; b2 = gtd_bytes; c2 = (double)ct_nb * 4 * cuckoo_entry(); mem = a + b2 + c2; }   // spill: hash_index = GTD   // coarse entry 4 B incl. the fragment flag bit
           else if (c.fine_index == "cuckoo") { a = (double)NIU * 4; c2 = (double)fine_pages * cuckoo_entry() / 0.95; mem = a + c2; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
@@ -1341,14 +2045,109 @@ struct Sim {
         printf("  \"host_fine\": %llu, \"host_coarse\": %llu,\n", (unsigned long long)st.host_fine, (unsigned long long)st.host_coarse);
         printf("  \"fine_host_new\": %llu, \"fine_host_ow\": %llu, \"fine_pages_peak\": %llu,\n", (unsigned long long)st.fine_host_new, (unsigned long long)st.fine_host_ow, (unsigned long long)st.fine_peak);
         if (ct_on) { u64 used = 0; for (u32 e : ct) used += e != NONE;
-            printf("  \"cuckoo2\": {\"entries\": %llu, \"used_end\": %llu, \"evict_folds\": %llu},\n", (unsigned long long)ct.size(), (unsigned long long)used, (unsigned long long)st.n_evict_fold); }
+            printf("  \"cuckoo2\": {\"entries\": %llu, \"used_end\": %llu, \"evict_folds\": %llu, \"pool_evict_folds\": %llu, \"onefront_reuse\": %llu, \"coarse_entry_chunk_bits\": %d, \"coarse_entry_flag_bits\": 1},\n",
+                   (unsigned long long)ct.size(), (unsigned long long)used, (unsigned long long)st.n_evict_fold, (unsigned long long)st.n_pool_evict, (unsigned long long)st.n_onefront_reuse, chunk_bits()); }
+        if (spl_on) {
+            u64 nsp = 0; for (u64 i = 0; i < NIU; ++i) nsp += spl[i];
+            u64 hs = st.host_submitted ? st.host_submitted : st.host_pages;
+            auto R = [](u64 a, u64 b) { return b ? (double)a / (double)b : 0.0; };
+            printf("  \"spill\": {\"mode\": %d, \"ius_per_ftp\": %llu, \"ftps\": %llu, \"gtd_bytes\": %.0f, \"table_bytes\": %.0f, \"coarse_bytes\": %.0f, \"budget_bytes\": %.0f, "
+                   "\"coarse_entry_bits\": {\"chunk\": %d, \"flags\": %d, \"read_counter\": %d}, \"spills\": %llu, \"spilled_ius\": %llu, \"spilled_pages\": %llu, \"unspills\": %llu, \"unspill_pages\": %llu, "
+                   "\"spilled_fold\": %llu, \"spilled_refold\": %llu, \"spilled_gcfold\": %llu, \"spilled_gccopy\": %llu, "
+                   "\"ftp_reads\": {\"host_read\": %llu, \"unspill\": %llu, \"fold\": %llu, \"gc\": %llu, \"spill_rmw\": %llu}, \"ftp_progs\": {\"spill\": %llu, \"gc_update\": %llu}, "
+                   "\"map_prog_per_host\": %.5f, \"spilled_ius_end\": %llu, \"spilled_pages_end\": %llu, "
+                   "\"host_reads\": %llu, \"reads_spilled\": %llu, \"reads_spilled_frag\": %llu, \"reads_ftp\": %llu, \"frac_reads_ftp\": %.5f, \"frac_reads_spilled\": %.5f, \"map_reads_per_host_read\": %.5f, "
+                   "\"fold_on_read\": %d, \"rfolds\": %llu, \"rfold_skipped\": %llu, \"rfold_frags\": %llu, \"rfold_prog\": %llu, \"rfold_prog_fold\": %llu, \"rfold_prog_per_host\": %.5f, "
+                   "\"spill_rp\": %d, \"spill_rp_rate\": %d, \"rp_promotions\": %llu, \"rp_pages\": %llu, \"rp_wait\": %llu, \"rp_rate_skips\": %llu, "
+                   "\"rp_ftp_progs\": %llu, \"rp_ftp_reads\": %llu, \"rp_ftp_progs_per_host\": %.5f, \"ftp_progs_per_host_write\": %.5f, \"spill_rp_clean\": %d, \"clean_evictions\": %llu, \"clean_dirtied\": %llu},\n",
+                   c.spill, (unsigned long long)ipf, (unsigned long long)n_ftp, gtd_bytes, (double)ct_nb * 4 * cuckoo_entry(), (double)NIU * 4, c.map_budget * (double)L * 4,
+                   chunk_bits(), 2 + (c.spill_rp_clean ? 1 : 0), rp_bits, (unsigned long long)st.n_spill, (unsigned long long)st.n_spill_ius, (unsigned long long)st.spill_pages, (unsigned long long)st.n_unspill, (unsigned long long)st.unspill_pages,
+                   (unsigned long long)st.n_spilled_fold, (unsigned long long)st.n_spilled_refold, (unsigned long long)st.n_spilled_gcfold, (unsigned long long)st.n_spilled_copy,
+                   (unsigned long long)st.ftp_rd[0], (unsigned long long)st.ftp_rd[1], (unsigned long long)st.ftp_rd[2], (unsigned long long)st.ftp_rd[3], (unsigned long long)st.ftp_rd[4],
+                   (unsigned long long)st.ftp_wr[0], (unsigned long long)st.ftp_wr[1], R(st.prog[S_MAP], hs), (unsigned long long)nsp, (unsigned long long)spages,
+                   (unsigned long long)st.d_rd_ops, (unsigned long long)st.rd_spilled, (unsigned long long)st.rd_spilled_frag, (unsigned long long)st.rd_ftp,
+                   R(st.rd_ftp, st.d_rd_ops), R(st.rd_spilled, st.d_rd_ops), R(st.dfr[0], st.d_rd_ops),
+                   c.fold_on_read, (unsigned long long)st.n_rfold, (unsigned long long)st.n_rfold_skip, (unsigned long long)st.rfold_frags, (unsigned long long)st.rfold_prog, (unsigned long long)st.rfold_prog_fold, R(st.rfold_prog, hs),
+                   c.spill_rp, c.spill_rp_rate, (unsigned long long)st.n_rp, (unsigned long long)st.rp_pages, (unsigned long long)st.n_rp_wait, (unsigned long long)st.n_rp_rate,
+                   (unsigned long long)st.rp_ftp_wr, (unsigned long long)st.rp_ftp_rd, R(st.rp_ftp_wr, hs), R(st.ftp_wr[0] + st.ftp_wr[1], hs),
+                   c.spill_rp_clean, (unsigned long long)st.n_clean_evict, (unsigned long long)st.n_clean_dirty);
+        }
         if (c.mode == "proposed" && c.fine_index == "cuckoo")
             printf("  \"mem_cuckoo_peak\": %.0f,\n", (double)NIU * 4 + (double)st.fine_peak * cuckoo_entry() / 0.95);
+        if (c.ffold || c.fine_borrow || c.cgc_diag) {
+            printf("  \"fine_blocks_hist\": {\"quota_base\": %d, \"quota_uni\": %d, \"borrow\": %d, \"all\": [", fine_quota_base, fine_quota_uni, c.fine_borrow);
+            for (int i = 0; i < 64; ++i) printf("%s%llu", i ? "," : "", (unsigned long long)st.fb_hist[i]);
+            printf("], \"uni\": [");
+            for (int i = 0; i < 64; ++i) printf("%s%llu", i ? "," : "", (unsigned long long)st.fb_hist_uni[i]);
+            printf("]},\n");
+        }
+        if (c.ffold) printf("  \"ffold\": {\"d\": %d, \"n\": %d, \"occ\": %.3f, \"folds_d\": %llu, \"folds_n\": %llu, \"folds_guard\": %llu, \"forced_fold\": %llu},\n",
+                            c.ffold_d, c.ffold_n, c.ffold_occ, (unsigned long long)st.n_ff_d, (unsigned long long)st.n_ff_n, (unsigned long long)st.n_ff_guard, (unsigned long long)st.n_forced_fold);
         if (c.adapt) printf("  \"adapt\": {\"switches\": %llu, \"uni_host_frac\": %.4f, \"quota_base\": %d, \"quota_uni\": %d, \"uni_at_end\": %d},\n",
                             (unsigned long long)n_mode_switch, st.host_pages ? (double)st.uni_host / st.host_pages : 0.0, fine_quota_base, fine_quota_uni, (int)uni);
         if (is_lf()) { double full = 0; u64 nseg = 0, nacc = 0, ncons = 0; for (auto& kv : lframes) { full += kv.second.mem; for (auto& g : kv.second.segs) { nseg++; nacc += g.accurate; ncons += g.consec; } }
           printf("  \"leaftl\": {\"full_table_bytes\": %.0f, \"segments\": %llu, \"accurate\": %llu, \"consecutive\": %llu, \"frames\": %zu, \"lookups\": %llu, \"gamma\": %g, \"batch\": %d},\n",
                  full, (unsigned long long)nseg, (unsigned long long)nacc, (unsigned long long)ncons, lframes.size(), (unsigned long long)lf_lookups, c.leaftl_gamma, c.leaftl_batch); }
+        if (c.mode == "proposed") {
+            double on = st.occ_n ? (double)st.occ_n : 1;
+            printf("  \"diag\": {\"fine_victim_valid_frac\": %.4f, \"greedy_reclaims\": %llu, \"greedy_folds\": %llu, \"evict_folds\": %llu, \"shrink_reclaims\": %llu, \"shrink_victim_valid_frac\": %.4f, "
+                   "\"cgc_victim_valid_frac\": %.4f, \"cgc_prog_per_victim_frac\": %.4f, \"mode_switches\": %llu, \"uni_host_frac\": %.4f, "
+                   "\"occ_fine_valid_frac_L\": %.4f, \"occ_coarse_valid_frac_L\": %.4f, \"occ_fine_blocks\": %.2f, \"occ_quota\": %.2f, \"occ_free\": %.2f, \"occ_fine_util\": %.4f, \"elastic_shrinks\": %llu, \"chunks_end_frac_L\": %.4f},\n",
+                   st.n_greedy ? (double)st.greedy_v_sum / st.n_greedy / P : 0.0, (unsigned long long)st.n_greedy, (unsigned long long)st.n_greedy_fold,
+                   (unsigned long long)st.n_evict_fold, (unsigned long long)st.n_shrink_reclaim, st.n_shrink_reclaim ? (double)st.shrink_v_sum / st.n_shrink_reclaim / P : 0.0,
+                   st.n_cgc ? (double)st.cgc_valid_sum / st.n_cgc / P : 0.0, st.n_cgc ? (double)(st.prog[S_CGC_CLEAN] + st.prog[S_CGC_REFOLD]) / st.n_cgc / P : 0.0,
+                   (unsigned long long)n_mode_switch, st.host_pages ? (double)st.uni_host / st.host_pages : 0.0,
+                   st.occ_fv / on / L, st.occ_cv / on / L, st.occ_fb / on, st.occ_quota / on, st.occ_free / on,
+                   st.occ_fb > 0 ? st.occ_fv / (st.occ_fb * P) : 0.0, (unsigned long long)st.n_elastic_shrink, (double)n_chunks * U / L);
+        }
+        if (c.cgc_diag && c.mode == "proposed") {
+            auto A = [](const char* k, const u64* a, int n) { printf("\"%s\": [", k); for (int i = 0; i < n; ++i) printf("%s%llu", i ? "," : "", (unsigned long long)a[i]); printf("]"); };
+            double ns = st.dg_snaps ? (double)st.dg_snaps : 1;
+            printf("  \"cgc_diag\": {"); A("victim_valid_hist20", st.dg_vbin, 20);
+            printf(", \"victim_valid_frac\": %.4f, \"min_valid_frac\": %.4f, \"cb_valid_frac\": %.4f, ", st.dg_vsum_chosen / ns / P, st.dg_vsum_min / ns / P, st.dg_vsum_cb / ns / P);
+            A("victims_by_class", st.dg_cls_n, 8); printf(", \"victim_valid_by_class\": [");
+            for (int i = 0; i < 8; ++i) printf("%s%.4f", i ? "," : "", st.dg_cls_n[i] ? (double)st.dg_cls_v[i] / st.dg_cls_n[i] / P : 0.0);
+            printf("], \"band_edges\": [0.70,0.80,0.85,0.90,0.95,0.99], \"band_blocks\": [");
+            for (int i = 0; i < 7; ++i) printf("%s%.2f", i ? "," : "", st.dg_band_blocks[i] / ns);
+            printf("], \"band_garbage_blocks\": [");
+            for (int i = 0; i < 7; ++i) printf("%s%.3f", i ? "," : "", st.dg_band_garb[i] / ns);
+            printf("], \"age_edges_L\": [0.0625,0.125,0.25,0.5,1,2,4,8], "); A("copy_age", st.dg_copy_age, 9); printf(", "); A("refold_age", st.dg_refold_age, 9);
+            printf(", \"victim_chunks\": %llu, \"victim_cold_frac\": %.4f, \"victim_hot_frac\": %.4f, ", (unsigned long long)st.dg_vict_chunks,
+                   st.dg_vict_chunks ? (double)st.dg_vict_cold / st.dg_vict_chunks : 0.0, st.dg_vict_chunks ? (double)st.dg_vict_hot / st.dg_vict_chunks : 0.0);
+            A("fine_exit_ow_hostiu_refold_fold", st.dg_fexit, 4);
+            if (c.oracle) { printf(", \"age_x_residual\": ["); for (int i = 0; i < 9; ++i) { printf("%s[", i ? "," : ""); for (int k = 0; k < 9; ++k) printf("%s%llu", k ? "," : "", (unsigned long long)st.dg_ar[i][k]); printf("]"); } printf("]"); }
+            {   // copies / refolds by the IU's host-write count over the whole measurement (0 = cold for the entire window)
+                u64 cb[6] = {}, rb[6] = {}, nb[6] = {};
+                for (u64 i = 0; i < NIU && !dg_hw.empty(); ++i) { u32 h = dg_hw[i]; int k = h == 0 ? 0 : h == 1 ? 1 : h <= 3 ? 2 : h <= 15 ? 3 : h <= 63 ? 4 : 5; cb[k] += dg_copies[i]; rb[k] += dg_refolds[i]; nb[k]++; }
+                printf(", \"hw_edges\": [0,1,3,15,63], "); A("ius_by_hw", nb, 6); printf(", "); A("copies_by_hw", cb, 6); printf(", "); A("refolds_by_hw", rb, 6);
+                u64 cf6[6] = {}, nf6[6] = {};
+                for (u64 i = 0; i < NIU && !dg_fw.empty(); ++i) { u32 h = dg_fw[i]; int k = h == 0 ? 0 : h == 1 ? 1 : h <= 3 ? 2 : h <= 15 ? 3 : h <= 63 ? 4 : 5; cf6[k] += dg_copies[i]; nf6[k]++; }
+                printf(", "); A("ius_by_fullw", nf6, 6); printf(", "); A("copies_by_fullw", cf6, 6);
+                u64 mc[6] = {}; for (u64 i = 0; i < NIU && !dg_copies.empty(); ++i) { u32 x = dg_copies[i]; mc[x == 0 ? 0 : x == 1 ? 1 : x == 2 ? 2 : x <= 4 ? 3 : x <= 8 ? 4 : 5]++; }
+                printf(", \"copies_per_iu_edges\": [0,1,2,4,8], "); A("ius_by_copies", mc, 6);
+            }
+            printf("},\n");
+        }
+        if (c.dram_stats) {
+            u64 gcp = st.prog[S_FINEGC] + st.prog[S_CGC_CLEAN] + st.prog[S_PGC];
+            u64 fdp = st.prog[S_FOLD] + st.prog[S_CGC_REFOLD] + st.prog[S_ZEROFILL];
+            auto R = [](u64 a, u64 b) { return b ? (double)a / (double)b : 0.0; };
+            printf("  \"dram\": {\"host_read_pages\": %llu, \"acc_per_host_read\": %.4f, \"max_acc_host_read\": %llu, \"flash_map_reads_per_host_read\": %.5f, \"max_flash_map_reads_host_read\": %llu, "
+                   "\"read_from_buffer\": %llu, \"read_unmapped\": %llu, \"read_acc_hist\": [",
+                   (unsigned long long)st.d_rd_ops, R(st.dacc[0], st.d_rd_ops), (unsigned long long)st.d_rd_max, R(st.dfr[0], st.d_rd_ops), (unsigned long long)st.d_rd_fr_max,
+                   (unsigned long long)st.d_rd_buf, (unsigned long long)st.d_rd_unmapped);
+            for (int i = 0; i < 16; ++i) printf("%s%llu", i ? "," : "", (unsigned long long)st.d_rd_hist[i]);
+            printf("], \"host_write_pages\": %llu, \"acc_per_host_write\": %.4f, \"flash_map_reads_per_host_write\": %.5f, "
+                   "\"fine_page_ops\": %llu, \"max_acc_fine_page_write\": %llu, \"iu_write_ops\": %llu, \"iu_write_pages\": %llu, \"max_acc_iu_write\": %llu, "
+                   "\"gc_pages\": %llu, \"acc_per_gc_page\": %.4f, \"flash_map_reads_per_gc_page\": %.5f, \"fold_pages\": %llu, \"acc_per_fold_page\": %.4f, "
+                   "\"evict_folds\": %llu, \"evict_folds_per_host_write\": %.6f, \"acc_per_evict_fold\": %.2f, \"max_acc_evict_fold\": %llu, \"leaftl_mispredict_reads\": %llu, "
+                   "\"acc_total_per_host_write\": %.4f},\n",
+                   (unsigned long long)st.host_pages, R(st.dacc[1], st.host_pages), R(st.dfr[1], st.host_pages),
+                   (unsigned long long)st.d_wp_ops, (unsigned long long)st.d_wp_max, (unsigned long long)st.d_wiu_ops, (unsigned long long)st.d_wiu_pages, (unsigned long long)st.d_wiu_max,
+                   (unsigned long long)gcp, R(st.dacc[2], gcp), R(st.dfr[2], gcp), (unsigned long long)fdp, R(st.dacc[3], fdp),
+                   (unsigned long long)st.d_evict, R(st.d_evict, st.host_pages), R(st.d_evict_acc, st.d_evict), (unsigned long long)st.d_evict_max, (unsigned long long)st.d_lf_mispredict,
+                   R(st.dacc[1] + st.dacc[2] + st.dacc[3], st.host_pages));
+        }
         printf("  \"fine_blocks_end\": %d, \"coarse_blocks_end\": %d, \"free_end\": %zu, \"f_end\": %.4f\n", fine_blocks, coarse_blocks, freelist.size(), (double)fine_blocks / NB);
         printf("}\n");
     }
@@ -1368,6 +2167,7 @@ enum HTag : uint8_t { H_FREE = 0, H_DATA = 1, H_LOG = 2 };
 enum LKind : uint8_t { K_NONE = 0, K_SW = 1, K_RW = 2, K_SEQ = 3, K_HOT = 4, K_COLD = 5 };
 
 struct HybridSim {
+    void read_lookup(u64) {}
     Cfg c;
     u64 L, NP, NIU; int NB, P, U; u32 NLB; int nlog, T;
     std::vector<u32> dmap;   // LB -> data block
@@ -1751,6 +2551,7 @@ struct HybridSim {
 // Mapping correctness is kept in memory (leaf-structured extent tree); mu-tree flash I/O is modeled by
 // tracking which leaf pages get touched/dirtied and an LRU page cache of cache_bytes.
 struct MuSim {
+    void read_lookup(u64) {}
     Cfg c;
     u64 L, NP, NIU; int NB, P, U, T;
     struct Ext { u64 l; u32 p; int n; };
@@ -1973,7 +2774,11 @@ struct MuSim {
 template <class S>
 struct Runner {
     S& s; const Cfg& c; u64 L, NIU; int U;
-    Runner(S& sim) : s(sim), c(sim.c), L(sim.L), NIU(sim.NIU), U(sim.U) {}
+    u64 NIUw, Lw;              // workload footprint (first foot_frac of the IUs); = NIU, L by default
+    Runner(S& sim) : s(sim), c(sim.c), L(sim.L), NIU(sim.NIU), U(sim.U) {
+        NIUw = NIU; Lw = L;
+        if (c.foot_frac < 1.0) { NIUw = std::max<u64>(1, (u64)(NIU * c.foot_frac)); Lw = NIUw * U; }
+    }
     // ------------------------------------------------------------------ workload
     std::vector<double> cdf;   // over NIU ranks
     std::vector<u32> rank2iu;
@@ -1987,20 +2792,20 @@ struct Runner {
             for (auto& x : size_cdf) x /= acc;
         }
         if (c.zipf > 0) {
-            cdf.resize(NIU);
+            cdf.resize(NIUw);
             double acc = 0;
-            for (u64 r = 0; r < NIU; ++r) { acc += 1.0 / std::pow((double)(r + 1), c.zipf); cdf[r] = acc; }
+            for (u64 r = 0; r < NIUw; ++r) { acc += 1.0 / std::pow((double)(r + 1), c.zipf); cdf[r] = acc; }
             for (auto& x : cdf) x /= acc;
-            rank2iu.resize(NIU);
-            for (u64 i = 0; i < NIU; ++i) rank2iu[i] = (u32)i;
+            rank2iu.resize(NIUw);
+            for (u64 i = 0; i < NIUw; ++i) rank2iu[i] = (u32)i;
             if (c.zipf_shuffle) std::shuffle(rank2iu.begin(), rank2iu.end(), s.rng);
         }
     }
     u64 sample_iu() {
-        if (c.zipf <= 0) return s.rng() % NIU;
+        if (c.zipf <= 0) return s.rng() % NIUw;
         double u = std::uniform_real_distribution<double>(0.0, 1.0)(s.rng);
         u64 r = std::lower_bound(cdf.begin(), cdf.end(), u) - cdf.begin();
-        if (r >= NIU) r = NIU - 1;
+        if (r >= NIUw) r = NIUw - 1;
         return rank2iu[r];
     }
     // ---- device write buffer (applies to every FTL mode identically)
@@ -2017,7 +2822,7 @@ struct Runner {
         }
         wb_pages -= __builtin_popcount(bm);
     }
-    FILE* tracef = nullptr; u64 trace_pages = 0;
+    FILE* tracef = nullptr; u64 trace_pages = 0, trace_clipped = 0;
     void emit_host(u64 lpn, u64 n) {
         if (tracef) { for (u64 i = 0; i < n; ++i) fprintf(tracef, "0 1 %llu 4096\n", (unsigned long long)(lpn + i)); trace_pages += n; }
         s.host_write(lpn, n);
@@ -2043,30 +2848,63 @@ struct Runner {
             }
         }
     }
+    void read_page(u64 l) {   // dram_stats: buffered pages are served from the write buffer
+        auto it = wb.find(l / U);
+        if (it != wb.end() && (it->second.second >> (l % U) & 1)) { s.st.d_rd_buf++; return; }
+        s.read_lookup(l);
+    }
+    std::mt19937_64 rrng{0x5eed5eedULL};
+    void read_probe() {       // synthetic mode: one read page per write request, drawn from the write distribution
+        u64 iu;
+        if (c.zipf <= 0) iu = rrng() % NIUw;
+        else { double u = std::uniform_real_distribution<double>(0.0, 1.0)(rrng); u64 r = std::lower_bound(cdf.begin(), cdf.end(), u) - cdf.begin(); if (r >= NIUw) r = NIUw - 1; iu = rank2iu[r]; }
+        read_page(std::min<u64>(iu * U + rrng() % U, L - 1));
+    }
     void wb_drain() { while (!wb_lru.empty()) { u64 v = wb_lru.back(); wb_lru.pop_back(); u32 bm = wb[v].second; wb.erase(v); wb_flush_iu(v, bm); } }
+    // append streams (WAL-like): app_streams circular regions of app_region/app_streams bytes each, written
+    // round-robin in 2^app_k-page requests, every request issued app_rep times before its stream advances
+    u64 app_done = 0, app_rr = 0; std::vector<u64> app_pos;
+    void app_step(u64& done) {
+        u64 n = 1ull << c.app_k;
+        u64 ns = (u64)std::max(1, c.app_streams);
+        u64 per = std::max<u64>(n, (c.app_region / 4096 / ns) / n * n);
+        u64 base = c.app_off >= 0 ? (u64)(c.app_off * L) : Lw;
+        base -= base % U;
+        if (base + per * ns > L) DIE("append region [%llu, +%llu) exceeds the device", (unsigned long long)base, (unsigned long long)(per * ns));
+        if (app_pos.empty()) app_pos.assign(ns, 0);
+        u64 k = app_rr++ % ns;
+        u64 lpn = base + k * per + app_pos[k];
+        for (int r = 0; r < std::max(1, c.app_rep); ++r) { wb_write(lpn, n); done += n; app_done += n; }
+        app_pos[k] += n; if (app_pos[k] + n > per) app_pos[k] = 0;
+    }
     void run_workload(u64 pages) {
         u64 done = 0;
         while (done < pages) {
+            if (c.app_frac > 0 && (double)app_done < c.app_frac * (double)(done + 1)) { app_step(done); continue; }
             u64 iu = sample_iu();
             int k;
             if (size_cdf.empty()) k = c.min_k + (int)(s.rng() % (u64)(c.max_k - c.min_k + 1));
             else { double u = std::uniform_real_distribution<double>(0.0, 1.0)(s.rng); k = c.min_k + (int)(std::lower_bound(size_cdf.begin(), size_cdf.end(), u) - size_cdf.begin()); if (k > c.max_k) k = c.max_k; }
             u64 n = 1ull << k;
             u64 lpn = iu * U + (s.rng() % U);
+            if (c.align_req) lpn -= lpn % n;
             if (c.seq_pattern) { lpn = seq_pos; seq_pos += n; if (seq_pos >= L) seq_pos = 0; }
-            if (lpn + n > L) lpn = L - n;
+            if (lpn + n > Lw) lpn = Lw - n;
             wb_write(lpn, n);
             done += n;
+            if (c.dram_stats && s.measuring) read_probe();
         }
     }
     void seq_fill() {
         const u64 chunk = 64;  // 256K sequential writes
-        for (u64 p = 0; p < L; p += chunk) wb_write(p, std::min(chunk, L - p));
+        u64 Lf = L;
+        if (c.fill_frac < 1.0) { Lf = (u64)(L * c.fill_frac); Lf -= Lf % U; }
+        for (u64 p = 0; p < Lf; p += chunk) wb_write(p, std::min(chunk, Lf - p));
     }
 
     // Real-trace replay: writes only, LBAs folded into the device by modulo, fed through the
     // same write buffer. Pass 1 counts write pages so the warmup/measure split is exact.
-    void run_trace() {
+    void run_trace(bool dry = false) {
         FILE* f = fopen(c.trace_file.c_str(), "r");
         if (!f) DIE("cannot open trace %s", c.trace_file.c_str());
         char line[256]; u64 total_pages = 0;
@@ -2076,10 +2914,10 @@ struct Runner {
             u64 p0 = (u64)off / 4096, p1 = ((u64)off + (u64)len + 4095) / 4096;
             total_pages += p1 - p0;
         }
-        u64 warm = (u64)(total_pages * c.trace_warmup);
-        fprintf(stderr, "[trace] %s: %llu write pages (%.1f GiB, %.2fx device), warmup %.0f%%\n",
+        u64 warm = c.trace_warmup_pages >= 0 ? (u64)c.trace_warmup_pages : (u64)(total_pages * c.trace_warmup);
+        fprintf(stderr, "[trace] %s: %llu write pages (%.1f GiB, %.2fx device), warmup %.1f%%\n",
                 c.trace_file.c_str(), (unsigned long long)total_pages, total_pages / 262144.0,
-                (double)total_pages / L, 100 * c.trace_warmup);
+                (double)total_pages / L, 100.0 * (double)warm / (double)std::max<u64>(1, total_pages));
         rewind(f);
         // Dense remap at 1 MiB granularity: regions get dense slots in first-touch order, offsets
         // inside a region are preserved (so request alignment survives). Sparse multi-TB address
@@ -2089,8 +2927,28 @@ struct Runner {
         u64 done = 0; bool measuring_started = false;
         while (fgets(line, sizeof line, f)) {
             char op; long long off, len;
-            if (sscanf(line, "%*[^,],%c,%lld,%lld", &op, &off, &len) != 3 || op != 'W') continue;
+            if (sscanf(line, "%*[^,],%c,%lld,%lld", &op, &off, &len) != 3) continue;
+            if (op == 'R' && c.dram_stats && measuring_started && !dry) {    // read through the mapping (counting only)
+                u64 q0 = (u64)off / 4096, q1 = ((u64)off + (u64)len + 4095) / 4096;
+                for (u64 q = q0; q < q1; ++q) {
+                    u64 l = q;
+                    if (c.trace_remap) { auto it = rmap_dense.find(q / RPG); if (it == rmap_dense.end()) { s.st.d_rd_unmapped++; continue; } l = it->second * RPG + q % RPG; }
+                    if (l >= L) continue;
+                    read_page(l);
+                }
+                continue;
+            }
+            if (op != 'W') continue;
             u64 p0 = (u64)off / 4096, p1 = ((u64)off + (u64)len + 4095) / 4096;
+            if (c.trace_stop_pages >= 0 && done >= (u64)c.trace_stop_pages) break;
+            if (!c.trace_remap) {                                   // original addresses
+                if (p1 > L && c.trace_clip) {                       // device of L - L%U pages: drop the tail pages beyond it,
+                    if (p0 < L) wb_write(p0, L - p0);               // but keep counting them so the warm-up / stop markers align
+                    trace_clipped += p1 - std::max(p0, (u64)L); done += p1 - p0; continue;
+                }
+                if (p1 > L) DIE("trace write [%llu, %llu) beyond the device (%llu pages)", (unsigned long long)p0, (unsigned long long)p1, (unsigned long long)L);
+                wb_write(p0, p1 - p0); done += p1 - p0;
+            } else
             for (u64 cur = p0; cur < p1; ) {                       // per-source-region segments
                 u64 r = cur / RPG, seg_end = std::min(p1, (r + 1) * RPG);
                 auto it = rmap_dense.find(r);
@@ -2101,6 +2959,7 @@ struct Runner {
                 wb_write(lpn, n);
                 done += n; cur = seg_end;
             }
+            if (!measuring_started && done >= warm && dry) measuring_started = true;
             if (!measuring_started && done >= warm) {
                 s.verify();
                 fprintf(stderr, "[trace] warmup done (%llu pages), reset stats\n", (unsigned long long)done);
@@ -2108,14 +2967,27 @@ struct Runner {
             }
         }
         fclose(f);
-        fprintf(stderr, "[trace] dense space: %llu MiB regions (%.1f GiB), device utilization %.1f%%\n",
-                (unsigned long long)next_region, next_region / 1024.0, 100.0 * next_region * RPG / L);
+        if (dry) { wb_drain(); return; }
+        if (c.trace_remap)
+            fprintf(stderr, "[trace] dense space: %llu MiB regions (%.1f GiB), device utilization %.1f%%\n",
+                    (unsigned long long)next_region, next_region / 1024.0, 100.0 * next_region * RPG / L);
+        else fprintf(stderr, "[trace] identity addresses: %llu write pages replayed (%llu clipped beyond L)\n", (unsigned long long)done, (unsigned long long)trace_clipped);
         wb_drain();
         s.verify();
         s.report();
     }
 
     void run() {
+        if (!c.trace_file.empty() && c.oracle) {
+            if constexpr (std::is_same<S, Sim>::value) {
+                fprintf(stderr, "[oracle] dry pre-pass\n");
+                s.rec = true;
+                if (c.seq_fill) seq_fill();
+                run_trace(true);
+                s.rec = false; s.oracle_ready();
+                wb.clear(); wb_lru.clear(); wb_pages = 0; trace_clipped = 0;
+            } else DIE("oracle needs mode=proposed");
+        }
         if (!c.trace_file.empty()) {
             if (!c.out_trace.empty()) { tracef = fopen(c.out_trace.c_str(), "w"); if (!tracef) DIE("cannot open out_trace"); }
             if (c.seq_fill) { fprintf(stderr, "[phase] seq fill\n"); seq_fill(); }
@@ -2175,6 +3047,7 @@ int main(int argc, char** argv) {
         else if (k == "size_weights") c.size_weights = v;
         else if (k == "wbuf") c.wbuf_pages = parse_bytes(v) / 4096;
         else if (k == "seq_pattern") c.seq_pattern = atoi(v.c_str()) != 0;
+        else if (k == "align_req") c.align_req = atoi(v.c_str()) != 0;
         else if (k == "fine_budget_bytes") c.fine_budget_bytes = parse_bytes(v);
         else if (k == "fine_cap") c.fine_cap = v;
         else if (k == "seed") c.seed = strtoull(v.c_str(), nullptr, 10);
@@ -2223,6 +3096,49 @@ int main(int argc, char** argv) {
         else if (k == "janus_u") c.janus_u = atof(v.c_str());
         else if (k == "janus_cap") c.janus_cap = atoi(v.c_str());
         else if (k == "last_k") c.last_k = strtoull(v.c_str(), nullptr, 10);
+        else if (k == "fill_frac") c.fill_frac = atof(v.c_str());
+        else if (k == "foot_frac") c.foot_frac = atof(v.c_str());
+        else if (k == "app_frac") c.app_frac = atof(v.c_str());
+        else if (k == "app_region") c.app_region = parse_bytes(v);
+        else if (k == "app_off") c.app_off = atof(v.c_str());
+        else if (k == "app_k") c.app_k = atoi(v.c_str());
+        else if (k == "app_rep") c.app_rep = atoi(v.c_str());
+        else if (k == "app_streams") c.app_streams = atoi(v.c_str());
+        else if (k == "fine_elastic") c.fine_elastic = atoi(v.c_str());
+        else if (k == "elastic_keep") c.elastic_keep = atof(v.c_str());
+        else if (k == "trace_remap") c.trace_remap = atoi(v.c_str());
+        else if (k == "trace_warmup_pages") c.trace_warmup_pages = atoll(v.c_str());
+        else if (k == "trace_stop_pages") c.trace_stop_pages = atoll(v.c_str());
+        else if (k == "trace_clip") c.trace_clip = atoi(v.c_str());
+        else if (k == "dram_stats") c.dram_stats = atoi(v.c_str());
+        else if (k == "evict_pol") c.evict_pol = atoi(v.c_str());
+        else if (k == "pool_cap") c.pool_cap = atoi(v.c_str());
+        else if (k == "onefront_fix") c.onefront_fix = atoi(v.c_str());
+        else if (k == "gc_fine_bias") c.gc_fine_bias = atof(v.c_str());
+        else if (k == "spill") c.spill = atoi(v.c_str());
+        else if (k == "spill_ipf") c.spill_ipf = atoi(v.c_str());
+        else if (k == "fold_on_read") c.fold_on_read = atoi(v.c_str());
+        else if (k == "spill_rp") c.spill_rp = atoi(v.c_str());
+        else if (k == "spill_rp_rate") c.spill_rp_rate = atoi(v.c_str());
+        else if (k == "spill_rp_clean") c.spill_rp_clean = atoi(v.c_str());
+        else if (k == "cgc_diag") c.cgc_diag = atoi(v.c_str());
+        else if (k == "uni_quota") c.uni_quota = atof(v.c_str());
+        else if (k == "age_sep") c.age_sep = atoi(v.c_str());
+        else if (k == "age_base") c.age_base = atof(v.c_str());
+        else if (k == "age_ref") c.age_ref = atoi(v.c_str());
+        else if (k == "age_uni") c.age_uni = atoi(v.c_str());
+        else if (k == "refold_cls") c.refold_cls = atoi(v.c_str());
+        else if (k == "ffold") c.ffold = atoi(v.c_str());
+        else if (k == "fine_borrow") c.fine_borrow = atoi(v.c_str());
+        else if (k == "ffold_d") c.ffold_d = atoi(v.c_str());
+        else if (k == "ffold_n") c.ffold_n = atoi(v.c_str());
+        else if (k == "ffold_occ") c.ffold_occ = atof(v.c_str());
+        else if (k == "age_pred") c.age_pred = atoi(v.c_str());
+        else if (k == "rt_r") c.rt_r = atoi(v.c_str());
+        else if (k == "rt_h") c.rt_h = atof(v.c_str());
+        else if (k == "oracle") c.oracle = atoi(v.c_str());
+        else if (k == "uni_vict") c.uni_vict = v;
+        else if (k == "uni_cc") c.uni_cc = atoi(v.c_str());
         else { fprintf(stderr, "unknown key %s\n", k.c_str()); return 1; }
     }
     if (c.mode == "cftl") c.mode = "dftl";  // alias

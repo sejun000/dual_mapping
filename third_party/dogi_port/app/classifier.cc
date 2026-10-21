@@ -8,7 +8,7 @@ HotIntervalTracker& HotIntervalTracker::Instance() {
   return instance;
 }
 
-HotIntervalTracker::HotIntervalTracker() : intervals_(kCapacity, 0) {}
+HotIntervalTracker::HotIntervalTracker() : intervals_(std::max<uint64_t>(kCapacity, gLbaCapacity), 0) {}
 
 uint64_t HotIntervalTracker::ToUnits(uint64_t ageInBlocks) const {
   return ageInBlocks / kIntervalUnit;

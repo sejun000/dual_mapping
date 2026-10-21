@@ -132,6 +132,16 @@ int main(int argc, char *argv[]) {
   printf("[PORT] logicalBytes=%llu OpRatio=%.5f GpThreshold=%.5f segBlocks=%llu trace=%s\n",
          (unsigned long long)logicalBytes, OpRatio, GpThreshold, (unsigned long long)kSegmentBlocks, wk_name);
   const uint64_t deviceBytes = (uint64_t)(logicalBytes * (1 + OpRatio));
+  gLbaCapacity = std::max<uint64_t>(gLbaCapacity, deviceBytes / 4096 + 1);
+  if (const char* e = getenv("DOGI_NSEG")) gNumSegCap = strtoll(e, nullptr, 10);
+  if (const char* e = getenv("DOGI_GC_RESERVE")) gGcReserve = strtoll(e, nullptr, 10);
+  if (const char* e = getenv("DOGI_TRUELBA_ALL")) gTrueLbaAll = atoi(e);
+  uint64_t maxLines = 0;  // artifact stopped at 786432000 4K writes; 0 = whole trace
+  if (const char* e = getenv("DOGI_MAX_LINES")) maxLines = strtoull(e, nullptr, 10);
+  printf("[PORT] deviceBytes=%llu deviceSegs=%.2f lbaCapacity=%llu strictNSEG=%lld gcReserve=%lld maxLines=%llu trueLbaAll=%d syncTrain=%d\n",
+         (unsigned long long)deviceBytes, (double)deviceBytes / kSegmentBytes, (unsigned long long)gLbaCapacity,
+         (long long)gNumSegCap, (long long)gGcReserve, (unsigned long long)maxLines, gTrueLbaAll,
+         (getenv("DOGI_SYNC_TRAIN") && atoi(getenv("DOGI_SYNC_TRAIN")) == 0) ? 0 : 1);
   LogStore *logstore = new LogStore(deviceBytes, NumGroup);
   auto freqTracker = std::make_shared<FreqFeatures>(deviceBytes);
   ModelTrainer modelTrainer(deviceBytes);
@@ -181,6 +191,7 @@ int main(int argc, char *argv[]) {
   std::mutex bufMutex;
   std::condition_variable bufCv;
   std::atomic<bool> shutdown{false};
+  std::atomic<uint64_t> writesDone{0};   // port: writes fully appended by the worker (MARK drains to this)
   uint64_t logicalTime = 0;
   uint64_t featureTime = 0;
   uint64_t totline = 0;
@@ -274,6 +285,7 @@ int main(int argc, char *argv[]) {
         }
         bop->write(buffer, w.len, w.start, category);
         freqTracker->OnBlockWrite(w.lba);
+        writesDone.fetch_add(1, std::memory_order_release);
       }
     }
   });
@@ -282,6 +294,8 @@ int main(int argc, char *argv[]) {
   std::mutex configMutex;
   std::condition_variable configCv;
   std::atomic<bool> configDone{false};
+  std::atomic<int> nTrainings{0}, nGconfOk{0}, nRounds{0};
+  const bool syncTrain = !(getenv("DOGI_SYNC_TRAIN") && atoi(getenv("DOGI_SYNC_TRAIN")) == 0);  // default on
   // Configuration: override GCONF_BASE_DIR to redirect optimized config output for artifacts.
   std::string gconfBase = std::getenv("GCONF_BASE_DIR") ? std::getenv("GCONF_BASE_DIR")
                                                         : "../DOGI-Gconf";
@@ -294,7 +308,9 @@ int main(int argc, char *argv[]) {
       //printf("!!!!!!!!!!!!!!!!!\n");
       if (shutdown.load()) break;
       lk.unlock();
+      printf("[PORT] training #%d starts at logicalTime~%llu\n", nTrainings.load() + 1, (unsigned long long)logicalTime);
       modelTrainer.MakingMLModel();
+      ++nTrainings;
       // After training finishes, pick up the freshest model and reload.
       {
         auto pair = ResolveModelDirAndName();
@@ -315,7 +331,9 @@ int main(int argc, char *argv[]) {
       bool ok = OptimizeAndApplyGroupConfig(latestModelName, utilization, gconfBase);
       //bool ok = false;
       configDone.store(ok);
+      if (ok) ++nGconfOk;
       APPLY_ML = 1;
+      ++nRounds;
       //APPLY_ML = 0;
       printf("[GCONF] group optimizer %s\n", ok ? "success" : "failed");
     }
@@ -336,19 +354,20 @@ int main(int argc, char *argv[]) {
   trace = fopen(wk_name, "r");
   while (fgets(line, sizeof(line), trace))
   {
-	std::string str(line);
-  std::vector<std::string> result;
-    {
-      std::stringstream ss(str);
-      std::string substr;
-	  while (ss >> substr) {
-		result.push_back(substr);
-      }
-	}  
-    if (result[1] != "1") continue;
-    
-    start = atoll(result[2].c_str())*4096;
-    length = atoi(result[3].c_str());
+    if (line[0] == 'M') {   // port: measurement marker emitted by ftlsim out_trace (post-buffer stream position)
+      sealActive();
+      { std::unique_lock<std::mutex> lk(bufMutex); bufCv.wait(lk, [&]() { return inFlightIdx == -1; }); }
+      while (writesDone.load(std::memory_order_acquire) < logicalTime) std::this_thread::sleep_for(std::chrono::microseconds(50));
+      printf("[PORT] MARK at logicalTime=%llu trainings=%d APPLY_ML=%d\n", (unsigned long long)logicalTime, nTrainings.load(), APPLY_ML);
+      logstore->PrintRawStats("MARK");
+      continue;
+    }
+    // "<ts> <op> <lpn> <len>" (fast path of the artifact's stringstream parser; same semantics)
+    char *q = line; strtoull(q, &q, 10);
+    unsigned long long opv = strtoull(q, &q, 10);
+    if (opv != 1) continue;
+    start = (off64_t)strtoull(q, &q, 10) * 4096;
+    length = (uint32_t)strtoul(q, &q, 10);
     end = start + length;
     start = start & (~4095ull);
     length = ((end + 4095) & (~4095ull)) - start;
@@ -377,29 +396,41 @@ int main(int argc, char *argv[]) {
       logstore->PrintRawStats("MARK");
     }
     if (modelTrainer.IsCollectingDone()) {
-      configCv.notify_one();
+      if (syncTrain) {
+        // port: deterministic model hand-off -- the host stream pauses while the trainer + group optimizer run, so
+        // the new model/config applies at the stream position where collection ended (independent of how fast the
+        // simulator runs; the artifact's async hand-off lags by however many writes arrive during training).
+        int before = nRounds.load();
+        printf("[PORT] sync training: stream paused at logicalTime=%llu\n", (unsigned long long)logicalTime);
+        while (nRounds.load() == before) { configCv.notify_one(); std::this_thread::sleep_for(std::chrono::milliseconds(20)); }
+      } else {
+        configCv.notify_one();
+      }
     }
-	if (logicalTime > 786432000) break;
+	if (maxLines && logicalTime > maxLines) break;
   }
 
   logstore->PrintRawStats("PRE_DRAIN");
-  // flush remaining buffered work
+  // flush remaining buffered work (port: wait for the in-flight buffer first; the artifact could overwrite it and drop
+  // up to one buffer of writes at the end of the trace)
+  sealActive();
+  { std::unique_lock<std::mutex> lk(bufMutex); bufCv.wait(lk, [&]() { return inFlightIdx == -1; }); }
+  while (writesDone.load(std::memory_order_acquire) < logicalTime) std::this_thread::sleep_for(std::chrono::microseconds(50));
   {
     std::unique_lock<std::mutex> lk(bufMutex);
-    if (!buffers[activeIdx].writes.empty()) {
-      buffers[activeIdx].sealed = true;
-      inFlightIdx = activeIdx;
-      bufCv.notify_one();
-      activeIdx = 1 - activeIdx;
-    }
     shutdown.store(true);
     bufCv.notify_all();
   }
 
   worker.join();
+  logstore->PrintRawStats("END");
+  printf("[PORT] END logicalTime=%llu trainings_done_before_end=%d gconf_ok=%d APPLY_ML=%d\n",
+         (unsigned long long)logicalTime, nTrainings.load(), nGconfOk.load(), APPLY_ML);
+  fflush(stdout);
   shutdown.store(true);
   configCv.notify_one();
   configWorker.join();
+  printf("[PORT] FINAL trainings=%d gconf_ok=%d APPLY_ML=%d\n", nTrainings.load(), nGconfOk.load(), APPLY_ML);
 
   {
     struct timeval current_time;

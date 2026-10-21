@@ -1,7 +1,9 @@
 // app/model_train.cc
 
 #include "app/model_train.h"
+#include "app/global.h"
 #include <sstream>
+#include <cstdio>
 
 ModelTrainer::ModelTrainer(uint64_t deviceBytes)
     :   Complete_on(0),
@@ -88,6 +90,11 @@ void ModelTrainer::_SaveTrainingData(std::array<uint64_t, 6>* features, uint64_t
         max_true_lba_num += number_of_true_lbas; //adjust max true lba num based on collected true lbas
         number_of_samples++;
 		//save only true LBA data
+	} else if (gTrueLbaAll) {
+        // port: after the sample file closes, the artifact logged follow-up writes only from the hot path, so a
+        // workload with few hot-classified writes (uniform, large-segment traces) never finished collecting and
+        // DOGI never trained; log every follow-up write, as during the sampling phase (DOGI_TRUELBA_ALL=0: artifact).
+        _SaveTrueLBAData((*features)[0], featuretime, false);
 	}
 }
 
@@ -187,6 +194,13 @@ void ModelTrainer::_MakingNewFile(uint64_t featuretime) {
 
 void ModelTrainer::_CleanUp() {
     // Clean up resources
+    // port: drop this round's sample / true-LBA / training CSVs once the model is trained (the artifact kept every
+    // round's files: ~0.2 GB per round, which filled the disk with many concurrent runs). DOGI_KEEP_TRAIN_FILES=1 keeps them.
+    if (!(getenv("DOGI_KEEP_TRAIN_FILES") && atoi(getenv("DOGI_KEEP_TRAIN_FILES")))) {
+        std::remove(feature_file_path.c_str());
+        std::remove(truelba_file_path.c_str());
+        if (!completed_file_path.empty()) std::remove(completed_file_path.c_str());
+    }
     
     // Delete dynamically allocated readers to prevent memory leak
     if (rev_feature_reader != nullptr) {
@@ -321,7 +335,12 @@ void ModelTrainer::_CompleteTrainingDataset() {
     complete_max_time=0;
     
 retry:
-    rev_feature_reader->getline_rev(feature_line);
+    if (!rev_feature_reader->getline_rev(feature_line)) {
+        // port: the artifact looped forever printing "Invalid feature line" when the feature file had no valid line
+        printf("[PORT] FATAL: no valid line in %s (disk full or empty sample file)\n", feature_file_path.c_str());
+        fflush(stdout);
+        std::abort();
+    }
     std::stringstream ss_feature(feature_line);
     while (std::getline(ss_feature, token, ',')) {
             feature_tokens.push_back(static_cast<uint64_t>(std::stoull(token)));

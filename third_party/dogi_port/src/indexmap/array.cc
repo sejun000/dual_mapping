@@ -1,5 +1,6 @@
 #include "src/indexmap/array.h"
 #include <iostream>
+#include "app/global.h"
 
 Array::Array(int capacity) {
   mCapacity = capacity;
@@ -10,6 +11,7 @@ Array::Array(int capacity) {
 }
 
 Array::Array() {
+  mCapacity = (int)gLbaCapacity;
   mValues = new uint64_t[mCapacity];
   for (int i = 0; i < mCapacity; ++i) {
     mValues[i] = ~0ull;

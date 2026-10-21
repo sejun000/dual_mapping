@@ -1,0 +1,46 @@
+// tools/apps/blklat.bt - block-layer (issue -> complete) latency histograms for one disk, plus the bytes the
+// application wrote through F2FS on it (f2fs_file_write_iter, used for FS-level WAF since the stock 6.8
+// kernel has no CONFIG_F2FS_IOSTAT).
+//   bpftrace blklat.bt <kernel dev_t of the disk>   (dev_t = major << 20 | minor)
+// Output on SIGINT: @lat[class, bucket] counts, class 0 = read, 1 = write, 2 = other (flush/discard/...).
+// Bucket b encodes the latency in microseconds (decoded by summarize.py):
+//   b <  500 : [2b, 2b+2) us                       (2 us steps below 1 ms)
+//   b <  950 : 1000 + 20 (b-500) us                (20 us steps below 10 ms)
+//   b < 1940 : 10000 + 1000 (b-950) us             (1 ms steps below 1 s)
+//   b < 2930 : 1000000 + 100000 (b-1940) us        (100 ms steps below 100 s)
+//   b = 2930 : >= 100 s
+BEGIN { printf("blklat attached dev=%d\n", $1); }
+
+tracepoint:block:block_rq_issue
+/args->dev == $1/
+{
+	@t[args->sector] = nsecs;
+}
+
+tracepoint:block:block_rq_complete
+/args->dev == $1 && @t[args->sector]/
+{
+	$us = (nsecs - @t[args->sector]) / 1000;
+	delete(@t[args->sector]);
+	$c = 2;
+	if (strncmp(args->rwbs, "R", 1) == 0) { $c = 0; }
+	if (strncmp(args->rwbs, "W", 1) == 0) { $c = 1; }
+	if ($us < 1000) { $b = $us / 2; }
+	else if ($us < 10000) { $b = 500 + ($us - 1000) / 20; }
+	else if ($us < 1000000) { $b = 950 + ($us - 10000) / 1000; }
+	else if ($us < 100000000) { $b = 1940 + ($us - 1000000) / 100000; }
+	else { $b = 2930; }
+	@lat[$c, $b] = count();
+	@lat_sum_us[$c] = sum($us);
+	@lat_n[$c] = count();
+	@bytes[$c] = sum(args->nr_sector * 512);
+}
+
+tracepoint:f2fs:f2fs_file_write_iter
+/args->dev == $1 && args->ret > 0/
+{
+	@app_write_bytes = sum(args->ret);
+	@app_write_calls = count();
+}
+
+END { clear(@t); }

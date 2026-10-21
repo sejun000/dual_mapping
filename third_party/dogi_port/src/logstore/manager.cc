@@ -53,7 +53,10 @@ Manager::~Manager() {
 void Manager::Append(const void *buf, off64_t addr, int group) {
   using namespace std::chrono_literals;
 //  if (GetGp() > 0.1737) {
-  if (GetGp() > GpThreshold) {
+  if (gNumSegCap > 0) {
+    // strict budget: the host stalls while GC owns the reserve (foreground GC)
+    while (NeedGc()) { std::this_thread::sleep_for(20us); mStallUs += 20; }
+  } else if (GetGp() > GpThreshold) {
     std::this_thread::sleep_for(0.0001s);
   }
 
@@ -80,6 +83,7 @@ void Manager::Append(const void *buf, off64_t addr, int group) {
   classId = mPlacement->Classify(blockAddr, false, (uint64_t)PrevAge, (uint32_t)PrevClass, /*category=*/static_cast<int>(group));
 
   std::shared_ptr<Segment> currentSegment = mOpenSegments[classId];
+  if (currentSegment->GetTotalBlocks() == 0) NoteFirstBlock();
   newPhyAddr = currentSegment->Append(blockAddr, /*category=*/static_cast<int>(group));
   mIndexMap->Update(blockAddr, newPhyAddr);
 
@@ -128,6 +132,7 @@ bool Manager::GcAppend(const void *buf, uint32_t blockAddr, off64_t oldPhyAddr) 
   HotIntervalTracker::Instance().AccumulateGcAge(blockAddr, CurrAge);
 
   std::shared_ptr<Segment> currentSegment = mOpenSegments[classId];
+  if (currentSegment->GetTotalBlocks() == 0) NoteFirstBlock();
   phyAddr = currentSegment->Append(blockAddr, /*category=*/catState >= 0 ? -1 : -1);
 
   mIndexMap->Update(blockAddr, phyAddr);
@@ -214,6 +219,7 @@ void Manager::RemoveSegment(int id, uint64_t nInvalidBlocks) {
 	ClassSegmentNum[ClassId] -= 1; 
     ClassAgeSum[ClassId] += (double)(mSegments[id]->GetAge());
     mTotalBlocks -= kSegmentBlocks;
+    if (mSegments[id]->GetTotalBlocks() > 0) --mUsedSegs;
 		
     mSegments.erase(id);
 

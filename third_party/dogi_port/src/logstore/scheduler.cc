@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "src/logstore/scheduler.h"
 #include "app/global.h"
 
@@ -12,14 +13,14 @@ void Scheduler::scheduling(Manager *manager) {
   using namespace std::chrono_literals;
   struct timeval current_time;
   while (true) {
-    std::this_thread::sleep_for(0.05s);
+    if (gNumSegCap > 0) std::this_thread::sleep_for(0.00005s); else std::this_thread::sleep_for(0.05s);
     if (mShutdown) {
       break;
     }
 
 
 //    while (manager->GetGp() >= 0.1737) {
-    while (manager->GetGp() >= GpThreshold) {
+    while (gNumSegCap > 0 ? manager->NeedGc() : manager->GetGp() >= GpThreshold) {
       //printf("GP: %.2f\n", manager->GetGp());
       // select a segment
       int segmentId = select(manager);
@@ -52,8 +53,30 @@ int Scheduler::select(Manager *manager) {
   manager->GetSegments(segments);
 
   auto res = mSelection->Select(segments);
-
-  return res[0].second;
+  int id = res[0].second;
+  static const bool guard = gNumSegCap > 0 || (getenv("DOGI_GUARD") && atoi(getenv("DOGI_GUARD")));
+  if (guard) {
+    // port (strict budget; GP accounting only with DOGI_GUARD=1): liveness guard for DOGI's dead end. DogiSelect takes
+    // an expired BIR-group segment by age (relocating a still-valid one is DOGI's design: it moves on to the next
+    // group), otherwise the best cost-benefit segment of the remaining pool, and never a BIR-group segment before its
+    // BIR age. Ages are counted in host writes, which do not advance while GC runs. If the pick comes from the
+    // cost-benefit pool and is fully valid, that whole pool is fully valid (any garbage would score higher) and GC
+    // would relocate full segments forever; only then take the sealed segment with the most invalid blocks instead.
+    const Segment *chosen = nullptr, *best = nullptr;
+    for (auto &s : segments) {
+      if ((int)s.GetSegmentId() == id) chosen = &s;
+      if (!best || s.GetTotalInvalidBlocks() > best->GetTotalInvalidBlocks()) best = &s;
+    }
+    // DOGI_GUARD_ANY=1 ("DOGI+" in results/dogi_v3): also replace fully-valid expired-BIR picks, i.e. never collect a
+    // fully-valid segment while any sealed segment has garbage (stronger than the published policy).
+    static const bool any = getenv("DOGI_GUARD_ANY") && atoi(getenv("DOGI_GUARD_ANY"));
+    if (chosen && chosen->GetTotalInvalidBlocks() == 0 && (any || (uint32_t)chosen->GetClassNum() >= naive_start) &&
+        best && best->GetTotalInvalidBlocks() > 0) {
+      id = (int)best->GetSegmentId();
+      manager->NoteEmergency();
+    }
+  }
+  return id;
 }
 
 void Scheduler::collect(Manager *manager, Segment &segment) {

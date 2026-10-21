@@ -1,5 +1,6 @@
 #include "src/indexmap/filter.h"
 #include <iostream>
+#include "app/global.h"
 
 Filter::Filter(int capacity) {
   mCapacity = capacity;
@@ -10,6 +11,7 @@ Filter::Filter(int capacity) {
 }
 
 Filter::Filter() {
+  mCapacity = (int)gLbaCapacity;
   mValues = new uint64_t[mCapacity];
   for (int i = 0; i < mCapacity; ++i) {
     mValues[i] = 0;

@@ -9,7 +9,7 @@ extern char *PlacementName;
 extern double GpThreshold;
 extern double OpRatio;
 extern int LogicalSizeGb;
-extern char wk_name[128];
+extern char wk_name[1024];
 extern uint32_t NumGroup;
 extern uint32_t naive_start;
 extern uint64_t BIR[10];
@@ -23,6 +23,10 @@ extern const char kZbdDeviceName[];
 extern const uint64_t kBlockBytes;
 extern const uint64_t kSegmentBlocks;         // blocks per segment
 extern const uint64_t kSegmentBytes;          // bytes per segment
+extern uint64_t gLbaCapacity;                // per-LBA table size (port)
+extern int64_t gNumSegCap;                   // strict physical segment budget (port; 0 = off)
+extern int gTrueLbaAll;                      // port: post-sampling true-LBA logging of all writes
+extern int64_t gGcReserve;                   // free segments kept for GC in strict mode (port)
 
 // Derived thresholds based on logical size.
 inline uint64_t GetPassTimeBlocks() {
