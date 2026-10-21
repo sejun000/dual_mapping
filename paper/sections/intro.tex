@@ -1,0 +1,76 @@
+% DUET -- Introduction (DAC 2027 draft, 2026-10-20)
+% Numbers: results/paper_dac/tables.md (NVMeVirt, 12.5% mapping DRAM, OP 7%). TODO-marked cites need sources.
+
+\section{Introduction}
+\label{sec:intro}
+
+The flash translation layer (FTL) of an SSD maps every logical page to its
+physical location. A page-level mapping table with 4\,B entries for 4\,KiB pages
+takes about 0.1\% of the capacity, so a 32\,TB SSD needs 32\,GB of DRAM for
+the table alone. SSD capacity keeps growing with denser 3D NAND, but controller
+DRAM does not grow with it because of its cost, power, and board area~\cite{TODO-dram-cost}.
+Large SSDs therefore have to translate addresses with a mapping DRAM budget
+that is only a fraction of the full page-level table.
+
+Classic FTLs fit a limited budget by keeping only part of the mapping in DRAM,
+and pay for it in latency.
+\emph{On-demand mapping} (DFTL~\cite{dftl}, LeaFTL~\cite{leaftl}) caches the
+page-level table and fetches missing entries from flash before the data read.
+With 1/8 of the table's DRAM, LeaFTL's p99 read latency on YCSB-A is
+3.7$\times$ that of a page-level FTL with unlimited DRAM.
+\emph{Hybrid mapping} (FAST~\cite{fast}) maps data per erase block and merges
+page-mapped log blocks back into it; a merge copies up to a whole block, and
+blocks keep growing with each 3D NAND generation~\cite{TODO-block-size}.
+FAST's p99 write latency is 2.8--4.7$\times$ that of a page-level FTL under random I/O.
+
+To avoid these latency problems, high-capacity SSDs in production use a
+\emph{large indirection unit} (IU) of 16--64\,KiB instead~\cite{TODO-iu}: the
+whole coarse table fits in DRAM, with no mapping misses and no block merges.
+The cost moves to small writes, each of which becomes a read-modify-write (RMW)
+of its unit; on YCSB this raises the write amplification factor (WAF) by 2.7--3.3$\times$.
+
+We present \textbf{DUET} (\textbf{DU}al-granularity \textbf{E}lastic
+\textbf{T}ranslation), an FTL that keeps the large IU but removes its RMW
+by mapping data at two granularities under a fixed DRAM budget. Like hybrid
+mapping it has a coarse and a fine level, but its coarse unit is the 64\,KiB IU,
+decoupled from the erase block. DUET has three key elements:
+\begin{itemize}
+  \item \textbf{Dual-granularity mapping.} Most data are mapped per 64\,KiB IU,
+  which keeps the coarse table at 1/16 of a page-level table. Writes smaller
+  than an IU are written out-of-place as 4\,KiB fragments, which a compact cuckoo
+  hash index in DRAM tracks, so there is no RMW on the write path.
+  \item \textbf{Bounded, cost-aware folding.} Fragments are merged into their IU
+  only when the merge pays off, and most are merged for free while garbage
+  collection relocates the IU anyway. A merge touches at most one IU (16 pages),
+  regardless of the erase-block size, and space is reclaimed by page-style
+  garbage collection rather than block merges, so no merge ever stalls host
+  writes for the length of a block copy.
+  \item \textbf{Elastic fragment mapping.} When the DRAM index is full, DUET
+  spills fragment mappings to flash instead of forcing merges, and brings them
+  back into DRAM when the IU is accessed again. Read-promoted mappings stay
+  \emph{clean}: their flash copy remains valid, so evicting them again costs no flash write.
+  The fine-grained mapping thus stretches beyond DRAM and shrinks back without
+  data movement.
+\end{itemize}
+
+We implement DUET and six other FTLs in NVMeVirt~\cite{nvmevirt}, a kernel-level
+NVMe SSD emulator, with the same NAND timing, write buffer, and garbage collection
+for all of them. We evaluate them with a 1/8 mapping-DRAM budget on real traces
+(Alibaba cloud block storage~\cite{alibaba-trace} and SPFresh~\cite{spfresh}), key-value and OLTP
+applications (YCSB~\cite{ycsb} on PostgreSQL and TPC-C), and raw random I/O.
+DUET reaches 92\% of the throughput of a page-level FTL with unlimited DRAM (geometric mean),
+compared to 79\% for LeaFTL and 68\% for DFTL. On the Alibaba trace it is
+18\% faster than the page-level FTL. On the read side, its average read latency is up to 5.5$\times$ and
+2.5$\times$ lower than DFTL's and LeaFTL's, respectively; on the write side, its p99 write latency is
+up to 4.1$\times$ lower than FAST's (1.2--4.1$\times$ on every workload with a meaningful write share).
+
+This paper makes the following contributions:
+\begin{itemize}
+  \item We show that existing FTLs fit a limited mapping DRAM budget only by
+  paying in read latency (mapping caching), merge cost and tail latency
+  (block-level hybrids), or RMW (coarse IUs).
+  \item We design DUET, which combines dual-granularity mapping, bounded cost-aware
+  folding, and elastic spilling and clean promotion of fragment mappings.
+  \item We implement seven FTLs in a common emulator and show that DUET outperforms
+  all of them under the same DRAM budget.
+\end{itemize}
