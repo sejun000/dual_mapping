@@ -1,5 +1,5 @@
 % DUET -- Background and Motivation (DAC 2027 draft, 2026-10-21)
-% Numbers: raw I/O = 128K-aligned uniform random replay at QD32 (results/final_rp_a128), 1/8 mapping DRAM, OP 7%.
+% Numbers: raw I/O R70, 4K:128K=70:30, 128K-aligned uniform random replay at QD32 (results/final_rp_a128/replay_a128_r70_s70), 1/8 DRAM, OP 7%.
 % Figure: results/paper_dac/fig_motiv.pdf (tools/plot_motiv.py).
 
 \section{Background and Motivation}
@@ -58,20 +58,20 @@ amplification by up to the IU size over the write size. In our evaluation the
 Figure~\ref{fig:motiv} compares the three approaches with a page-level FTL
 that keeps its whole table in DRAM. All FTLs run in NVMeVirt~\cite{nvmevirt}
 with the same NAND timing and the same 1/8 mapping-DRAM budget. The workload is
-uniform random I/O over the whole device at 50\% reads; 70\% of the requests are
+uniform random I/O over the whole device at 70\% reads; 70\% of the requests are
 4\,KiB and the rest 128\,KiB, each aligned to its own size (QD32).
 
 \textbf{On-demand mapping slows reads.}
-With mapping misses, DFTL needs 1.73 flash reads per host read and LeaFTL 1.32
+With mapping misses, DFTL needs 1.37 flash reads per host read and LeaFTL 1.16
 (Figure~\ref{fig:motiv}a; LeaFTL's misprediction reads are not counted, so its
-value is a lower bound). Their average read latency is 2.3$\times$ and
+value is a lower bound). Their average read latency is 2.1$\times$ and
 1.4$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b), although the
 flash itself is the same.
 
 \textbf{Hybrid mapping and large IUs slow writes.}
 FAST's block merges raise WAF from 8.6 to 26.5 (Figure~\ref{fig:motiv}c) and
-stall writes, so its average write latency is 3.0$\times$ that of the page-level
-FTL (Figure~\ref{fig:motiv}d) and it delivers only 34\% of the page-level
+stall writes, so its average write latency is 2.8$\times$ that of the page-level
+FTL (Figure~\ref{fig:motiv}d) and it delivers only 37\% of the page-level
 throughput. The large IU avoids merges, but every 4\,KiB write becomes an RMW of
 its 32\,KiB unit: WAF reaches 12.8 (1.5$\times$) and write latency grows by 1.4$\times$.
 
@@ -91,7 +91,7 @@ whose mapping is elastic.
   \includegraphics[width=\columnwidth]{figs/fig_motiv.pdf}
   \vspace{-6mm}
   \caption{Cost of existing FTLs under a 1/8 mapping-DRAM budget (uniform random,
-  50\% reads, 70\% 4\,KiB / 30\% 128\,KiB size-aligned requests, QD32). (a)--(b)
+  70\% reads, 70\% 4\,KiB / 30\% 128\,KiB size-aligned requests, QD32). (a)--(b)
   On-demand mapping; (c)--(d) block-level hybrid (FAST) and a 32\,KiB IU with RMW.
   Latencies are averages. Labels give each FTL's mapping DRAM. Page: page-level
   FTL with the full table in DRAM; DUET (Section~\ref{sec:design}) shown for reference.}
