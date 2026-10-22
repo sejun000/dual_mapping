@@ -14,12 +14,13 @@ go to fragments instead of RMW (iii).
 
 \begin{figure}[t]
   \centering
-  \fbox{\parbox[c][1.6in][c]{0.95\columnwidth}{\centering TODO: DUET overview --
-  coarse map (4\,B/IU, DRAM) $\rightarrow$ 64\,KiB chunks in coarse blocks;
-  fine map (cuckoo index, DRAM) $\rightarrow$ 4\,KiB fragments in fine blocks;
-  spilled fragment maps in flash translation pages (FTPs) located by the GTD.}}
-  \vspace{-2mm}
-  \caption{DUET overview.}
+  \includegraphics[width=\columnwidth]{figs/fig_design.pdf}
+  \vspace{-6mm}
+  \caption{DUET overview. The coarse map (one 4\,B entry per 64\,KiB IU, with
+  has-fragments (F) and spilled (S) bits) points to 16-page chunks; the fine map,
+  a cuckoo hash, points to 4\,KiB fragments. Fragment pointers of evicted IUs are
+  spilled to flash translation pages (FTPs), located by the GTD, and promoted back
+  clean on access. Fragments are merged one IU at a time (fold / refold).}
   \label{fig:design}
   \vspace{-4mm}
 \end{figure}
