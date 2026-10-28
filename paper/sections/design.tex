@@ -8,8 +8,8 @@
 DUET maps every logical page through two levels (Figure~\ref{fig:design}).
 A \emph{coarse map} keeps one entry per 64\,KiB IU, and a \emph{fine map}
 keeps 4\,KiB fragments that override parts of an IU. The coarse map is always
-in DRAM, so most reads need no mapping I/O (requirement (i)); fragments are
-merged one IU at a time instead of one block at a time (ii); and small writes
+in DRAM, so most reads need no mapping I/O (requirement (i)). Fragments are
+merged one IU at a time instead of one block at a time (ii), and small writes
 go to fragments instead of RMW (iii).
 
 \begin{figure}[t]
@@ -17,7 +17,7 @@ go to fragments instead of RMW (iii).
   \includegraphics[width=\columnwidth]{figs/fig_design.pdf}
   \vspace{-6mm}
   \caption{DUET overview. The coarse map (one 4\,B entry per 64\,KiB IU, with
-  has-fragments (F) and spilled (S) bits) points to 16-page chunks; the fine map,
+  has-fragments (F) and spilled (S) bits) points to 16-page chunks. The fine map,
   a cuckoo hash, points to 4\,KiB fragments. Fragment pointers of evicted IUs are
   spilled to flash translation pages (FTPs), located by the GTD, and promoted back
   clean on access. Fragments are merged one IU at a time (fold / refold).}
@@ -45,11 +45,11 @@ all logical pages.
 has-fragments bit is clear, the page is read from the chunk at offset
 $\mathit{lpn} \bmod 16$. Otherwise one table lookup (at most two buckets)
 returns the fragment if it exists, and the chunk page if not. A read thus needs
-at most three DRAM accesses and one flash read; a mapping read occurs only for
+at most three DRAM accesses and one flash read. A mapping read occurs only for
 spilled IUs (Section~\ref{sec:elastic}).
 
 \textbf{Write path.} A write that covers a whole IU goes to the coarse
-frontier as a new chunk; the old chunk and all fragments of the IU become
+frontier as a new chunk, and the old chunk and all fragments of the IU become
 invalid. A partial write becomes fragments. A partial write that covers most of
 an IU is completed right away (the missing pages are read and the whole IU is
 written as a chunk) when this is cheaper than the fragments' expected cost.
@@ -81,7 +81,7 @@ the fragments are freed at no extra program cost. On YCSB-A, 79\% of all
 fragments leave the fine map this way.
 
 Since every merge touches a single IU, its cost is bounded by 16 page copies
-regardless of the erase-block size, unlike a hybrid FTL's block merge. DUET also
+regardless of the NAND block size, unlike a hybrid FTL's block merge. DUET also
 decides between fine and coarse GC by their cost, so the fine area grows when
 fragments are rewritten often and shrinks to a few blocks under uniform random
 writes.
@@ -122,7 +122,7 @@ controller SRAM.
 \subsection{Overhead}
 The per-IU state is the 4\,B coarse entry (two flag bits included), the fine
 map is the cuckoo table, and the GTD adds 4\,B per 64 IUs, all within the
-budget. A host read takes at most three DRAM accesses; a spill or un-spill
+budget. A host read takes at most three DRAM accesses, and a spill or un-spill
 touches at most 64 coarse entries and $64 \times 16$ table slots.
 Mapping reads and programs happen only for spilled IUs and are counted in all
 WAF and latency results.
