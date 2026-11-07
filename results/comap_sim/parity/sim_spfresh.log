@@ -1,0 +1,30 @@
+[cfg] mode=comap L=5256192 pages (20.1 GB, of 5265216) NB=373 NLB=348 P=15104 (59 MiB) T=2 | DRAM 2632608 B: block map 1392 + bitmap 657024 + GTD 20532, log 5 blocks (SW + 4 RW) 863090, CMT 95424 entries 1090570 | page area <= 18 blocks
+[phase] seq fill
+[trace] /mnt/nvme_mounted/dm_trace_sampled/spfresh.csv: 14765438 write pages (56.3 GiB, 2.81x device), warmup 50.0%
+[verify] ok. page_mapped=69704 (0.0133) log_pages=9867 blocks data=348 log=4 page=18 free=3 cmt=60331 P=0.0182
+[trace] warmup done (7382719 pages), reset stats
+[trace] dense space: 20485 MiB regions (20.0 GiB), device utilization 99.8%
+[verify] ok. page_mapped=254132 (0.0483) log_pages=30317 blocks data=348 log=4 page=18 free=3 cmt=92900 P=0.0623
+	Command being timed: "../ftlsim.bin trace=/mnt/nvme_mounted/dm_trace_sampled/spfresh.csv capacity=21566324736 P=15104 op=0.070002161355 mode=comap cache_bytes=2632608 dram_stats=1"
+	User time (seconds): 194.64
+	System time (seconds): 2.55
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:17.71
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 79104
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 19683
+	Voluntary context switches: 7793
+	Involuntary context switches: 667
+	Swaps: 0
+	File system inputs: 5791328
+	File system outputs: 40
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

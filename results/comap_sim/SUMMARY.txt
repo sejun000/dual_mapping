@@ -1,0 +1,91 @@
+COMAP BASELINE IN FTLSIM (2026-10-29) -- mode=comap vs DUET BASE / DFTL / FAST at 1/8 mapping DRAM (B12)
+CoMap = Zhou, Wang, Feng, "How to Manage the Mapping Table of Large-Capacity SSDs", DATE 2026. No public code: paper parts as
+written, the rest = the approved FAST-based interpretation. Full description, every constant, parity runs:
+~/nvmevirt_comap/dm/NOTES_comap.md (NVMeVirt port, bit-identical to this ftlsim mode). Code: ftlsim/ftlsim.cpp struct CoMapSim.
+
+In one paragraph: per host write request (post write buffer) an RL probability P picks page mapping (R < P) or block mapping.
+Block side = FAST (offset-fixed data block per logical block of P pages, SW + RW log blocks, merges); page side = DFTL
+(translation pages, LRU CMT, GTD, tpbuf) on a page area of at most NB - NLB - T - logblocks blocks (18 of 373); a 1-bit/page
+bitmap says which side holds a page. Collector: random iff min distance to the last K=8 requests' ranges > 128 KiB, window
+W=64, Algorithm 1 (rand > 50 / rar > 0.3). Agent: 600 states x 5 actions {0, +-3, +-9 %}, lr 0.1, discount 0.9, eps 0.1,
+period 4096 requests, P0 0.5 clamped [0.01, 0.99], reward -Rb/Tb + Rp/Tp - 0.1 |dMap| (integer fixed point x 2^16).
+Page-area GC (area full): greedy victim, live pages move to block mapping via the random log (required: offset-fixed data
+blocks keep a slot for every page, so at 7 % OP the page side can hold only ~5 % of the data). The paper's data-cache
+allocator is omitted (no read data cache in ftlsim / NVMeVirt). Logical space = whole logical blocks (L - L % P, as FAST).
+
+DRAM split at B12 (cache_bytes = L x 4 / 8 of page4k's L): fixed block map 4 B/LB + bitmap L/8 + GTD 4 B/1024 pages (25.7 %
+of B12); comap_logfrac = 0.5 of the rest buys whole log blocks (P x 8 / 0.7 B each), the CMT gets what is left (8 B / 0.7).
+  96G device (L 23559648, Lc 23519232, P 67584): budget 11779824 = block map 1392 + bitmap 2939904 + GTD 91872 + log 5 blocks
+  (SW + 4 RW) 3861945 + CMT 427412 entries 4884711; page area <= 18 blocks. Same 5 log blocks on every workload here
+  (SPFresh CMT 95424, apps 195830, Ali-3 263847). For comparison at B12: FAST gets 15 log blocks (SW + 14 RW), DFTL 1.03M CMT
+  entries (96G).
+
+Jobs (jobs.txt, run.sh; 8 parallel on node-0 CPUs 4-40 even, binary results/comap_sim/ftlsim.bin): the BASE lines of
+results/frag_bitmap/jobs1.txt with the policy options replaced by
+  comap : mode=comap cache_bytes=B12 dram_stats=1 [trace_clip=1 on the identity-address app traces: Lc < L]
+  dftl  : mode=dftl cache_bytes=B12 dftl_tpbuf=1 dram_stats=1                           (= NVMeVirt dftl:cache_bytes=B12,dftl_tpbuf=1)
+  fast  : mode=fast fast_cap=1 cache_bytes=B12 op=0.072 dram_stats=1 [trace_clip=1]     (= NVMeVirt fast:cache_bytes=B12; op 0.072
+          gives NB 373 after FAST's L truncation, as results/op7s_dev)
+  comap_lf90 (jobs_sens.txt): comap with comap_logfrac=0.9 (10 log blocks, CMT 20k-89k entries)
+  Clipped pages (identity traces, Lc < L): <= 0.3 % of the write pages (ycsbfstd 299698 of 178.7M).
+
+Checks
+  * Options off are bit-identical: 12 synthetic runs (proposed BASE, +pbm, page4k, dftl, fast, fast cache_bytes=1M, last, janus,
+    mu, leaftl, iu_rmw, sepbit) identical byte for byte to results/frag_bitmap/ftlsim.bin; re-runs of the spfresh and f37 BASE
+    jobs (bitid/) equal results/frag_bitmap/*/base.json in every JSON field.
+  * verify() at warm-up end and run end of every comap job (16/16 ok): every lpn has one live copy reached through exactly one
+    map (bit -> page area, else log map, else data slot), p2l matches, recomputed block valid counts == tracked, bitmap ==
+    page-map entries, log-page / page-mapped counters, block budgets (data <= NLB, log <= SW + rwcap, page <= page_cap,
+    sum + free == NB), CMT holds only page-mapped lpns and <= cmt_cap. Plus stress runs with comap_verify=997 (verify every
+    997 write requests; 5 configurations, all ok).
+  * NVMeVirt harness parity: bit-identical WAF / programs / erases on skew, rand4k, kvsmoke (P=256, with and without host
+    reads, non-default options; P=4096) and on the SPFresh trace at the NVMeVirt geometry with reads (WAF 74.5904,
+    550680027 programs, 38194 erases; parity/).
+
+Findings
+  * CoMap's WAF is 2.0-3.2x FAST's and 3.9-7.3x DUET's at the same DRAM. Cause = the DRAM split, not the page side: the bitmap
+    (L/8) and the CMT take ~2/3 of B12, leaving 5 log blocks instead of FAST's 15, and FAST-style merges (each RW reclaim
+    full-merges every logical block with a page in it, avg 80+ blocks x P pages) scale with 1 / log blocks. Diagnostic
+    (diag/): FAST itself with CoMap's 4 RW blocks on SPFresh = WAF 81.3 vs CoMap 74.6, i.e. the page area slightly helps.
+    comap_logfrac=0.9 (10 log blocks) halves CoMap's WAF (still 1.3-1.5x FAST).
+  * The agent's P drifts low on most workloads (P_mean 0.02-0.50); with mostly random reads Rb/Tb ~ Rp/Tp ~ 1 the two read
+    terms cancel and the reward is dominated by the |dMap| term. The page-mapped share stays <= 5 % of the pages (space bound),
+    so few reads touch page-mapped data (rdP% 1-5 %) and map reads per host read are tiny (<= 0.03): CoMap pays in WAF, not
+    in map reads.
+
+Table 1: WAF (programs incl. merges, GC moves and translation-page writes per submitted host page) and flash map reads per host read page
+workload           DUET   CoMap   CoM.9    DFTL    FAST |    DUET   CoMap   CoM.9    DFTL    FAST   (map reads / host read)
+spfresh          14.043  74.590  35.566   9.753  24.189 |  0.1190  0.0054  0.0325  0.8004  0.0000
+ycsba_d_t64       6.729  42.347  19.651   5.045  13.853 |  0.0238  0.0000  0.0114  0.2861  0.0000
+ycsbb_d_t64       6.372  41.198  18.810   4.847  13.339 |  0.0300  0.0000  0.0120  0.3894  0.0000
+ycsbfstd_d_t64    6.815  42.355  19.815   4.994  13.885 |  0.0218  0.0000  0.0112  0.2808  0.0000
+tpcc_d_t64        2.762  17.789   8.469   2.426   6.300 |  0.0048  0.0000  0.0120  0.1544  0.0000
+ali3              3.358  13.240   8.961   3.994   6.773 |  0.0000  0.0000  0.0012  0.0038  0.0000
+f73              12.433  85.415  39.203   9.256  26.436 |  0.0000  0.0162  0.0110  0.9792  0.0000
+f37              11.772  85.394  37.665   9.001  26.465 |  0.0000  0.0031  0.0327  0.9743  0.0000
+CoM.9 = CoMap with comap_logfrac=0.9 (10 log blocks, smaller CMT); FAST has no map reads (all maps in DRAM).
+
+Table 2: CoMap internals (measured phase; per submitted host page unless noted)
+workload          host   merge  pgcmv    map    full  part  swit    pgc  P_end P_mean pm_end wr_pg%   rdP%    types r/t/s mem_MiB
+spfresh          1.000  73.311  0.255 0.0238   37261   317   317    159  0.062  0.333 0.0483   31.7    4.8      31958/0/0    1.99
+ycsba_d_t64      0.814  41.133  0.400 0.0000  193361  1953  1953   1954  0.838  0.491 0.0495   48.8    1.0   11934/0/2392    3.99
+ycsbb_d_t64      0.811  40.264  0.123 0.0000   80426  1524  1524    272  0.029  0.219 0.0485   18.1    1.0    19764/0/953    3.68
+ycsbfstd_d_t64   0.814  41.161  0.380 0.0000  187103  2048  2048   1804  0.100  0.497 0.0502   48.5    0.7   11213/0/2433    4.17
+tpcc_d_t64       0.597  17.152  0.040 0.0000   20458   837   837     56  0.011  0.073 0.0487    7.0    1.0     1207/0/723    3.66
+ali3             0.843  12.382  0.015 0.0003    6617   388   388     23  0.035  0.049 0.0314    5.1    2.8        8/0/438    5.46
+f73              1.000  84.395  0.020 0.0006   30028   322   322      9  0.010  0.025 0.0206    2.5    3.2       1438/0/0    7.89
+f37              1.000  84.389  0.005 0.0001   29655   319   319      7  0.015  0.020 0.0174    1.9    2.0        849/0/0    8.94
+spfresh .9       1.000  34.115  0.356 0.0952   17011   270   270    194  0.315  0.398 0.0365   40.3    3.6      31958/0/0    1.52
+ycsba_d_t64 .9   0.814  18.227  0.594 0.0163   88082   874   874   2912  0.694  0.738 0.0363   75.7    2.4   11934/0/2392    3.31
+ycsbb_d_t64 .9   0.811  17.895  0.098 0.0067   35514  1550  1550    247  0.017  0.153 0.0154   15.1    3.2    19764/0/953    3.15
+ycsbfstd_d_t64 .9  0.814  18.872  0.125 0.0044   85201  3303  3303    650  0.022  0.160 0.0232   16.1    2.6   11213/0/2433    3.31
+tpcc_d_t64 .9    0.597   7.527  0.340 0.0055    9438   312   312    460  0.270  0.628 0.0340   65.0    4.5     1207/0/723    3.43
+ali3 .9          0.843   8.079  0.039 0.0005    4192   386   386     35  0.019  0.074 0.0229    7.6    8.0        8/0/438    3.81
+f73 .9           1.000  38.199  0.003 0.0009   13158   329   329      4  0.012  0.011 0.0119    1.1    1.4       1438/0/0    7.33
+f37 .9           1.000  35.793  0.836 0.0355   12867    43    43    303  0.603  0.870 0.0359   87.0    3.5        849/0/0    7.98
+
+Columns (Table 2): host / merge / pgcmv / map = host, FAST merge (full + partial), page-area GC move and translation-page
+programs per host page; full / part / swit = FAST merges; pgc = page-area GC runs; P_end / P_mean = page-mapping probability
+at the end / mean over measured periods; pm_end = page-mapped share of the logical pages at the end; wr_pg% = write requests
+routed to page mapping; rdP% = host read pages served by page-mapped data; types = measured periods classified
+random / temporal / spatial; mem = mapping DRAM at the end (budget: B12).

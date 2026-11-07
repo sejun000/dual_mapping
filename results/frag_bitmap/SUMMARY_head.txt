@@ -1,0 +1,62 @@
+FRAGMENT-LOCATION HINTS FOR SPILLED IUs (2026-10-28) -- ftlsim pbm=1 / ssum=1 vs BASE
+BASE = results/coarse_gc/base_params.txt + spill_rp=1 spill_rp_clean=1 (spill=2, dram_stats=1, map_budget 0.125; = results/spill_rp rpc1)
+
+Variants (ftlsim options, default off; see Cfg::pbm / Cfg::ssum in ftlsim/ftlsim.cpp):
+  pbm    pbm=1: per-page fragment bitmap in DRAM (1 bit per 4 KiB page, L/8 B charged to map_budget like the GTD -> the
+         cuckoo table shrinks from 0.246 L to 0.121 L bytes, i.e. ~half the entries). Read: bit 0 -> chunk, no table
+         lookup, no FTP read even if spilled; bit 1 + resident -> table lookup; bit 1 + spilled -> FTP read + read-promotion.
+  ssum   ssum=1: a spilled IU with d >= 2 keeps one 8 B summary entry {SUMTAG|IU, 16-bit bitmap} in the cuckoo table (net
+         d-1 slots freed; d == 1 spills without one). Read of a spilled IU: summary lookup (1-2 buckets); bit 0 -> chunk, no
+         FTP read; bit 1 or no summary -> FTP read + promotion as today. Summaries never evict anything: inserted into a free
+         slot of their bucket pair (else replacing another summary there, else skipped), never into the pair currently being
+         made room for; a full pair drops a summary first (no flash I/O) before evicting/spilling a page-entry IU. Dropped on
+         un-spill / read-promotion, fold / refold / overwrite (fine_release). Non-spilled reads unchanged.
+  ssum2  ssum=2: as ssum, but a full pair holding a clean (read-promoted, spill_rp_clean) IU re-spills that IU (also
+         I/O-free) before dropping a summary.
+  bp     BASE with map_budget 0.15625 = BASE + the same L/8 B pbm costs, spent on a 50 % larger table instead.
+  pbmp   pbm=1 at map_budget 0.15625: bitmap paid with extra DRAM, table as large as BASE's (isolates the bitmap itself).
+  ns / nspbm   spill=0 (no spill, no read-promotion: eviction folds) without / with pbm=1 at map_budget 0.125.
+
+Checks
+  * Options off are bit-identical: all 8 BASE jobs here equal results/spill_rp/*/rpc1.json (old binary) in every JSON field
+    except "tag" and the new "fragmap" line; re-runs with the final binary (base x3, ssum x2, pbm x1) are identical to the
+    first runs; spill=0 / spill_rp=2 / spill=2 synthetic runs are identical between the old and new binary.
+  * verify() (end of warmup and end of run): pbm bitmap == fragment set of every IU; every summary entry unique, of a
+    spilled IU, d >= 2, bitmap == FTP image == fragment set, count == counter; page entries + spilled pages == fine pool.
+    Plus per-read asserts (pbm bit / summary bit vs the fragment set). All runs pass.
+
+Result (tables below; mr/rd = flash map reads per host read page = chFTP (FTP reads for a chunk page) + frFTP (FTP reads for a
+fragment page) + other (FTP reads of the spills done inside read-promotions); map/h = FTP programs per host write page, in WAF)
+  * pbm cuts the map reads where chunk-page FTP reads dominate (SPFresh 0.119 -> 0.031, -74 %; YCSB -30..-48 %), but costs
+    WAF: SPFresh +2.2 % (map/h 0.476 -> 0.667, +40 %), YCSB-A/B +0.3/+0.5 %, and TPC-C map reads DOUBLE (+113 %). Two causes:
+    (1) the halved table spills more (SPFresh spills/k 57 -> 86, YCSB x2, TPC-C x3); (2) chunk-page reads no longer pay an
+    FTP read, so they no longer read-promote: spilled IUs at the end 41K -> 95K (SPFresh), 15K -> 32K (TPC-C), and spilled
+    IUs are what fine GC must re-point (FTP gc_update programs are 88 % of BASE SPFresh FTP programs: 3.09M of 3.51M;
+    pbm 4.29M). Even pbmp (no table shrink) is +0.39 % WAF / +10 % map/h on SPFresh from (2).
+  * The same L/8 B spent on a bigger table (bp) beats pbm everywhere on WAF (bp vs BASE: SPFresh -1.28 %, others -0.24..+0.11 %) and on map
+    reads everywhere except SPFresh (bp 0.053 vs pbm 0.031; YCSB bp -55..-66 % vs pbm -30..-48 %; TPC-C bp -73 % vs +113 %).
+  * Without spill, the halved table is a disaster: nspbm WAF +12..+75 % vs ns (fold events x1.5-2.3). The bitmap alone
+    only saves DRAM touches (SPFresh 1.63 -> 1.23 per read).
+  * pbm side benefit (DRAM touches, not flash): fragment-set scans look up only set bits, so mapping-DRAM accesses per host
+    write fall 8.84 -> 3.99 on SPFresh (per eviction 275 -> 33) and per host read 5.09 -> 1.69 (BASE charges promotions to
+    the read). Relevant to NVMeVirt CPU time, not to WAF or flash reads.
+  * ssum is WAF-neutral within the usual policy noise (+0.01..+0.10 %; SPFresh +0.68 %) and needs no DRAM, but helps only
+    where the table has room for summaries: YCSB-A/B/F map reads -54/-46/-55 % (summary hit 92-93 %), TPC-C -17 % (hit 99 %,
+    few chunk-page reads to start with), SPFresh only -14 % (hit 24 %: the table is 84 % full of page entries, so 4.1M of
+    6.7M inserted summaries are dropped for room and 2.7M find no slot). ssum2 (clean IUs go before summaries) raises the
+    SPFresh hit rate to 48 %: -21.5 % map reads at +0.92 % WAF; elsewhere = ssum.
+  * ali3, f73, f37 never spill at this budget: all variants with spill on equal BASE (table occupancy <= 29 % even halved).
+  * Verdict at equal DRAM: ssum > pbm. pbm buys SPFresh reads with WAF and loses to a bigger table; ssum is free but its
+    SPFresh gain is small. Porting: pbm no; ssum optional and low priority (SPFresh map reads only -14..-21 %, YCSB gains are
+    on 0.02-0.03 map reads per read, too small to move IOPS); if more mapping DRAM is acceptable, a larger table (bp) is the
+    better use of it.
+  * Jobs: jobs1.txt (base pbm ssum ns nspbm x 8 workloads), jobs2.txt (ssum2 bp pbmp x 5 spilling workloads + *_re
+    re-runs); run.sh, gen.py, summarize.py; ftlsim.bin = ftlsim/ftlsim.cpp with pbm / ssum (both jobs files ran on
+    builds whose pbm / ssum=1 / off paths are identical; ssum=2 was added before jobs2).
+Columns: Table 0 / B: avd/k = spilled-IU reads served without the FTP thanks to the hint, per 1000 host reads (avdF/k: of
+those, the FTP was not in SRAM, i.e. a flash read was saved); spl = fraction of host reads hitting a spilled IU; prom/k =
+read-promotions per 1000 host reads; tbl_cap = cuckoo entries; occ = page entries / capacity at the end; sums = summary entries
+at the end; s_hit = summary found / spilled-IU lookups; dA/rd, dA/wr = mapping-DRAM accesses per host read / write page.
+Table A: per submitted host page: host, fgc = fine-GC copies, fold (+zero-fill), cgc = coarse GC (clean copy + refold),
+rmw, map = FTP programs; ftpW/h from the spill counters; spill/k = spill events per 1000 host pages; folds = fold events.
+dWAF / dmr vs base (ns/nspbm: dWAF vs ns).

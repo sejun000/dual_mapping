@@ -77,8 +77,132 @@
   year      = {2010}
 }
 
-@misc{TODO-qlc-capacity, note = {TODO: 64/128 TiB-class QLC SSD announcements or products}}
-@misc{TODO-dram-cost,   note = {TODO: source for controller DRAM cost/power not scaling with capacity}}
-@misc{TODO-block-size,  note = {TODO: source for erase-block size growth across 3D NAND generations}}
-@misc{TODO-iu,          note = {TODO: 16-64 KiB IUs in high-capacity QLC SSDs. Candidates: Solidigm D5-P5316 (64 KiB IU) / D5-P5336 (16 KiB IU) product briefs;
-  FMS 2024 QLCP-304-1 (Gonzalez) and Samsung LBS talks ("16 KiB IUs are the norm for 64 TB", OCP 2.0 exposes IU via NPWG)}}
+@inproceedings{comap,
+  author    = {Yang Zhou and Fang Wang and Dan Feng},
+  title     = {How to Manage the Mapping Table of Large-Capacity Solid-State Drives},
+  booktitle = {Proceedings of the Design, Automation and Test in Europe Conference (DATE)},
+  year      = {2026},
+  doi       = {10.23919/DATE69613.2026.11539590}
+}
+
+@article{dwf,
+  author  = {Benny Van Houdt},
+  title   = {Performance of Garbage Collection Algorithms for Flash-Based Solid State Drives with Hot/Cold Data},
+  journal = {Performance Evaluation},
+  volume  = {70},
+  number  = {10},
+  pages   = {692--703},
+  year    = {2013}
+}
+
+@article{hotcold,
+  author  = {Benny Van Houdt},
+  title   = {On the Necessity of Hot and Cold Data Identification to Reduce the Write Amplification in Flash-Based {SSDs}},
+  journal = {Performance Evaluation},
+  volume  = {82},
+  pages   = {1--14},
+  year    = {2014}
+}
+
+@inproceedings{sepbit,
+  author    = {Qiuping Wang and Jinhong Li and Patrick P. C. Lee and Tao Ouyang and Chao Shi and Lilong Huang},
+  title     = {Separating Data via Block Invalidation Time Inference for Write Amplification Reduction in Log-Structured Storage},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  year      = {2022}
+}
+
+@inproceedings{rixner,
+  author    = {Scott Rixner and William J. Dally and Ujval J. Kapasi and Peter Mattson and John D. Owens},
+  title     = {Memory Access Scheduling},
+  booktitle = {Proceedings of the 27th International Symposium on Computer Architecture (ISCA)},
+  pages     = {128--138},
+  year      = {2000},
+  doi       = {10.1145/339647.339668}
+}
+
+@article{balanced,
+  author  = {Yossi Azar and Andrei Z. Broder and Anna R. Karlin and Eli Upfal},
+  title   = {Balanced Allocations},
+  journal = {SIAM Journal on Computing},
+  volume  = {29},
+  number  = {1},
+  pages   = {180--200},
+  year    = {1999},
+  doi     = {10.1137/S0097539795288490}
+}
+
+@article{cuckoo,
+  author  = {Rasmus Pagh and Flemming Friche Rodler},
+  title   = {Cuckoo Hashing},
+  journal = {Journal of Algorithms},
+  volume  = {51},
+  number  = {2},
+  pages   = {122--144},
+  year    = {2004},
+  doi     = {10.1016/j.jalgor.2003.12.002}
+}
+
+@inproceedings{hopscotch,
+  author    = {Maurice Herlihy and Nir Shavit and Moran Tzafrir},
+  title     = {Hopscotch Hashing},
+  booktitle = {Proceedings of the International Symposium on Distributed Computing (DISC)},
+  series    = {LNCS},
+  volume    = {5218},
+  pages     = {350--364},
+  year      = {2008},
+  doi       = {10.1007/978-3-540-87779-0_24}
+}
+
+@inproceedings{robinhood,
+  author    = {Pedro Celis and Per-{\AA}ke Larson and J. Ian Munro},
+  title     = {Robin Hood Hashing},
+  booktitle = {Proceedings of the IEEE Symposium on Foundations of Computer Science (FOCS)},
+  pages     = {281--288},
+  year      = {1985},
+  doi       = {10.1109/SFCS.1985.48}
+}
+
+@article{onemove,
+  author  = {Adam Kirsch and Michael Mitzenmacher},
+  title   = {The Power of One Move: Hashing Schemes for Hardware},
+  journal = {IEEE/ACM Transactions on Networking},
+  volume  = {18},
+  number  = {6},
+  pages   = {1752--1765},
+  year    = {2010},
+  doi     = {10.1109/TNET.2010.2047868}
+}
+
+@article{emoma,
+  author  = {Salvatore Pontarelli and Pedro Reviriego and Michael Mitzenmacher},
+  title   = {{EMOMA}: Exact Match in One Memory Access},
+  journal = {IEEE Transactions on Knowledge and Data Engineering},
+  volume  = {30},
+  number  = {11},
+  pages   = {2120--2133},
+  year    = {2018},
+  doi     = {10.1109/TKDE.2018.2818716}
+}
+
+@inproceedings{multistream,
+  author    = {Jeong-Uk Kang and Jeeseok Hyun and Hyunjoo Maeng and Sangyeun Cho},
+  title     = {The Multi-streamed Solid-State Drive},
+  booktitle = {Proceedings of the USENIX Workshop on Hot Topics in Storage and File Systems (HotStorage)},
+  year      = {2014}
+}
+
+@misc{TODO-qlc-capacity, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO}, note = {TODO: 64/128 TB-class QLC SSD announcements or products}}
+@misc{TODO-dram-cost, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO},   note = {TODO: source for controller DRAM cost/power not scaling with capacity}}
+@misc{TODO-block-size, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO},  note = {TODO: source for erase-block size growth across 3D NAND generations}}
+@misc{TODO-iu, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO},          note = {TODO: 16-64 KB IUs in high-capacity QLC SSDs. Candidates: Solidigm D5-P5316 (64 KB IU) / D5-P5336 (16 KB IU) product briefs;
+  FMS 2024 QLCP-304-1 (Gonzalez) and Samsung LBS talks ("16 KB IUs are the norm for 64 TB", OCP 2.0 exposes IU via NPWG)}}
+
+@article{lfs,
+  author    = {Mendel Rosenblum and John K. Ousterhout},
+  title     = {The Design and Implementation of a Log-Structured File System},
+  journal   = {ACM Transactions on Computer Systems},
+  volume    = {10},
+  number    = {1},
+  pages     = {26--52},
+  year      = {1992}
+}

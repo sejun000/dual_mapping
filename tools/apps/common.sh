@@ -26,6 +26,8 @@ policy_params() {
     # (earlier results, e.g. results/apps_aged, used fast without a cap and iurmw at U=16)
     page4k) echo "" ;;
     fast) echo "cache_bytes=B12" ;;
+    # (2026-11-06) FAST with every spare block as a log block (no DRAM cap on the log map; uses more DRAM than B12)
+    fast_full) echo "cache_bytes=1000000000" ;;
     iurmw) echo "U=8" ;;
     proposed) echo "U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500" ;;
     dftl) echo "cache_bytes=B18,dftl_tpbuf=1" ;;
@@ -46,9 +48,39 @@ policy_params() {
     # +r: spill=2 + clean read-promotion (2026-10-19, results/spill_rp): a host read of a spilled IU brings its pointers
     # back into the table and keeps its FTP image valid, so re-evicting it costs no FTP program. Needs the rebuilt module.
     proposed_b12r) echo "U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    # +q18: proposed_b12r with the base-mode fine quota raised to the uniform-mode cap (18 of 373 blocks = all spare OP
+    # minus GC reserve and open frontiers), so the fine cap has no tuned constant (2026-10-29, sim: results/quota18).
+    proposed_b12q) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    # valid-bitmap budget (2026-10-30, results/nvmevirt/q_vbm.sh): every FTL gets IU+RMW(32K)'s total DRAM = its map (B12) + one
+    # valid bit per physical 32 KiB IU, and pays its own GC valid info out of it (44G app device: total 5579612 B):
+    #   per-page bitmap (DFTL, LeaFTL) 1444256 B, and their GTD (42180 / 168724 B, outside cache_bytes) also comes out of it;
+    #   uFTL keeps its own flash-resident invalid bitmap (32 KiB cache + 1 B/block, outside cache_bytes); DUET one bit per chunk
+    #   + per page in 18 fine blocks 159962 B (map_budget_ppm 125476); FAST none (block position + log map; same log-block count
+    #   as B12, not rerun); CoMap per page in its NB-NLB-T=23 non-data blocks 89056 B (its GTD is inside cache_bytes)
+    proposed_vb)  echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    # ablation (2026-11-06, ~/nvmevirt_proposedab, results/nvmevirt/q_ablation.sh): cumulative removals from proposed_vb
+    proposedab_ns)   echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0" ;;     # - spill (table overflow -> merge)
+    proposedab_nsm)  echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0,fold_all=1" ;;    # - spill - merge cost model (fine GC always merges), GC choice kept
+    proposedab_nsf)  echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=0,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0" ;;    # - spill - GC choice by valid count (fine area always at its cap)
+    proposedab_nsfm) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=0,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0,fold_all=1" ;;   # - spill - GC choice - merge cost model (fine GC always merges)
+    # stats build (2026-11-06, ~/nvmevirt_proposedst): proposed_vb + fine-area counters on every [dm ...] line
+    proposedst_vb) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    # ablation (2026-11-06, results/nvmevirt/q_greedy.sh): proposed_vb with a greedy coarse-GC victim (fewest valid)
+    proposed_vbg) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=0,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_vb_cc2) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;   # before 10/30: age-class GC copies, shared fine frontier in uniform mode
+    dftl_vb)      echo "cache_bytes=4093176,dftl_tpbuf=1" ;;
+    leaftl_vb)    echo "cache_bytes=3966632,leaftl_batch=128" ;;
+    mu_vb)        echo "cache_bytes=4102215" ;;
+    fast_vb)      echo "cache_bytes=5579612" ;;
+    comap_vb)     echo "cache_bytes=5490556,comap_logfrac_ppm=900000" ;;
+    # ablation (2026-10-30): proposed_b12q + standard cuckoo displacement (BFS, <= 500 buckets) before a spill
+    proposed_b12qk) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1,ct_kick=500" ;;
     proposed_f)    echo "U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500,onefront_fix=1,pool_cap=4" ;;
     leaftl_b12)   echo "cache_bytes=B12,leaftl_batch=128" ;;   # sort batch 512 KiB; staged pages hold write-buffer space until programmed (glue dm_pend)
     mu_b12)       echo "cache_bytes=B12" ;;
+    # CoMap (DATE'26) baseline, ~/nvmevirt_comap (2026-10-29): cache_bytes = its whole mapping DRAM (block map + bitmap + GTD +
+    # FAST log map + DFTL CMT, see dm/NOTES_comap.md); exposes whole logical blocks only (L - L % P), like FAST
+    comap)        echo "cache_bytes=B12,comap_logfrac_ppm=900000" ;;
     dftl_b10)     echo "cache_bytes=B10,dftl_tpbuf=1" ;;
     dftl_b25)     echo "cache_bytes=B25,dftl_tpbuf=1" ;;
     leaftl_b10)   echo "cache_bytes=B10" ;;

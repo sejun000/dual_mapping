@@ -1,0 +1,12 @@
+[cfg] cuckoo2 fine table: 92029 buckets x 4 = 368116 entries (2.81 MiB), budget 0.1250 of page map
+[cfg] pbm: per-page fragment bitmap 2.809 MiB taken from the table
+[cfg] mode=proposed L=23559648 pages (89.9 GB) NP=25208832 NB=373 P=67584 U=16 OP=0.070 fine_quota=16 blocks (extra=0) T=2 zipf=0.00
+[phase] seq fill
+[phase] aging 1.00x
+[verify] pbm ok
+[verify] ok. fine_valid_pages=90632 fine_blocks=2 coarse_blocks=369 free=2
+[verify] block valid histogram (deciles 0..100%): 0 1 0 0 2 0 0 0 37 331 0
+[phase] reset stats, measure 1.00x
+[verify] pbm ok
+[verify] ok. fine_valid_pages=107925 fine_blocks=2 coarse_blocks=369 free=2
+[verify] block valid histogram (deciles 0..100%): 0 0 0 1 0 0 1 0 47 322 0

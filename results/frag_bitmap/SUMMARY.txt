@@ -1,0 +1,220 @@
+FRAGMENT-LOCATION HINTS FOR SPILLED IUs (2026-10-28) -- ftlsim pbm=1 / ssum=1 vs BASE
+BASE = results/coarse_gc/base_params.txt + spill_rp=1 spill_rp_clean=1 (spill=2, dram_stats=1, map_budget 0.125; = results/spill_rp rpc1)
+
+Variants (ftlsim options, default off; see Cfg::pbm / Cfg::ssum in ftlsim/ftlsim.cpp):
+  pbm    pbm=1: per-page fragment bitmap in DRAM (1 bit per 4 KiB page, L/8 B charged to map_budget like the GTD -> the
+         cuckoo table shrinks from 0.246 L to 0.121 L bytes, i.e. ~half the entries). Read: bit 0 -> chunk, no table
+         lookup, no FTP read even if spilled; bit 1 + resident -> table lookup; bit 1 + spilled -> FTP read + read-promotion.
+  ssum   ssum=1: a spilled IU with d >= 2 keeps one 8 B summary entry {SUMTAG|IU, 16-bit bitmap} in the cuckoo table (net
+         d-1 slots freed; d == 1 spills without one). Read of a spilled IU: summary lookup (1-2 buckets); bit 0 -> chunk, no
+         FTP read; bit 1 or no summary -> FTP read + promotion as today. Summaries never evict anything: inserted into a free
+         slot of their bucket pair (else replacing another summary there, else skipped), never into the pair currently being
+         made room for; a full pair drops a summary first (no flash I/O) before evicting/spilling a page-entry IU. Dropped on
+         un-spill / read-promotion, fold / refold / overwrite (fine_release). Non-spilled reads unchanged.
+  ssum2  ssum=2: as ssum, but a full pair holding a clean (read-promoted, spill_rp_clean) IU re-spills that IU (also
+         I/O-free) before dropping a summary.
+  bp     BASE with map_budget 0.15625 = BASE + the same L/8 B pbm costs, spent on a 50 % larger table instead.
+  pbmp   pbm=1 at map_budget 0.15625: bitmap paid with extra DRAM, table as large as BASE's (isolates the bitmap itself).
+  ns / nspbm   spill=0 (no spill, no read-promotion: eviction folds) without / with pbm=1 at map_budget 0.125.
+
+Checks
+  * Options off are bit-identical: all 8 BASE jobs here equal results/spill_rp/*/rpc1.json (old binary) in every JSON field
+    except "tag" and the new "fragmap" line; re-runs with the final binary (base x3, ssum x2, pbm x1) are identical to the
+    first runs; spill=0 / spill_rp=2 / spill=2 synthetic runs are identical between the old and new binary.
+  * verify() (end of warmup and end of run): pbm bitmap == fragment set of every IU; every summary entry unique, of a
+    spilled IU, d >= 2, bitmap == FTP image == fragment set, count == counter; page entries + spilled pages == fine pool.
+    Plus per-read asserts (pbm bit / summary bit vs the fragment set). All runs pass.
+
+Result (tables below; mr/rd = flash map reads per host read page = chFTP (FTP reads for a chunk page) + frFTP (FTP reads for a
+fragment page) + other (FTP reads of the spills done inside read-promotions); map/h = FTP programs per host write page, in WAF)
+  * pbm cuts the map reads where chunk-page FTP reads dominate (SPFresh 0.119 -> 0.031, -74 %; YCSB -30..-48 %), but costs
+    WAF: SPFresh +2.2 % (map/h 0.476 -> 0.667, +40 %), YCSB-A/B +0.3/+0.5 %, and TPC-C map reads DOUBLE (+113 %). Two causes:
+    (1) the halved table spills more (SPFresh spills/k 57 -> 86, YCSB x2, TPC-C x3); (2) chunk-page reads no longer pay an
+    FTP read, so they no longer read-promote: spilled IUs at the end 41K -> 95K (SPFresh), 15K -> 32K (TPC-C), and spilled
+    IUs are what fine GC must re-point (FTP gc_update programs are 88 % of BASE SPFresh FTP programs: 3.09M of 3.51M;
+    pbm 4.29M). Even pbmp (no table shrink) is +0.39 % WAF / +10 % map/h on SPFresh from (2).
+  * The same L/8 B spent on a bigger table (bp) beats pbm everywhere on WAF (bp vs BASE: SPFresh -1.28 %, others -0.24..+0.11 %) and on map
+    reads everywhere except SPFresh (bp 0.053 vs pbm 0.031; YCSB bp -55..-66 % vs pbm -30..-48 %; TPC-C bp -73 % vs +113 %).
+  * Without spill, the halved table is a disaster: nspbm WAF +12..+75 % vs ns (fold events x1.5-2.3). The bitmap alone
+    only saves DRAM touches (SPFresh 1.63 -> 1.23 per read).
+  * pbm side benefit (DRAM touches, not flash): fragment-set scans look up only set bits, so mapping-DRAM accesses per host
+    write fall 8.84 -> 3.99 on SPFresh (per eviction 275 -> 33) and per host read 5.09 -> 1.69 (BASE charges promotions to
+    the read). Relevant to NVMeVirt CPU time, not to WAF or flash reads.
+  * ssum is WAF-neutral within the usual policy noise (+0.01..+0.10 %; SPFresh +0.68 %) and needs no DRAM, but helps only
+    where the table has room for summaries: YCSB-A/B/F map reads -54/-46/-55 % (summary hit 92-93 %), TPC-C -17 % (hit 99 %,
+    few chunk-page reads to start with), SPFresh only -14 % (hit 24 %: the table is 84 % full of page entries, so 4.1M of
+    6.7M inserted summaries are dropped for room and 2.7M find no slot). ssum2 (clean IUs go before summaries) raises the
+    SPFresh hit rate to 48 %: -21.5 % map reads at +0.92 % WAF; elsewhere = ssum.
+  * ali3, f73, f37 never spill at this budget: all variants with spill on equal BASE (table occupancy <= 29 % even halved).
+  * Verdict at equal DRAM: ssum > pbm. pbm buys SPFresh reads with WAF and loses to a bigger table; ssum is free but its
+    SPFresh gain is small. Porting: pbm no; ssum optional and low priority (SPFresh map reads only -14..-21 %, YCSB gains are
+    on 0.02-0.03 map reads per read, too small to move IOPS); if more mapping DRAM is acceptable, a larger table (bp) is the
+    better use of it.
+  * Jobs: jobs1.txt (base pbm ssum ns nspbm x 8 workloads), jobs2.txt (ssum2 bp pbmp x 5 spilling workloads + *_re
+    re-runs); run.sh, gen.py, summarize.py; ftlsim.bin = ftlsim/ftlsim.cpp with pbm / ssum (both jobs files ran on
+    builds whose pbm / ssum=1 / off paths are identical; ssum=2 was added before jobs2).
+Columns: Table 0 / B: avd/k = spilled-IU reads served without the FTP thanks to the hint, per 1000 host reads (avdF/k: of
+those, the FTP was not in SRAM, i.e. a flash read was saved); spl = fraction of host reads hitting a spilled IU; prom/k =
+read-promotions per 1000 host reads; tbl_cap = cuckoo entries; occ = page entries / capacity at the end; sums = summary entries
+at the end; s_hit = summary found / spilled-IU lookups; dA/rd, dA/wr = mapping-DRAM accesses per host read / write page.
+Table A: per submitted host page: host, fgc = fine-GC copies, fold (+zero-fill), cgc = coarse GC (clean copy + refold),
+rmw, map = FTP programs; ftpW/h from the spill counters; spill/k = spill events per 1000 host pages; folds = fold events.
+dWAF / dmr vs base (ns/nspbm: dWAF vs ns).
+
+Table 0 (compact): BASE vs pbm=1 vs ssum=1 at the same 12.5 % mapping-DRAM budget
+workload        var        WAF    dWAF   map/h   mr/rd     dmr   chFTP   frFTP  avd/k  sp_end  tbl_cap   occ   sums
+spfresh         base    14.043  +0.00%  0.4757  0.1190   +0.0%  0.0996  0.0179    0.0   41159   161964 0.837      0
+spfresh         pbm     14.355  +2.22%  0.6668  0.0312  -73.8%  0.0000  0.0297  287.8   94823    79696 0.783      0
+spfresh         ssum    14.138  +0.68%  0.4964  0.1023  -14.0%  0.0822  0.0187   24.7   52402   161964 0.837   9773
+ycsba_d_t64     base     6.729  +0.00%  0.0232  0.0238   +0.0%  0.0174  0.0062    0.0   49471   332168 0.509      0
+ycsba_d_t64     pbm      6.751  +0.33%  0.0402  0.0125  -47.7%  0.0000  0.0119   87.0   56400   163448 0.525      0
+ycsba_d_t64     ssum     6.736  +0.10%  0.0256  0.0109  -54.2%  0.0031  0.0076   41.0   49042   332168 0.454  39517
+ycsbb_d_t64     base     6.372  +0.00%  0.0271  0.0300   +0.0%  0.0212  0.0084    0.0   44715   332168 0.591      0
+ycsbb_d_t64     pbm      6.401  +0.46%  0.0563  0.0210  -30.0%  0.0000  0.0200  148.5   76692   163448 0.634      0
+ycsbb_d_t64     ssum     6.378  +0.09%  0.0326  0.0162  -46.2%  0.0042  0.0117   65.9   49813   332168 0.553  35563
+ycsbfstd_d_t64  base     6.815  +0.00%  0.0215  0.0218   +0.0%  0.0160  0.0056    0.0   47658   332168 0.484      0
+ycsbfstd_d_t64  pbm      6.808  -0.09%  0.0369  0.0113  -48.2%  0.0000  0.0108   82.2   51047   163448 0.539      0
+ycsbfstd_d_t64  ssum     6.821  +0.10%  0.0232  0.0097  -55.3%  0.0027  0.0069   38.3   46495   332168 0.495  37236
+tpcc_d_t64      base     2.762  +0.00%  0.0032  0.0048   +0.0%  0.0018  0.0030    0.0   14756   332168 0.535      0
+tpcc_d_t64      pbm      2.767  +0.16%  0.0076  0.0103 +112.8%  0.0000  0.0100   33.0   32302   163448 0.580      0
+tpcc_d_t64      ssum     2.763  +0.01%  0.0035  0.0040  -17.4%  0.0001  0.0039   12.2   15465   332168 0.524  15046
+ali3            base     3.358  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   447468 0.087      0
+ali3            pbm      3.358  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   220180 0.176      0
+ali3            ssum     3.358  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   447468 0.087      0
+f73             base    12.433  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   724732 0.140      0
+f73             pbm     12.433  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   356612 0.284      0
+f73             ssum    12.433  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   724732 0.140      0
+f37             base    11.772  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   724732 0.079      0
+f37             pbm     11.772  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   356612 0.160      0
+f37             ssum    11.772  +0.00%  0.0000  0.0000       -  0.0000  0.0000    0.0       0   724732 0.079      0
+
+Table A: WAF and its breakdown (programs per submitted host page; WAF counts FTP programs as prog map)
+workload        var        WAF    dWAF   host    fgc   fold    cgc    rmw     map  ftpW/h spill/k     folds  sp_end
+spfresh         base    14.043  +0.00%  1.000  1.706  0.283 10.574  0.004  0.4757  0.4757   56.82    130754   41159
+spfresh         pbm     14.355  +2.22%  1.000  1.615  0.261 10.810  0.002  0.6668  0.6668   86.34    120473   94823
+spfresh         ssum    14.138  +0.68%  1.000  1.781  0.296 10.564  0.001  0.4964  0.4964   56.09    136541   52402
+spfresh         ssum2   14.172  +0.92%  1.000  1.674  0.285 10.709  0.001  0.5030  0.5030   49.94    131342   40958
+spfresh         bp      13.863  -1.28%  1.000  1.838  0.309 10.442  0.002  0.2725  0.2725   33.74    142357   26409
+spfresh         pbmp    14.097  +0.39%  1.000  1.792  0.290 10.488  0.004  0.5237  0.5238   42.76    133673   68578
+spfresh         ns      20.575  +0.00%  1.000  1.896  1.762 15.916  0.002  0.0000  0.0000    0.00    813063       0
+spfresh         nspbm   35.960 +74.77%  1.000  6.559  3.685 24.714  0.002  0.0000  0.0000    0.00   1700154       0
+
+ycsba_d_t64     base     6.729  +0.00%  0.814  0.519  0.096  5.275  0.002  0.0232  0.0232    2.93    866790   49471
+ycsba_d_t64     pbm      6.751  +0.33%  0.814  0.515  0.096  5.284  0.002  0.0402  0.0402    6.23    862865   56400
+ycsba_d_t64     ssum     6.736  +0.10%  0.814  0.522  0.095  5.277  0.002  0.0256  0.0256    3.06    860509   49042
+ycsba_d_t64     ssum2    6.719  -0.15%  0.814  0.516  0.095  5.266  0.002  0.0254  0.0254    3.01    858966   48737
+ycsba_d_t64     bp       6.737  +0.11%  0.814  0.517  0.096  5.295  0.002  0.0127  0.0127    1.30    862102   36316
+ycsba_d_t64     pbmp     6.739  +0.14%  0.814  0.520  0.096  5.283  0.002  0.0239  0.0238    2.73    864749   46766
+ycsba_d_t64     ns       8.167  +0.00%  0.814  0.693  0.376  6.274  0.012  0.0000  0.0000    0.00   3385698       0
+ycsba_d_t64     nspbm    9.508 +16.42%  0.814  0.929  0.701  7.033  0.031  0.0000  0.0000    0.00   6322458       0
+
+ycsbb_d_t64     base     6.372  +0.00%  0.811  0.496  0.076  4.959  0.001  0.0271  0.0271    5.03    297404   44715
+ycsbb_d_t64     pbm      6.401  +0.46%  0.811  0.496  0.076  4.959  0.001  0.0563  0.0563    9.99    297404   76692
+ycsbb_d_t64     ssum     6.378  +0.09%  0.811  0.496  0.076  4.959  0.001  0.0326  0.0326    4.75    297404   49813
+ycsbb_d_t64     ssum2    6.379  +0.11%  0.811  0.496  0.076  4.959  0.001  0.0339  0.0339    4.58    297404   50189
+ycsbb_d_t64     bp       6.356  -0.24%  0.811  0.496  0.076  4.959  0.001  0.0115  0.0115    1.77    297404   27325
+ycsbb_d_t64     pbmp     6.376  +0.07%  0.811  0.496  0.076  4.959  0.001  0.0314  0.0314    4.18    297404   48059
+ycsbb_d_t64     ns       7.394  +0.00%  0.811  0.602  0.351  5.625  0.004  0.0000  0.0000    0.00   1365208       0
+ycsbb_d_t64     nspbm    9.752 +31.89%  0.811  0.826  0.800  7.293  0.021  0.0000  0.0000    0.00   3110941       0
+
+ycsbfstd_d_t64  base     6.815  +0.00%  0.814  0.493  0.085  5.398  0.002  0.0215  0.0215    2.76    748979   47658
+ycsbfstd_d_t64  pbm      6.808  -0.09%  0.814  0.486  0.085  5.384  0.002  0.0369  0.0369    5.86    750412   51047
+ycsbfstd_d_t64  ssum     6.821  +0.10%  0.814  0.488  0.085  5.409  0.002  0.0232  0.0232    2.87    746885   46495
+ycsbfstd_d_t64  ssum2    6.805  -0.14%  0.814  0.492  0.085  5.388  0.002  0.0236  0.0236    2.85    743007   45745
+ycsbfstd_d_t64  bp       6.806  -0.12%  0.814  0.494  0.086  5.399  0.002  0.0118  0.0118    1.24    753735   34068
+ycsbfstd_d_t64  pbmp     6.799  -0.23%  0.814  0.485  0.086  5.391  0.002  0.0213  0.0213    2.55    753447   38337
+ycsbfstd_d_t64  ns       8.123  +0.00%  0.814  0.712  0.376  6.209  0.012  0.0000  0.0000    0.00   3300968       0
+ycsbfstd_d_t64  nspbm    9.486 +16.79%  0.814  0.926  0.686  7.028  0.032  0.0000  0.0000    0.00   6031878       0
+
+tpcc_d_t64      base     2.762  +0.00%  0.598  0.181  0.107  1.862  0.011  0.0032  0.0032    0.56    255429   14756
+tpcc_d_t64      pbm      2.767  +0.16%  0.598  0.181  0.107  1.862  0.011  0.0076  0.0076    1.61    255429   32302
+tpcc_d_t64      ssum     2.763  +0.01%  0.598  0.181  0.107  1.862  0.011  0.0035  0.0036    0.59    255429   15465
+tpcc_d_t64      ssum2    2.763  +0.01%  0.598  0.181  0.107  1.862  0.011  0.0036  0.0036    0.60    255429   15885
+tpcc_d_t64      bp       2.760  -0.08%  0.598  0.181  0.107  1.862  0.011  0.0009  0.0009    0.16    255429    1097
+tpcc_d_t64      pbmp     2.763  +0.00%  0.598  0.181  0.107  1.862  0.011  0.0033  0.0034    0.56    255429   14610
+tpcc_d_t64      ns       2.907  +0.00%  0.598  0.223  0.120  1.951  0.014  0.0000  0.0000    0.00    285655       0
+tpcc_d_t64      nspbm    3.272 +12.53%  0.598  0.261  0.181  2.203  0.029  0.0000  0.0000    0.00    431369       0
+
+ali3            base     3.358  +0.00%  0.843  0.055  0.018  2.441  0.000  0.0000  0.0000    0.00     26172       0
+ali3            pbm      3.358  +0.00%  0.843  0.055  0.018  2.441  0.000  0.0000  0.0000    0.00     26172       0
+ali3            ssum     3.358  +0.00%  0.843  0.055  0.018  2.441  0.000  0.0000  0.0000    0.00     26172       0
+ali3            ns       3.358  +0.00%  0.843  0.055  0.018  2.441  0.000  0.0000  0.0000    0.00     26172       0
+ali3            nspbm    3.306  -1.53%  0.843  0.052  0.019  2.393  0.000  0.0000  0.0000    0.00     27481       0
+
+f73             base    12.433  +0.00%  1.000  0.402  0.293 10.603  0.135  0.0000  0.0000    0.00    430799       0
+f73             pbm     12.433  +0.00%  1.000  0.402  0.293 10.603  0.135  0.0000  0.0000    0.00    430799       0
+f73             ssum    12.433  +0.00%  1.000  0.402  0.293 10.603  0.135  0.0000  0.0000    0.00    430799       0
+f73             ns      12.433  +0.00%  1.000  0.402  0.292 10.603  0.136  0.0000  0.0000    0.00    429267       0
+f73             nspbm   12.385  -0.38%  1.000  0.394  0.290 10.565  0.136  0.0000  0.0000    0.00    426974       0
+
+f37             base    11.772  +0.00%  1.000  0.082  0.178 10.316  0.196  0.0000  0.0000    0.00    262359       0
+f37             pbm     11.772  +0.00%  1.000  0.082  0.178 10.316  0.196  0.0000  0.0000    0.00    262359       0
+f37             ssum    11.772  +0.00%  1.000  0.082  0.178 10.316  0.196  0.0000  0.0000    0.00    262359       0
+f37             ns      11.804  +0.00%  1.000  0.078  0.179 10.348  0.198  0.0000  0.0000    0.00    263747       0
+f37             nspbm   11.727  -0.65%  1.000  0.082  0.177 10.271  0.197  0.0000  0.0000    0.00    261349       0
+
+Table B: host-read map traffic and table state (per host read page unless noted)
+workload        var      mr/rd      dmr   chFTP   frFTP   other    spl   avd/k  avdF/k  prom/k  tbl_cap    occ   sums  s_hit  dA/rd  dA/wr
+spfresh         base    0.1190    +0.0%  0.0996  0.0179  0.0015  0.118     0.0     0.0   117.8   161964  0.837      0  0.000   5.09   8.84
+spfresh         pbm     0.0312   -73.8%  0.0000  0.0297  0.0015  0.318   287.8   287.8    29.7    79696  0.783      0  0.000   1.69   3.99
+spfresh         ssum    0.1023   -14.0%  0.0822  0.0187  0.0014  0.126    24.7    24.7   101.1   161964  0.837   9773  0.238   4.82   9.59
+spfresh         ssum2   0.0934   -21.5%  0.0706  0.0215  0.0012  0.154    61.7    61.6    92.4   161964  0.747  18189  0.481   4.54  10.50
+spfresh         bp      0.0533   -55.2%  0.0450  0.0077  0.0005  0.053     0.0     0.0    52.9   244236  0.770      0  0.000   2.92   5.29
+spfresh         pbmp    0.0168   -85.8%  0.0000  0.0163  0.0005  0.216   199.9   199.9    16.3   161964  0.640      0  0.000   1.59   3.19
+spfresh         ns      0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   164536  0.748      0  0.000   1.63   2.63
+spfresh         nspbm   0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0    82268  0.828      0  0.000   1.23   2.63
+
+ycsba_d_t64     base    0.0238    +0.0%  0.0174  0.0062  0.0003  0.024     0.0     0.0    24.1   332168  0.509      0  0.000   1.86   2.23
+ycsba_d_t64     pbm     0.0125   -47.7%  0.0000  0.0119  0.0006  0.099    87.0    85.2    12.2   163448  0.525      0  0.000   1.42   1.69
+ycsba_d_t64     ssum    0.0109   -54.2%  0.0031  0.0076  0.0002  0.052    41.0    40.1    10.9   332168  0.454  39517  0.920   1.72   2.38
+ycsba_d_t64     ssum2   0.0107   -55.1%  0.0028  0.0077  0.0002  0.053    41.8    40.8    10.7   332168  0.478  40050  0.928   1.72   2.39
+ycsba_d_t64     bp      0.0107   -55.1%  0.0075  0.0032  0.0000  0.011     0.0     0.0    11.0   500888  0.499      0  0.000   1.58   1.96
+ycsba_d_t64     pbmp    0.0074   -69.0%  0.0000  0.0073  0.0001  0.052    44.4    43.4     7.5   332168  0.489      0  0.000   1.36   1.54
+ycsba_d_t64     ns      0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   337440  0.675      0  0.000   1.36   1.82
+ycsba_d_t64     nspbm   0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   168720  0.700      0  0.000   1.16   1.39
+
+ycsbb_d_t64     base    0.0300    +0.0%  0.0212  0.0084  0.0004  0.031     0.0     0.0    30.7   332168  0.591      0  0.000   2.30   2.66
+ycsbb_d_t64     pbm     0.0210   -30.0%  0.0000  0.0200  0.0010  0.170   148.5   144.9    21.0   163448  0.634      0  0.000   1.70   2.20
+ycsbb_d_t64     ssum    0.0162   -46.2%  0.0042  0.0117  0.0003  0.082    65.9    63.8    16.6   332168  0.553  35563  0.933   2.09   2.83
+ycsbb_d_t64     ssum2   0.0155   -48.4%  0.0028  0.0124  0.0003  0.090    73.7    71.4    15.9   332168  0.549  39347  0.959   2.10   2.90
+ycsbb_d_t64     bp      0.0103   -65.7%  0.0067  0.0036  0.0000  0.011     0.0     0.0    10.8   500888  0.535      0  0.000   1.80   2.10
+ycsbb_d_t64     pbmp    0.0117   -61.0%  0.0000  0.0115  0.0002  0.087    74.6    72.4    12.2   332168  0.576      0  0.000   1.58   1.84
+ycsbb_d_t64     ns      0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   337440  0.669      0  0.000   1.53   1.93
+ycsbb_d_t64     nspbm   0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   168720  0.750      0  0.000   1.23   1.52
+
+ycsbfstd_d_t64  base    0.0218    +0.0%  0.0160  0.0056  0.0003  0.022     0.0     0.0    22.1   332168  0.484      0  0.000   1.81   2.18
+ycsbfstd_d_t64  pbm     0.0113   -48.2%  0.0000  0.0108  0.0005  0.093    82.2    80.6    11.1   163448  0.539      0  0.000   1.40   1.67
+ycsbfstd_d_t64  ssum    0.0097   -55.3%  0.0027  0.0069  0.0002  0.048    38.3    37.4     9.8   332168  0.495  37236  0.925   1.67   2.32
+ycsbfstd_d_t64  ssum2   0.0096   -55.8%  0.0025  0.0070  0.0002  0.049    39.2    38.3     9.7   332168  0.479  37339  0.932   1.68   2.33
+ycsbfstd_d_t64  bp      0.0097   -55.5%  0.0068  0.0029  0.0000  0.010     0.0     0.0    10.0   500888  0.456      0  0.000   1.55   1.94
+ycsbfstd_d_t64  pbmp    0.0066   -69.7%  0.0000  0.0065  0.0001  0.047    40.8    39.9     6.7   332168  0.504      0  0.000   1.34   1.52
+ycsbfstd_d_t64  ns      0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   337440  0.672      0  0.000   1.35   1.81
+ycsbfstd_d_t64  nspbm   0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   168720  0.718      0  0.000   1.15   1.38
+
+tpcc_d_t64      base    0.0048    +0.0%  0.0018  0.0030  0.0000  0.007     0.0     0.0     6.8   332168  0.535      0  0.000   1.59   1.41
+tpcc_d_t64      pbm     0.0103  +112.8%  0.0000  0.0100  0.0003  0.046    33.0    24.6    12.8   163448  0.580      0  0.000   1.64   1.31
+tpcc_d_t64      ssum    0.0040   -17.4%  0.0001  0.0039  0.0000  0.018    12.2     8.1     5.5   332168  0.524  15046  0.987   1.59   1.44
+tpcc_d_t64      ssum2   0.0041   -14.9%  0.0001  0.0040  0.0000  0.018    12.7     8.3     5.7   332168  0.525  15456  0.990   1.60   1.44
+tpcc_d_t64      bp      0.0013   -72.9%  0.0004  0.0009  0.0000  0.002     0.0     0.0     2.1   500888  0.484      0  0.000   1.47   1.33
+tpcc_d_t64      pbmp    0.0037   -23.4%  0.0000  0.0037  0.0000  0.017    12.2     8.0     5.2   332168  0.534      0  0.000   1.47   1.12
+tpcc_d_t64      ns      0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   337440  0.615      0  0.000   1.41   1.30
+tpcc_d_t64      nspbm   0.0000  -100.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   168720  0.654      0  0.000   1.27   0.97
+
+ali3            base    0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   447468  0.087      0  0.000   1.00   0.49
+ali3            pbm     0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   220180  0.176      0  0.000   1.00   0.60
+ali3            ssum    0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   447468  0.087      0  0.000   1.00   0.49
+ali3            ns      0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   454568  0.085      0  0.000   1.00   0.48
+ali3            nspbm   0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   227284  0.123      0  0.000   1.00   0.60
+
+f73             base    0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   724732  0.140      0  0.000   1.10   0.64
+f73             pbm     0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   356612  0.284      0  0.000   1.06   0.53
+f73             ssum    0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   724732  0.140      0  0.000   1.10   0.64
+f73             ns      0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   736236  0.148      0  0.000   1.10   0.64
+f73             nspbm   0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   368116  0.293      0  0.000   1.06   0.54
+
+f37             base    0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   724732  0.079      0  0.000   1.03   0.39
+f37             pbm     0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   356612  0.160      0  0.000   1.02   0.33
+f37             ssum    0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   724732  0.079      0  0.000   1.03   0.39
+f37             ns      0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   736236  0.056      0  0.000   1.03   0.39
+f37             nspbm   0.0000    +0.0%  0.0000  0.0000  0.0000  0.000     0.0     0.0     0.0   368116  0.146      0  0.000   1.02   0.33
+

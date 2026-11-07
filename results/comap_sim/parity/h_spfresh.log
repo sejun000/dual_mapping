@@ -1,0 +1,28 @@
+dm_ftl: comap: Lc=5256192 (of 5265216) NB=373 NLB=348 P=15104 T=2 | DRAM 2632608 B: block map 1392 + bitmap 657024 + GTD 20532, log 5 blocks (SW + 4 RW) 863090, CMT 95424 entries 1090570 | page area <= 18 blocks | period 4096 learn 1 tpbuf 1
+[cfg] policy=comap L=5265216 NB=373 P=15104 U=16 T=2 wbuf=1048576 params="cache_bytes=2632608"
+[trace] 14765438 write pages (2.80x device), warmup 50%
+[verify] ok (warmup)
+[verify] ok (end)
+	Command being timed: "/home/sejun000/nvmevirt_comap/dm/harness/replay_comap trace=/mnt/nvme_mounted/dm_trace_sampled/spfresh.csv capacity=21566324736 P=15104 op=0.070002161355 reads=1 params=cache_bytes=2632608"
+	User time (seconds): 177.16
+	System time (seconds): 3.40
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:01.12
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 69120
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 17287
+	Voluntary context switches: 7950
+	Involuntary context switches: 210
+	Swaps: 0
+	File system inputs: 14641784
+	File system outputs: 40
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

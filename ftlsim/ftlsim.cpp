@@ -3,7 +3,7 @@
 //   fold = fragments (+chunk) -> new chunk; refold = fold done for free inside coarse GC; unfold = chunk -> fragments (hot IU).
 //   Policy view: fine tier is a hot-IU cache; unfold = promote, fold = demote.
 // Modes: proposed (IU coarse map + 4K fine tier), page4k, iu_rmw (IU map + RMW), dftl (cached page map),
-//        fast, last (log-block hybrids), mu (mu-FTL extent mapping)
+//        fast, last (log-block hybrids), mu (mu-FTL extent mapping), comap (RL-chosen DFTL / FAST per write request)
 // See SPEC.md.
 #include <algorithm>
 #include <cassert>
@@ -16,6 +16,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <list>
+#include <deque>
 #include <map>
 #include <cmath>
 #include <vector>
@@ -146,6 +147,8 @@ struct Cfg {
                                   //     FTP; table entries freed; coarse-entry "spilled" bit set) instead of folding it;
                                   //     2 = as 1, and the same FTP program also spills every other table-resident IU of that FTP
     int spill_ipf = 0;            // IUs per FTP (0 = 4096 / (U x 4 B) = 64 at U = 16): dense, fixed-location FTPs, GTD = 4 B per FTP
+    int ct_kick = 0;              // cuckoo2: > 0 = before evicting (spill / fold) for a full bucket pair, a BFS cuckoo search
+                                  //     (MemC3) over at most ct_kick buckets for a displacement path that frees a slot (Sim::ct_kick)
     int age_sep = 0;              // coarse GC / fold outputs placed by chunk age (now - last host write of the IU, as carried in
                                   //     the chunk's OOB): N >= 2 classes, class k for age >= age_base x 4^(k-1); class 0 -> the GC
                                   //     frontier, class k -> its own frontier. Replaces the coarse_class cascade, also in uniform mode
@@ -195,6 +198,30 @@ struct Cfg {
                                   //     (host fine write, fold / refold / overwrite, fine-GC copy) makes it dirty (ordinary table IU).
                                   //     Eviction candidates that will be spilled prefer clean IUs (then the usual most-fragments /
                                   //     coldest rule); pool_cap folds keep the usual rule. Needs evict_pol=0.
+    // ---- fragment-location hints for host reads (default off; see Sim::read_lookup). Exclusive.
+    int pbm = 0;                  // cuckoo2: per-page fragment bitmap in DRAM, one bit per 4 KiB logical page (U bits per IU,
+                                  //     L/8 B charged to map_budget like the GTD, so the table shrinks). Bit 0 -> the page is read
+                                  //     from the chunk with no table lookup and no FTP read even if the IU is spilled; bit 1 ->
+                                  //     table lookup (resident IU) or FTP read (spilled IU, read-promotion as usual).
+    int ssum = 0;                 // spill: 1 = a spilled IU with d >= 2 fragments keeps ONE 8 B summary entry {IU id, U-bit fragment
+                                  //     bitmap, summary tag} in the cuckoo table (net d - 1 slots freed; d == 1 spills without
+                                  //     one). A host read of a spilled IU looks the summary up (1-2 buckets): bit 0 -> chunk read,
+                                  //     no FTP read; bit 1 or no summary -> FTP read as before. Summaries never evict anything:
+                                  //     inserted only into a bucket with a free slot (else replacing another summary, else
+                                  //     skipped), and dropped first whenever a bucket pair needs room (no flash I/O); dropped on
+                                  //     un-spill / promotion, fold / refold / overwrite of the IU. 2 = as 1, but a full pair
+                                  //     holding a clean IU (spill_rp_clean) re-spills that IU (also I/O-free) before a summary.
+    // ---- FAST under a mapping-DRAM budget (default off = every spare block is a log block, as before)
+    int fast_cap = 0;             // fast: 1 = cap the random log blocks so the log map fits cache_bytes (as ~/nvmevirt_fast with
+                                  //     cache_bytes=: (SW + RW) blocks = (cache_bytes - NLB x 4) / (P x 8 / 0.7), at least 2)
+    // ---- CoMap (mode=comap, see CoMapSim): RL-chosen page (DFTL) vs block (FAST) mapping per write request
+    double comap_logfrac = 0.5;   // share of the DRAM left after block map + bitmap + GTD that goes to the FAST log map
+    u64 comap_period = 4096;      // host requests per Q-learning step
+    u64 comap_seed = 1;           // xorshift64 seeds of the routing draw R and the agent's epsilon-greedy draws
+    int comap_p0 = 500000;        // initial P (page-mapping probability) in ppm
+    int comap_learn = 1;          // 0 = P stays at comap_p0 (no Q-learning; sensitivity / sanity runs)
+    int comap_tpbuf = 1;          // DFTL translation-page SRAM buffer (as dftl_tpbuf=1 of the DFTL baseline)
+    u64 comap_verify = 0;         // debug: verify() every N write requests (0 = only at the usual points)
 };
 
 enum Src { S_HOST = 0, S_FINEGC, S_FOLD, S_CGC_CLEAN, S_CGC_REFOLD, S_RMW, S_PGC, S_ZEROFILL, S_FULLMERGE, S_PARTIALMERGE, S_MAP, S_UNFOLD, S_N };
@@ -244,6 +271,12 @@ struct Stats {
     // FTP programs / FTP reads spent inside promotions (spills of the evicted IUs' FTPs and their read-modify-writes)
     u64 n_rp = 0, rp_pages = 0, n_rp_wait = 0, n_rp_rate = 0, rp_ftp_wr = 0, rp_ftp_rd = 0;
     u64 n_clean_evict = 0, n_clean_dirty = 0;   // spill_rp_clean: clean IUs re-spilled without FTP I/O / made dirty while in the table
+    // host-read FTP flash reads by target (page in the chunk / page is a fragment); spilled-IU reads that skipped the FTP
+    // thanks to pbm / ssum (and how many of those would have been flash reads, i.e. FTP not in SRAM)
+    u64 rd_ftp_chunk = 0, rd_ftp_frag = 0, rd_avoid = 0, rd_avoid_flash = 0;
+    // ssum: summaries inserted / skipped (no room) / replacing another summary / dropped to make room for page entries /
+    // dropped because the IU left the spilled state; reads of spilled IUs that found / missed a summary
+    u64 sum_ins = 0, sum_noroom = 0, sum_replace = 0, sum_evict = 0, sum_drop = 0, sum_hit = 0, sum_miss = 0;
     // cgc_diag (report only)
     u64 dg_vbin[20] = {}, dg_vsum_chosen = 0, dg_vsum_min = 0, dg_vsum_cb = 0, dg_cls_n[8] = {}, dg_cls_v[8] = {};
     double dg_band_blocks[7] = {}, dg_band_garb[7] = {}; u64 dg_snaps = 0;
@@ -387,6 +420,8 @@ struct Sim {
                     if (c.spill_rp >= 2) { rp_cnt.assign(NIU, 0); while ((1 << rp_bits) < c.spill_rp) rp_bits++; }
                     if (c.spill_rp_clean) rp_cln.assign(NIU, 0);
                 }
+                if (c.pbm) { pbm_bytes = (double)L / 8; fine_bytes -= pbm_bytes; pbmv.assign(NIU, 0); }   // per-page fragment bitmap
+                if (c.ssum && spl_on) { has_sum.assign(NIU, 0); sum_bm.assign(NIU, 0); }
                 if (c.age_sep && c.age_pred >= 3) fine_bytes -= (double)NIU / 4;   // 2-bit per-IU counters
                 if (c.age_sep && (c.age_pred == 1 || c.age_pred == 2)) { rt_n = (NIU + c.rt_r - 1) / c.rt_r; fine_bytes -= (double)rt_n * 8; }   // region counters
                 if (fine_bytes < 4 * ent * 16) DIE("map_budget %.4f leaves no room for the fine table (coarse map alone is %.4f of the page map)", c.map_budget, 1.0 / U);
@@ -396,6 +431,7 @@ struct Sim {
                                     gtd_bytes / (1 << 20), ct_nb * 4 * ent / (1 << 20), c.map_budget * (double)L * 4 / (1 << 20));
                 fprintf(stderr, "[cfg] cuckoo2 fine table: %llu buckets x 4 = %llu entries (%.2f MiB), budget %.4f of page map\n",
                         (unsigned long long)ct_nb, (unsigned long long)(ct_nb * 4), ct_nb * 4 * ent / (1 << 20), c.map_budget);
+                if (c.pbm) fprintf(stderr, "[cfg] pbm: per-page fragment bitmap %.3f MiB taken from the table\n", pbm_bytes / (1 << 20));
             }
             if (c.fine_cap == "ram") {
                 ram_cap = true; fine_quota_blocks = NB;    // no block quota
@@ -416,6 +452,11 @@ struct Sim {
         if (c.fold_on_read && (!spl_on || !c.dram_stats)) DIE("fold_on_read needs spill and dram_stats=1 (host reads are replayed only with dram_stats)");
         if (c.spill_rp && (!spl_on || !c.dram_stats)) DIE("spill_rp needs spill and dram_stats=1 (host reads are replayed only with dram_stats)");
         if (c.spill_rp && c.fold_on_read) DIE("spill_rp and fold_on_read are exclusive");
+        if (c.pbm && !ct_on) DIE("pbm needs mode=proposed fine_index=cuckoo2");
+        if (c.ssum && !spl_on) DIE("ssum needs spill");
+        if (c.pbm && c.ssum) DIE("pbm and ssum are exclusive");
+        if ((c.pbm || c.ssum) && (c.fold_on_read || c.evict_pol)) DIE("pbm / ssum: fold_on_read and evict_pol are not supported");
+        if (c.ssum && L >= SUMTAG) DIE("ssum: summary tag bit collides with lpn");
         if (c.spill_rp_clean && (!c.spill_rp || c.evict_pol)) DIE("spill_rp_clean needs spill_rp and evict_pol=0");
         if (c.spill_rp < 0 || c.spill_rp > 16 || c.spill_rp_rate < 0) DIE("spill_rp must be 0..16, spill_rp_rate >= 0");
         if (spl_on && chunk_bits() + 2 + rp_bits + (c.spill_rp_clean ? 1 : 0) > 32) DIE("spill_rp: chunk index needs %d bits, no room for the 2 flag bits + %d read-counter bits", chunk_bits(), rp_bits);
@@ -736,11 +777,19 @@ struct Sim {
     // present page = its depth (1-2 buckets), absent page = 2 buckets. 0 when the flag is clear (or not cuckoo2).
     u64 iu_scan_cost(u64 iu) const {
         int32_t fi = fine_idx[iu]; if (!ct_on || fi < 0 || is_spilled(iu)) return 0;   // spilled: pointers come from the FTP
+        if (c.pbm) {   // the bitmap word names the fragments: only those are looked up
+            u64 n = 1; u32 bm = pbmv[iu]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; n += (u64)ct_depth(iu * U + off); }
+            return n;
+        }
         u64 n = 0; for (int k = 0; k < U; ++k) n += (fbitmap[fi] >> k & 1) ? (u64)ct_depth(iu * U + k) : 2;
         return n;
     }
     // one page's table lookup behind a set flag: 1-2 buckets if present, 2 if absent
-    u64 flag_lookup_cost(int32_t fi, u64 lpn) const { return fi < 0 || is_spilled(lpn / U) ? 0 : (fbitmap[fi] >> (lpn % U) & 1) ? (u64)ct_depth(lpn) : 2; }
+    u64 flag_lookup_cost(int32_t fi, u64 lpn) const {
+        if (fi < 0 || is_spilled(lpn / U)) return 0;
+        if (c.pbm) return 1 + ((pbmv[lpn / U] >> (lpn % U) & 1) ? (u64)ct_depth(lpn) : 0);   // bitmap word, then the entry
+        return (fbitmap[fi] >> (lpn % U) & 1) ? (u64)ct_depth(lpn) : 2;
+    }
     void ct_insert(u64 lpn) {
         u64 a = ct_b1(lpn), b = ct_b2(lpn); u64 t = ct_load(a) <= ct_load(b) ? a : b;
         int k = ct_free_in(t); if (k < 0) { t = (t == a) ? b : a; k = ct_free_in(t); }
@@ -750,6 +799,40 @@ struct Sim {
     void ct_remove(u64 lpn) {
         for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) if (ct[b * 4 + k] == (u32)lpn) { ct[b * 4 + k] = NONE; return; }
         DIE("cuckoo2: remove of absent lpn %llu", (unsigned long long)lpn);
+    }
+    // c.ct_kick: lpn's bucket pair is full. BFS (MemC3) from b1, b2: for each way k of a dequeued bucket B, the entry's
+    // other bucket alt; a free way in alt ends the search, else alt is enqueued (parent (B, k)) if unvisited and fewer
+    // than ct_kick buckets were visited. Visited buckets are distinct, so the path is executed from its end (each entry
+    // into the slot freed after it), freeing one way of b1 / b2. Summary entries never move. DRAM: 1 per bucket probed
+    // for a free way + 1 per entry moved (the dequeued buckets' entries were read when they were probed).
+    struct KNode { u64 b; int par, k; };
+    std::vector<KNode> kq; std::vector<u32> kvis; u32 kep = 0;   // queue; bucket -> search epoch (sim bookkeeping)
+    u64 n_kick = 0, n_kick_ok = 0, n_kick_fail = 0, kick_moves = 0;   // searches / path found / none / entries moved (not reset at warmup, as the core)
+    bool ct_kick(u64 lpn) {
+        if (c.ct_kick <= 0) return false;
+        n_kick++;
+        if (kvis.empty()) kvis.assign(ct_nb, 0);
+        if (++kep == 0) { std::fill(kvis.begin(), kvis.end(), 0); kep = 1; }
+        kq.clear(); int nvis = 2;
+        for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) { kvis[b] = kep; kq.push_back({b, -1, 0}); }
+        for (size_t h = 0; h < kq.size(); ++h) {
+            u64 B = kq[h].b;
+            for (int k = 0; k < 4; ++k) {
+                u32 e = ct[B * 4 + k]; if (e == NONE || (e & SUMTAG)) continue;
+                u64 alt = ct_b1(e) == B ? ct_b2(e) : ct_b1(e);
+                DA(1); int f = ct_free_in(alt);
+                if (f >= 0) {   // move (B, k) -> (alt, f), then each parent's entry into the slot just vacated
+                    u64 tb = alt; int tk = f, n = (int)h, sk = k;
+                    while (n >= 0) {
+                        u64 sb = kq[n].b; ct[tb * 4 + tk] = ct[sb * 4 + sk]; ct[sb * 4 + sk] = NONE; DA(1); kick_moves++;
+                        tb = sb; tk = sk; sk = kq[n].k; n = kq[n].par;
+                    }
+                    n_kick_ok++; return true;
+                }
+                if (kvis[alt] != kep && nvis < c.ct_kick) { kvis[alt] = kep; nvis++; kq.push_back({alt, (int)h, k}); }
+            }
+        }
+        n_kick_fail++; return false;
     }
 
     // ---- spill (c.spill): when a bucket pair is full, the victim IU's fragment pointers move to its flash translation
@@ -782,6 +865,50 @@ struct Sim {
     u64 ftp_buf = ~0ull;               // FTP held in SRAM
     int gc_batch = 0; std::unordered_set<u64> gc_ftp_rd, gc_ftp_dirty;   // fine GC: FTPs read / to rewrite for this victim
     bool is_spilled(u64 iu) const { return spl_on && spl[iu]; }
+    // ---- pbm / ssum (see Cfg). Table entries are u32 lpns; a summary entry is SUMTAG | iu (lpn < 2^31), hashed like a
+    // page entry with that key. Its 8 B hold {tagged IU id, U-bit fragment bitmap} (sim: sum_bm).
+    static const u32 SUMTAG = 0x80000000u;
+    double pbm_bytes = 0;
+    std::vector<u32> pbmv;             // pbm: IU -> per-page fragment bitmap (the DRAM structure; verify: == fbitmap)
+    std::vector<uint8_t> has_sum;      // ssum (sim bookkeeping): the IU has a summary entry in the table
+    std::vector<u32> sum_bm;           // ssum: bitmap stored in the IU's summary entry (verify: == the FTP image)
+    u64 n_sum = 0;                     // summary entries in the table
+    u64 prot_a = ~0ull, prot_b = ~0ull;   // bucket pair currently being made room for: no summary is put there
+    struct Prot { Sim* s; u64 a, b; Prot(Sim* sp, u64 lpn) : s(sp), a(sp->prot_a), b(sp->prot_b) { if (!s->has_sum.empty()) { s->prot_a = s->ct_b1(lpn); s->prot_b = s->ct_b2(lpn); } } ~Prot() { s->prot_a = a; s->prot_b = b; } };
+    void sum_drop(u64 iu, int why) {   // why: 0 = the IU left the spilled state, 1 = evicted for room, 2 = replaced by another summary
+        if (has_sum.empty() || !has_sum[iu]) return;
+        if (why == 0) DA(ct_depth(SUMTAG | iu));
+        ct_remove(SUMTAG | iu); has_sum[iu] = 0; sum_bm[iu] = 0; n_sum--;
+        if (why == 0) st.sum_drop++; else if (why == 1) st.sum_evict++; else st.sum_replace++;
+    }
+    // a summary only ever takes a free slot (lower-loaded candidate bucket) or another summary's slot: it never evicts a
+    // page entry and is never put into the bucket pair currently being made room for
+    void sum_insert(u64 iu, u32 bm) {
+        u64 key = SUMTAG | iu; u64 t = ~0ull; int k = -1;
+        for (u64 x : {ct_b1(key), ct_b2(key)}) {
+            if (x == prot_a || x == prot_b) continue;
+            int f = ct_free_in(x); if (f >= 0 && (t == ~0ull || ct_load(x) < ct_load(t))) { t = x; k = f; }
+        }
+        if (t == ~0ull)
+            for (u64 x : {ct_b1(key), ct_b2(key)}) {
+                if (x == prot_a || x == prot_b || t != ~0ull) continue;
+                for (int q = 0; q < 4; ++q) { u32 e = ct[x * 4 + q]; if (e != NONE && (e & SUMTAG)) { sum_drop(e & ~SUMTAG, 2); t = x; k = q; break; } }
+            }
+        if (t == ~0ull) { st.sum_noroom++; return; }
+        DA(1); ct[t * 4 + k] = (u32)key; has_sum[iu] = 1; sum_bm[iu] = bm; n_sum++; st.sum_ins++;
+    }
+    // a full bucket pair first gives up a summary (no flash I/O; that IU just loses its read hint);
+    // ssum=2: only when the pair holds no clean IU (spill_rp_clean: re-spilling a clean IU is I/O-free as well)
+    bool sum_evict_in(u64 lpn, u64 cur_iu) {
+        if (has_sum.empty()) return false;
+        if (c.ssum == 2 && !rp_cln.empty())
+            for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) {
+                u32 e = ct[b * 4 + k]; if (e == NONE || (e & SUMTAG) || e / U == cur_iu) continue;
+                if (rp_cln[e / U]) return false;
+            }
+        for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) { u32 e = ct[b * 4 + k]; if (e != NONE && (e & SUMTAG)) { sum_drop(e & ~SUMTAG, 1); return true; } }
+        return false;
+    }
     void ftp_read(u64 g, int why) {
         if (gc_batch && gc_ftp_rd.count(g)) return;
         if (g == ftp_buf) return;
@@ -801,6 +928,7 @@ struct Sim {
         DA(iu_scan_cost(iu));                                        // fragment-set scan + removal
         while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; u64 l = iu * U + off; ct_remove(l); ftp[l] = fslot[(u64)fi * U + off]; }
         spl[iu] = 1; grp_spilled[iu / ipf]++; spages += d;
+        if (!has_sum.empty() && d >= 2) sum_insert(iu, fbitmap[fi]);
         if (!rp_cln.empty()) rp_cln[iu] = 0;
         if (!rhits.empty()) rhits[iu] = 0;
         if (!rp_cnt.empty()) { rp_cnt[iu] = 0; if (rp_last == iu) rp_last = ~0ull; }
@@ -828,7 +956,7 @@ struct Sim {
     u64 ct_pick(u64 lpn, u64 cur_iu) {
         u64 best = ~0ull; int bd = -1; u64 bl = ~0ull; double bsc = -1; int bcl = -1;
         for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) {
-            u32 e = ct[b * 4 + k]; if (e == NONE) continue;
+            u32 e = ct[b * 4 + k]; if (e == NONE || (e & SUMTAG)) continue;
             u64 iu = e / U; if (iu == cur_iu) continue;
             int32_t f2 = fine_idx[iu]; if (f2 < 0) continue;
             int d = popc(fbitmap[f2]);
@@ -850,6 +978,7 @@ struct Sim {
     void unspill(u64 iu, bool rd = false) {   // rd: read-promotion (spill_rp; the FTP was just read by the lookup)
         u64 g = iu / ipf;
         ftp_read(g, 1);
+        sum_drop(iu, 0);
         int32_t fi = fine_idx[iu]; u32 bm = fbitmap[fi]; int d = popc(bm);
         spl[iu] = 0; grp_spilled[g]--; spages -= d;
         if (rd) { st.n_rp++; st.rp_pages += d; } else { st.n_unspill++; st.unspill_pages += d; }
@@ -858,8 +987,10 @@ struct Sim {
         while (bm) {
             int off = __builtin_ctz(bm); bm &= bm - 1; u64 l = iu * U + off;
             if (!keep) ftp[l] = NONE;
-            for (int tries = 0; !ct_room(l); ++tries) {
+            Prot pr(this, l);
+            for (int tries = 0; !ct_room(l) && !ct_kick(l); ++tries) {
                 DA(2);
+                if (sum_evict_in(l, iu)) continue;
                 u64 v = ct_pick(l, iu);
                 if (v == ~0ull || tries > 16) DIE("spill: cannot make room to un-spill IU %llu", (unsigned long long)iu);
                 spill(v, iu);
@@ -909,11 +1040,14 @@ struct Sim {
         u64 cur_iu = lpn / U; int32_t fi = fine_idx[cur_iu];
         if (is_spilled(cur_iu)) unspill(cur_iu);                         // spilled bit: FTP read, pointers back into the table
         // membership: the coarse entry (charged by the caller) has the flag; flag set -> one table lookup
-        if (fi >= 0 && (fbitmap[fi] >> (lpn % U) & 1)) { DA(ct_depth(lpn)); return; }   // overwrite of a resident page: no new entry
-        if (fi >= 0) DA(2);                                              // flag set, page absent: both buckets were read
+        // (pbm: the bitmap word answers membership; only a resident page's entry is then looked up)
+        if (fi >= 0 && (fbitmap[fi] >> (lpn % U) & 1)) { DA((c.pbm ? 1 : 0) + ct_depth(lpn)); return; }   // overwrite of a resident page: no new entry
+        if (fi >= 0) DA(c.pbm ? 1 : 2);                                  // flag set, page absent: both buckets were read
+        Prot pr(this, lpn);
         for (int tries = 0; ; ++tries) {
             bool room = ct_room(lpn);
             if (tries > 0 || fi < 0) DA(ct_free_in(ct_b1(lpn)) >= 0 ? 1 : 2);   // candidate buckets read
+            if (!room) room = ct_kick(lpn);                                      // ct_kick: displacement path first
             // pool_cap: a fine pool at its liveness bound evicts like a full bucket pair (at most once per new page:
             // a quota drop on a mode switch is drained gradually)
             // pool_cap=2 (cost parity): evict the best candidate when folding it is cheaper per freed fine slot than
@@ -923,12 +1057,13 @@ struct Sim {
                         ((pool_cap_on() && fpages >= pool_cap_pages()) || ((c.pool_cap & 2) && 2 * (long)victim_v > (long)P));
             if (room && !over) break;
             if (tries > 16) DIE("cuckoo2: cannot make room for lpn %llu", (unsigned long long)lpn);
+            if (!room && sum_evict_in(lpn, cur_iu)) continue;                    // ssum: a summary goes first (no flash I/O)
             DCtx g(this, 3); u64 a0 = st.dacc[3];
             u64 best = ~0ull; int bd = -1; u64 bl = ~0ull; double bsc = -1; int bcl = -1;
             bool pcl = !rp_cln.empty() && !over;   // spill_rp_clean: a spilling eviction prefers clean IUs
             u64 seen[8]; int nseen = 0;
             for (u64 b : {ct_b1(lpn), ct_b2(lpn)}) for (int k = 0; k < 4; ++k) {
-                u32 e = ct[b * 4 + k]; if (e == NONE) continue;
+                u32 e = ct[b * 4 + k]; if (e == NONE || (e & SUMTAG)) continue;
                 u64 iu = e / U; if (iu == cur_iu) continue;
                 int32_t f2 = fine_idx[iu]; if (f2 < 0) continue;
                 int d = popc(fbitmap[f2]);                                   // most fragments first (cheapest fold), then coldest
@@ -1086,7 +1221,9 @@ struct Sim {
         int32_t i = fine_idx[iu];
         if (i < 0) return;
         rp_dirty(iu);
+        if (!pbmv.empty()) pbmv[iu] = 0;
         if (is_spilled(iu)) {   // pointers live in the FTP (read by the caller); its copy just becomes stale
+            sum_drop(iu, 0);
             u32 bm = fbitmap[i]; while (bm) { int off = __builtin_ctz(bm); bm &= bm - 1; ftp[iu * U + off] = NONE; }
             spl[iu] = 0; grp_spilled[iu / ipf]--; spages -= popc(fbitmap[i]);
         }
@@ -1286,6 +1423,7 @@ struct Sim {
             if (coarse_map[iu] != NONE) { bvalid[blk_of(coarse_map[iu])]--; bsup[blk_of(coarse_map[iu])]++; }  // superseded in extent
             int od = popc(fbitmap[fi]);
             fbitmap[fi] |= bit; fpages++;
+            if (!pbmv.empty()) pbmv[iu] |= bit;                          // pbm: same cache line as the membership test
             track_d(iu, od, od + 1);
             if (popc(fbitmap[fi]) == U && coarse_map[iu] != NONE) { bsup[blk_of(coarse_map[iu])] -= U; if (c.oracle) ora_del(iu, coarse_map[iu]); coarse_map[iu] = NONE; n_chunks--; st.n_extent_drop++; }  // extent fully dead
         }
@@ -1426,7 +1564,7 @@ struct Sim {
             u64 lpn = iu * U + off;
             st.read_fold_coarse++;
             p2l[np] = (u32)lpn; bvalid[blk_of(np)]++; st.prog[S_UNFOLD]++; st.unfold_pages++;
-            { int od = popc(fbitmap[fi]); fbitmap[fi] |= (1u << off); fpages++; track_d(iu, od, od + 1); } fslot[(u64)fi * U + off] = np;
+            { int od = popc(fbitmap[fi]); fbitmap[fi] |= (1u << off); fpages++; track_d(iu, od, od + 1); if (!pbmv.empty()) pbmv[iu] |= 1u << off; } fslot[(u64)fi * U + off] = np;
             bvalid[blk_of(old)]--; bsup[blk_of(old)]++;   // that chunk page is now superseded
         }
         if (popc(fbitmap[fi]) == U) { if (coarse_map[iu] != NONE) { n_chunks--; bsup[blk_of(old)] -= U; } coarse_map[iu] = NONE; st.n_extent_drop++; }
@@ -1896,12 +2034,38 @@ struct Sim {
         } else if (c.mode == "proposed") {
             u64 iu = lpn / U; int off = (int)(lpn % U); int32_t fi = fine_idx[iu];
             bool same = iu == rp_last; if (c.spill_rp >= 2) rp_last = iu;
+            if (c.pbm) {   // coarse entry (chunk + flag); flag set -> the IU's bitmap word; bit set -> table entry or FTP
+                DA(fi >= 0 ? 2 : 1);
+                bool frag = fi >= 0 && (pbmv[iu] >> off & 1);
+                if (frag != (fi >= 0 && (fbitmap[fi] >> off & 1))) DIE("pbm: bitmap of lpn %llu is stale", (unsigned long long)lpn);
+                if (is_spilled(iu)) {
+                    st.rd_spilled++;
+                    if (frag) {
+                        st.rd_spilled_frag++;
+                        u64 m0 = st.read_map; ftp_read(iu / ipf, 0); if (st.read_map > m0) { st.rd_ftp++; st.rd_ftp_frag++; }
+                        if (c.spill_rp) read_promote(iu, same);
+                    } else { st.rd_avoid++; if (iu / ipf != ftp_buf) st.rd_avoid_flash++; }   // chunk page: no FTP read
+                } else if (frag) DA(ct_depth(lpn));
+                else if (coarse_map[iu] == NONE) st.d_rd_unmapped++;
+            } else
             if (is_spilled(iu)) {   // spilled bit: the page may be a fragment or in the chunk -> read the FTP (unless in SRAM)
                 DA(1);
-                st.rd_spilled++; if (fbitmap[fi] >> off & 1) st.rd_spilled_frag++;
-                u64 m0 = st.read_map; ftp_read(iu / ipf, 0); if (st.read_map > m0) st.rd_ftp++;
-                if (c.fold_on_read) read_fold(iu);
-                else if (c.spill_rp) read_promote(iu, same);
+                bool frag = fbitmap[fi] >> off & 1;
+                st.rd_spilled++; if (frag) st.rd_spilled_frag++;
+                bool skip = false;
+                if (!has_sum.empty()) {   // ssum: summary lookup (1-2 buckets); bit clear -> the page is in the chunk
+                    DA(ct_depth(SUMTAG | iu));
+                    if (has_sum[iu]) {
+                        st.sum_hit++; skip = !(sum_bm[iu] >> off & 1);
+                        if (skip == frag) DIE("ssum: summary of IU %llu disagrees with its fragment set", (unsigned long long)iu);
+                    } else st.sum_miss++;
+                }
+                if (skip) { st.rd_avoid++; if (iu / ipf != ftp_buf) st.rd_avoid_flash++; }
+                else {
+                    u64 m0 = st.read_map; ftp_read(iu / ipf, 0); if (st.read_map > m0) { st.rd_ftp++; if (frag) st.rd_ftp_frag++; else st.rd_ftp_chunk++; }
+                    if (c.fold_on_read) read_fold(iu);
+                    else if (c.spill_rp) read_promote(iu, same);
+                }
             } else
             if (ct_on) {   // coarse entry (chunk + flag); flag set -> one table lookup (<= 2 buckets); never a flash map read
                 DA(1 + flag_lookup_cost(fi, lpn));
@@ -1946,10 +2110,27 @@ struct Sim {
         if (!is_pg() && fpages != fine_valid) DIE("verify: fine page counter %llu != %llu", (unsigned long long)fpages, (unsigned long long)fine_valid);
         if (!is_pg()) { u64 nc = 0; for (u64 i = 0; i < NIU; ++i) nc += coarse_map[i] != NONE; if (nc != n_chunks) DIE("verify: chunk counter %llu != %llu", (unsigned long long)n_chunks, (unsigned long long)nc); }
         if (ct_on) {   // table <-> fine pool consistency: every fine page has exactly one entry, nothing else does
-            u64 used = 0; for (u32 e : ct) if (e != NONE) { used++; int32_t f = fine_idx[e / U]; if (f < 0 || !(fbitmap[f] >> (e % U) & 1)) DIE("verify: cuckoo2 stale entry %u", e); }
+            u64 used = 0, nsum = 0; std::vector<uint8_t> seen_sum(has_sum.empty() ? 0 : NIU, 0);
+            for (u32 e : ct) if (e != NONE) {
+                if (e & SUMTAG) {   // ssum: summary of a spilled IU; its bitmap = the FTP image = the fragment set
+                    u64 iu = e & ~SUMTAG; nsum++;
+                    if (has_sum.empty() || iu >= NIU || !spl[iu] || !has_sum[iu] || seen_sum[iu]++) DIE("verify: stray / duplicate summary entry for IU %llu", (unsigned long long)iu);
+                    int32_t f = fine_idx[iu]; u32 img = 0; for (int k = 0; k < U; ++k) if (ftp[iu * U + k] != NONE) img |= 1u << k;
+                    if (f < 0 || sum_bm[iu] != img || sum_bm[iu] != fbitmap[f] || popc(sum_bm[iu]) < 2)
+                        DIE("verify: summary of IU %llu = %x, FTP image %x, fragments %x", (unsigned long long)iu, sum_bm[iu], img, f < 0 ? 0u : fbitmap[f]);
+                    continue;
+                }
+                used++; int32_t f = fine_idx[e / U]; if (f < 0 || !(fbitmap[f] >> (e % U) & 1)) DIE("verify: cuckoo2 stale entry %u", e);
+            }
+            if (nsum != n_sum || (u64)std::count(has_sum.begin(), has_sum.end(), 1) != n_sum) DIE("verify: %llu summary entries, counter %llu", (unsigned long long)nsum, (unsigned long long)n_sum);
+            if (!pbmv.empty()) {   // pbm: bit = "the page's latest data is a fragment"
+                for (u64 iu = 0; iu < NIU; ++iu) { int32_t f = fine_idx[iu]; if (pbmv[iu] != (f >= 0 ? fbitmap[f] : 0u)) DIE("verify: pbm of IU %llu = %x, fragments %x", (unsigned long long)iu, pbmv[iu], f >= 0 ? fbitmap[f] : 0u); }
+                fprintf(stderr, "[verify] pbm ok\n");
+            }
+            if (!has_sum.empty()) fprintf(stderr, "[verify] ssum ok: %llu summary entries\n", (unsigned long long)nsum);
             if (spl_on) {   // spilled IUs: no table entry, FTP pointer = the fragment's ppn; nothing else in any FTP
                 u64 sp_pages = 0; std::vector<uint16_t> gs(n_ftp, 0);
-                for (u32 e : ct) if (e != NONE && spl[e / U]) DIE("verify: spilled IU %u has a table entry", e / U);
+                for (u32 e : ct) if (e != NONE && !(e & SUMTAG) && spl[e / U]) DIE("verify: spilled IU %u has a table entry", e / U);
                 for (u64 iu = 0; iu < NIU; ++iu) {
                     int32_t f = fine_idx[iu];
                     if (is_clean(iu) && (spl[iu] || f < 0 || !fbitmap[f])) DIE("verify: clean IU %llu is spilled or has no fragments", (unsigned long long)iu);
@@ -2033,7 +2214,7 @@ struct Sim {
           else if (c.mode == "dftl") { a = hash_bytes((double)cmt.size(), 8); b2 = (double)(L / TP_ENTRIES) * 4; mem = a + b2; }
           else if (c.mode == "iu_rmw") { a = (double)NIU * 4; mem = a; }
           else if (is_lf()) { a = lf_cached; b2 = (double)((L + LF_FRAME - 1) / LF_FRAME) * 4; mem = a + b2; }   // resident frames + GTD
-          else if (ct_on) { a = (double)NIU * 4; b2 = gtd_bytes; c2 = (double)ct_nb * 4 * cuckoo_entry(); mem = a + b2 + c2; }   // spill: hash_index = GTD   // coarse entry 4 B incl. the fragment flag bit
+          else if (ct_on) { a = (double)NIU * 4 + pbm_bytes; b2 = gtd_bytes; c2 = (double)ct_nb * 4 * cuckoo_entry(); mem = a + b2 + c2; }   // spill: hash_index = GTD   // coarse entry 4 B incl. the fragment flag bit
           else if (c.fine_index == "cuckoo") { a = (double)NIU * 4; c2 = (double)fine_pages * cuckoo_entry() / 0.95; mem = a + c2; }
           else { a = (double)NIU * 4; b2 = hash_bytes((double)fine_ius, 4 + 2 + 4 + ((c.unfold != "off" || c.fine_policy == "cold" || c.fine_policy == "cost_cold") ? 4 : 0)); c2 = (double)fine_pages * 4; mem = a + b2 + c2; }
           printf("  \"mem\": {\"total_bytes\": %.0f, \"total_mib\": %.2f, \"primary_map\": %.0f, \"hash_index\": %.0f, \"slots\": %.0f},\n", mem, mem / (1 << 20), a, b2, c2); }
@@ -2046,7 +2227,22 @@ struct Sim {
         printf("  \"fine_host_new\": %llu, \"fine_host_ow\": %llu, \"fine_pages_peak\": %llu,\n", (unsigned long long)st.fine_host_new, (unsigned long long)st.fine_host_ow, (unsigned long long)st.fine_peak);
         if (ct_on) { u64 used = 0; for (u32 e : ct) used += e != NONE;
             printf("  \"cuckoo2\": {\"entries\": %llu, \"used_end\": %llu, \"evict_folds\": %llu, \"pool_evict_folds\": %llu, \"onefront_reuse\": %llu, \"coarse_entry_chunk_bits\": %d, \"coarse_entry_flag_bits\": 1},\n",
-                   (unsigned long long)ct.size(), (unsigned long long)used, (unsigned long long)st.n_evict_fold, (unsigned long long)st.n_pool_evict, (unsigned long long)st.n_onefront_reuse, chunk_bits()); }
+                   (unsigned long long)ct.size(), (unsigned long long)used, (unsigned long long)st.n_evict_fold, (unsigned long long)st.n_pool_evict, (unsigned long long)st.n_onefront_reuse, chunk_bits());
+            if (c.ct_kick > 0)
+                printf("  \"ct_kick\": {\"limit\": %d, \"searches\": %llu, \"found\": %llu, \"failed\": %llu, \"moves\": %llu},\n", c.ct_kick,
+                       (unsigned long long)n_kick, (unsigned long long)n_kick_ok, (unsigned long long)n_kick_fail, (unsigned long long)kick_moves);
+            auto R = [](u64 a, u64 b) { return b ? (double)a / (double)b : 0.0; };
+            u64 dat = used - n_sum, rd = st.d_rd_ops, fo = st.dfr[0] - std::min(st.dfr[0], st.rd_ftp_chunk + st.rd_ftp_frag);
+            printf("  \"fragmap\": {\"pbm\": %d, \"ssum\": %d, \"pbm_bytes\": %.0f, \"table_entries\": %llu, \"table_bytes\": %.0f, \"page_entries_end\": %llu, \"summaries_end\": %llu, "
+                   "\"occupancy_end\": %.5f, \"host_reads\": %llu, \"reads_spilled\": %llu, \"reads_spilled_frag\": %llu, \"ftp_reads_chunk\": %llu, \"ftp_reads_frag\": %llu, "
+                   "\"map_reads_other\": %llu, \"ftp_avoided\": %llu, \"ftp_avoided_flash\": %llu, \"chunk_ftp_per_read\": %.5f, \"frag_ftp_per_read\": %.5f, \"other_map_per_read\": %.5f, "
+                   "\"sum_inserted\": %llu, \"sum_noroom\": %llu, \"sum_replaced\": %llu, \"sum_evicted\": %llu, \"sum_dropped\": %llu, \"sum_hits\": %llu, \"sum_misses\": %llu},\n",
+                   c.pbm, c.ssum, pbm_bytes, (unsigned long long)ct.size(), (double)ct_nb * 4 * cuckoo_entry(), (unsigned long long)dat, (unsigned long long)n_sum,
+                   R(used, ct.size()), (unsigned long long)rd, (unsigned long long)st.rd_spilled, (unsigned long long)st.rd_spilled_frag,
+                   (unsigned long long)st.rd_ftp_chunk, (unsigned long long)st.rd_ftp_frag, (unsigned long long)fo, (unsigned long long)st.rd_avoid, (unsigned long long)st.rd_avoid_flash,
+                   R(st.rd_ftp_chunk, rd), R(st.rd_ftp_frag, rd), R(fo, rd),
+                   (unsigned long long)st.sum_ins, (unsigned long long)st.sum_noroom, (unsigned long long)st.sum_replace, (unsigned long long)st.sum_evict,
+                   (unsigned long long)st.sum_drop, (unsigned long long)st.sum_hit, (unsigned long long)st.sum_miss); }
         if (spl_on) {
             u64 nsp = 0; for (u64 i = 0; i < NIU; ++i) nsp += spl[i];
             u64 hs = st.host_submitted ? st.host_submitted : st.host_pages;
@@ -2186,6 +2382,7 @@ struct HybridSim {
     // FAST
     int sw = -1;                 // sequential log block
     std::vector<int> rw;         // random log blocks, FIFO order (front = oldest); back = active
+    int rwcap = 0;               // max random log blocks: nlog - 1, or fewer with fast_cap (mapping-DRAM budget)
     // LAST
     int nseq = 0, R = 0, hot_cap = 0, cold_cap = 0;
     std::vector<int> seqb, hotb, coldb;   // membership lists (active = back)
@@ -2204,6 +2401,13 @@ struct HybridSim {
         NP = (u64)((double)L * (1.0 + c.op)); NB = (int)(NP / P); NP = (u64)NB * P;
         nlog = NB - (int)NLB - T;
         if (nlog < 3) DIE("not enough log blocks (NB=%d NLB=%u T=%d)", NB, NLB, T);
+        rwcap = nlog - 1;
+        if (c.fast_cap && c.mode == "fast" && c.cache_bytes > (u64)NLB * 4) {   // = ~/nvmevirt_fast fast_create (cache_bytes)
+            u64 per = ((u64)P * 80 + 6) / 7, nl = (c.cache_bytes - (u64)NLB * 4) / per;   // log map RAM per log block
+            if (nl < 2) nl = 2;
+            if ((int)nl - 1 < rwcap) rwcap = (int)nl - 1;
+            fprintf(stderr, "[cfg] fast_cap: cache_bytes=%llu -> %d random log blocks (of %d)\n", (unsigned long long)c.cache_bytes, rwcap, nlog - 1);
+        }
         dmap.assign(NLB, NONE); lmap.assign(L, NONE); p2l.assign(NP, NONE);
         btag.assign(NB, H_FREE); bvalid.assign(NB, 0); lg.resize(NB);
         if (c.mode == "last") wseq.assign(NP, 0);
@@ -2340,7 +2544,6 @@ struct HybridSim {
             seq_reclaim(sw); sw = -1;            // case 2.2/2.3: same LB, out of order -> merge SW now (paper Fig.5)
         }
         // random log
-        int rwcap = nlog - 1;
         if (rw.empty() || lg[rw.back()].next == P) {
             if ((int)rw.size() >= rwcap) { int v = rw.front(); rw.erase(rw.begin()); if (bvalid[v] == 0) { st.n_dead_reclaim++; erase(v); } else merge_reclaim(v); }
             int b = pop_free(H_LOG); lg[b].kind = K_RW; rw.push_back(b);
@@ -2543,6 +2746,455 @@ struct HybridSim {
         printf("}\n");
     }
 };
+
+// ----------------------------------------------------------------------------
+// CoMapSim: CoMap (Zhou, Wang, Feng, DATE 2026, "How to Manage the Mapping Table of Large-Capacity SSDs"). For every host
+// write request a Q-learning agent's probability P picks page mapping (R < P) or block mapping. No public code exists; the
+// parts the paper leaves open follow the approved FAST-based interpretation (see ~/nvmevirt_comap/dm/NOTES_comap.md):
+//  - block-mapped data = FAST (as HybridSim fast_*): one offset-fixed data block per logical block LB of P pages, one
+//    sequential log block SW + rwcap random log blocks RW (FIFO) with a page-level log map in DRAM, switch / partial / full
+//    merges. Logical space = whole LBs only (L truncated to a multiple of P, as FAST); physical space NB as every other policy.
+//  - page-mapped data = DFTL (as Sim cmt_*): translation pages of 1024 entries in flash, LRU CMT in DRAM, GTD, one translation
+//    page in SRAM (comap_tpbuf), on a log-structured page area of at most page_cap blocks (the blocks FAST does not need).
+//  - membership bitmap (1 bit per logical page, DRAM): bit set = page-mapped. Read: bit set -> CMT (miss = map read),
+//    bit clear -> log map / data block, no map read. A page-path write of a block-mapped page invalidates its FAST copy and
+//    sets the bit; a block-path write of a page-mapped page looks its PPN up (CMT, else translation-page read), deletes the
+//    entry (the bitmap is authoritative, so the stale translation-page entry needs no write) and clears the bit.
+//    FAST merges leave page-mapped offsets as holes (not programmed).
+//  - page-area GC (page area full): greedy min-valid page block; its live pages move to block mapping through the random
+//    log (bit cleared, one copy each). Offset-fixed data blocks keep a slot for every page, so at 7% OP the page area can
+//    only ever hold a few % of the data: without this transition (the paper's "transitions between these schemes") the
+//    page side would run out of space.
+//  - DRAM = cache_bytes: block map (4 B / LB) + bitmap (L/8) + GTD (4 B / translation page) fixed; of the rest,
+//    comap_logfrac buys whole log blocks (log map = hash over live log pages, 8 B / 0.7 per page, as FAST), the CMT gets
+//    the remainder (8 B / 0.7 per entry, as DFTL). The paper's data-cache allocator is omitted (no read data cache here).
+//  - feature collector / agent: integer-only so NVMeVirt's kernel core is bit-identical (fixed point, 16 fraction bits).
+enum CTag : uint8_t { C_FREE = 0, C_DATA = 1, C_LOG = 2, C_PAGE = 3 };
+
+struct CoMapSim {
+    Cfg c;
+    u64 L, NIU; int NB, P, U, T; u32 NLB;
+    // ---- block side (FAST)
+    std::vector<u32> dmap;       // LB -> data block
+    std::vector<u32> lmap;       // lpn -> ppn in a log block, or NONE
+    std::vector<u32> p2l;        // ppn -> lpn (OOB)
+    std::vector<uint8_t> btag, lkind; std::vector<int32_t> lnext; std::vector<u32> llb;   // per block: tag, log kind, next offset, LB of an SW
+    std::vector<int32_t> bvalid, freelist;
+    int sw = -1; std::deque<int> rw;   // sequential log block; random log blocks, FIFO (front = oldest, back = active)
+    int nl = 0, rwcap = 0;             // log blocks (SW + RW) the DRAM split buys; rwcap = nl - 1
+    u64 logpages = 0;                  // live log-map entries
+    // ---- page side (DFTL)
+    std::vector<u32> pmap;             // lpn -> ppn of a page-mapped page (stands for the translation pages)
+    std::vector<uint8_t> pbit;         // membership bitmap (a byte per page here; L/8 B in the RAM model)
+    Frontier pf;                       // page-area host frontier
+    int page_cap = 0, page_blocks = 0;
+    u64 pm_valid = 0;                  // page-mapped pages
+    static const u64 TP_ENTRIES = 1024;
+    u64 ntp = 0, cmt_cap = 0, tp_buf = ~0ull;
+    u64 fixed_bytes = 0, log_bytes = 0, cmt_bytes = 0;
+    std::list<u64> cmt_lru;            // front = MRU
+    std::unordered_map<u64, std::pair<std::list<u64>::iterator, bool>> cmt;   // lpn -> (lru pos, dirty)
+    int rctx = 1;                      // map-read context: 0 host read, 1 other
+    // ---- feature collector (paper III-A) + Q-learning agent (III-B)
+    static const int CM_K = 8, CM_W = 64, CM_DIST = 32;   // random iff min distance to the last K requests > 32 pages (128 KiB)
+    struct Req { u64 s, e; uint8_t rnd; };
+    Req win[CM_W]; uint8_t win_rea[CM_W] = {}; int wn = 0, wh = 0, win_rnd = 0, win_rean = 0;
+    bool rd_run = false;               // the newest request is a read run still being extended
+    u64 per_req = 0, per_rd = 0, per_rnd = 0, per_pages = 0, Tb = 0, Rb = 0, Tp = 0, Rp = 0;
+    static const int NS = 600, NA = 5;
+    std::vector<long long> Q;          // Q[s * NA + a], fixed point x 2^16
+    u64 P_ppm = 500000;
+    int prev_s = -1, prev_a = 0; long long frac_prev = 0;
+    u64 rx = 0, ax = 0;                // xorshift64 states: routing draw R / agent
+    u64 n_periods = 0, m_periods = 0, m_psum = 0, m_act[NA] = {}, m_type[3] = {}, m_tb = 0, m_rb = 0, m_tp = 0, m_rp = 0;
+    long long m_rsum = 0; u64 m_req_page = 0, m_req_block = 0, n_demote = 0, n_wreq = 0, n_hole = 0;
+
+    Stats st; FILE* ts = nullptr; u64 ts_next = 0, ts_interval = 0; bool measuring = false;
+    std::mt19937_64 rng;
+
+    static u64 xs(u64& x) { x ^= x << 13; x ^= x >> 7; x ^= x << 17; return x; }
+
+    CoMapSim(const Cfg& cfg) : c(cfg) {
+        P = c.P; U = c.U; T = c.T;
+        u64 L0 = c.capacity / 4096; L0 -= L0 % U;
+        NB = (int)((u64)((double)L0 * (1.0 + c.op)) / P);   // same physical space as Sim / the harness / the NVMeVirt glue
+        L = L0 - L0 % P; NIU = L / U; NLB = (u32)(L / P);     // whole logical blocks only (as FAST)
+        u64 NP = (u64)NB * P;
+        if (NP >= NONE || L >= NONE) DIE("comap: geometry exceeds 32-bit ppn/lpn");
+        // DRAM split
+        ntp = (L + TP_ENTRIES - 1) / TP_ENTRIES;
+        fixed_bytes = (u64)NLB * 4 + (L + 7) / 8 + ntp * 4;
+        if (c.cache_bytes <= fixed_bytes) DIE("comap: cache_bytes %llu <= block map + bitmap + GTD (%llu)", (unsigned long long)c.cache_bytes, (unsigned long long)fixed_bytes);
+        u64 rem = c.cache_bytes - fixed_bytes, per = ((u64)P * 80 + 6) / 7;   // log-map RAM per log block (P live pages)
+        u64 lf = (u64)llround(c.comap_logfrac * 1e6);
+        u64 n = rem * lf / 1000000 / per; if (n < 2) n = 2;
+        nl = (int)n; rwcap = nl - 1; log_bytes = n * per;
+        if (log_bytes >= rem) DIE("comap: budget too small for 2 log blocks + a CMT");
+        cmt_bytes = rem - log_bytes; cmt_cap = cmt_bytes * 7 / 80;
+        page_cap = NB - (int)NLB - T - nl;
+        if (cmt_cap < 1 || page_cap < 2) DIE("comap: cmt_cap=%llu page_cap=%d (NB=%d NLB=%u nl=%d)", (unsigned long long)cmt_cap, page_cap, NB, NLB, nl);
+        dmap.assign(NLB, NONE); lmap.assign(L, NONE); pmap.assign(L, NONE); pbit.assign(L, 0); p2l.assign(NP, NONE);
+        btag.assign(NB, C_FREE); lkind.assign(NB, K_NONE); lnext.assign(NB, 0); llb.assign(NB, NONE); bvalid.assign(NB, 0);
+        for (int b = NB - 1; b >= 0; --b) freelist.push_back(b);
+        Q.assign(NS * NA, 0);
+        P_ppm = (u64)c.comap_p0;
+        rx = 0x9E3779B97F4A7C15ull ^ (c.comap_seed * 0xBF58476D1CE4E5B9ull); if (!rx) rx = 1;
+        ax = 0xD1B54A32D192ED03ull ^ (c.comap_seed * 0x94D049BB133111EBull); if (!ax) ax = 1;
+        st.reset(U); rng.seed(c.seed);
+        fprintf(stderr, "[cfg] mode=comap L=%llu pages (%.1f GB, of %llu) NB=%d NLB=%u P=%d (%.0f MiB) T=%d | DRAM %llu B: block map %u + bitmap %llu + GTD %llu, "
+                "log %d blocks (SW + %d RW) %llu, CMT %llu entries %llu | page area <= %d blocks\n",
+                (unsigned long long)L, L * 4096.0 / (1 << 30), (unsigned long long)L0, NB, NLB, P, P * 4096.0 / (1 << 20), T,
+                (unsigned long long)c.cache_bytes, NLB * 4, (unsigned long long)((L + 7) / 8), (unsigned long long)(ntp * 4),
+                nl, rwcap, (unsigned long long)log_bytes, (unsigned long long)cmt_cap, (unsigned long long)cmt_bytes, page_cap);
+    }
+
+    inline int blk_of(u32 ppn) const { return (int)(ppn / P); }
+    void MR() { st.read_map++; st.dfr[rctx]++; }
+
+    int pop_free(uint8_t t) {
+        if (freelist.empty()) DIE("comap: free list exhausted");
+        int b = freelist.back(); freelist.pop_back();
+        btag[b] = t; bvalid[b] = 0; lkind[b] = K_NONE; lnext[b] = 0; llb[b] = NONE; return b;
+    }
+    void erase(int b) {
+        if (bvalid[b] != 0) DIE("comap erase block %d valid=%d tag=%d", b, bvalid[b], btag[b]);
+        btag[b] = C_FREE; lkind[b] = K_NONE; lnext[b] = 0; llb[b] = NONE; freelist.push_back(b); st.erases++;
+    }
+    // physical page holding the newest copy of lpn (NONE = never written)
+    u32 latest(u64 x) const {
+        if (pbit[x]) return pmap[x];
+        if (lmap[x] != NONE) return lmap[x];
+        u32 db = dmap[x / P]; return db == NONE ? NONE : db * P + (u32)(x % P);
+    }
+
+    // ================= DFTL side: CMT (= Sim cmt_*) =================
+    void cmt_evict_one() {
+        u64 victim = cmt_lru.back(); cmt_lru.pop_back();
+        auto it = cmt.find(victim); bool dirty = it->second.second; cmt.erase(it);
+        if (!dirty) return;
+        u64 tp = victim / TP_ENTRIES;                 // write back the translation page, cleaning its cached dirty entries
+        if (!c.comap_tpbuf || tp != tp_buf) MR();
+        if (c.comap_tpbuf) tp_buf = tp;
+        st.prog[S_MAP]++; st.map_flush++;
+        for (u64 l = tp * TP_ENTRIES; l < (tp + 1) * TP_ENTRIES; ++l) { auto j = cmt.find(l); if (j != cmt.end()) j->second.second = false; }
+    }
+    void cmt_miss(u64 x, bool dirty) {
+        st.map_miss++;
+        u64 tp = x / TP_ENTRIES;
+        if (!c.comap_tpbuf || tp != tp_buf) MR();
+        while (cmt.size() >= cmt_cap) cmt_evict_one();
+        if (c.comap_tpbuf) tp_buf = tp;
+        cmt_lru.push_front(x); cmt[x] = {cmt_lru.begin(), dirty};
+    }
+    void cmt_update(u64 x) {   // host page-path write: hit -> MRU, dirty; miss -> translation-page read, insert dirty
+        auto it = cmt.find(x);
+        if (it != cmt.end()) { cmt_lru.erase(it->second.first); cmt_lru.push_front(x); it->second = {cmt_lru.begin(), true}; return; }
+        cmt_miss(x, true);
+    }
+    void cmt_read(u64 x) {     // host read of a page-mapped page: hit -> MRU; miss -> translation-page read, insert clean
+        auto it = cmt.find(x);
+        if (it != cmt.end()) { cmt_lru.erase(it->second.first); cmt_lru.push_front(x); it->second.first = cmt_lru.begin(); return; }
+        cmt_miss(x, false);
+    }
+    void cmt_drop(u64 x) {     // the page left the page area: entry deleted (no I/O, the bitmap is authoritative)
+        auto it = cmt.find(x); if (it == cmt.end()) return;
+        cmt_lru.erase(it->second.first); cmt.erase(it);
+    }
+    void cmt_lookup_del(u64 x) {   // PPN of a page-mapped page superseded by a block-path write: CMT, else translation-page read
+        auto it = cmt.find(x);
+        if (it != cmt.end()) { cmt_lru.erase(it->second.first); cmt.erase(it); return; }
+        st.map_miss++;
+        u64 tp = x / TP_ENTRIES;
+        if (!c.comap_tpbuf || tp != tp_buf) MR();
+        if (c.comap_tpbuf) tp_buf = tp;
+    }
+
+    // ================= FAST side (= HybridSim fast_*, page-mapped offsets are holes) =================
+    void drop_log_copy(u64 x) { u32 old = lmap[x]; bvalid[blk_of(old)]--; lmap[x] = NONE; logpages--; }
+    void invalidate_block(u64 x) {      // block-side copy of x superseded
+        if (lmap[x] != NONE) drop_log_copy(x);
+        else { u32 db = dmap[x / P]; if (db != NONE) bvalid[db]--; }
+    }
+    void invalidate(u64 x) {            // before a block-path write of x
+        if (pbit[x]) { cmt_lookup_del(x); bvalid[blk_of(pmap[x])]--; pmap[x] = NONE; pbit[x] = 0; pm_valid--; return; }
+        invalidate_block(x);
+    }
+    // copy offsets [from, P) of lb to block dst (same offsets): newest block-side copy (log, else data slot; never-written
+    // offsets are programmed too, as FAST), page-mapped offsets skipped. Returns pages programmed.
+    int copy_lb(u32 lb, int from, int dst, Src src) {
+        u32 db = dmap[lb]; int n = 0;
+        for (int off = from; off < P; ++off) {
+            u64 x = (u64)lb * P + off;
+            if (pbit[x]) { n_hole++; continue; }   // NVMeVirt keeps in-order programming with an uncounted pad page
+            u32 l = lmap[x];
+            if (l != NONE) { st.read_gc_copy++; bvalid[blk_of(l)]--; lmap[x] = NONE; logpages--; }
+            else if (db != NONE) { st.read_gc_copy++; bvalid[db]--; }
+            st.prog[src]++; n++;
+            p2l[(u32)dst * P + off] = (u32)x;
+        }
+        return n;
+    }
+    void full_merge(u32 lb) {
+        st.n_full++;
+        int nb = pop_free(C_DATA);
+        bvalid[nb] = copy_lb(lb, 0, nb, S_FULLMERGE);
+        u32 old = dmap[lb];
+        if (old != NONE) erase(old);
+        dmap[lb] = nb;
+    }
+    void switch_merge(int b) {          // b holds every non-hole offset of its LB in order and becomes the data block
+        st.n_switch++;
+        u32 lb = llb[b];
+        for (int off = 0; off < P; ++off) {
+            u64 x = (u64)lb * P + off; if (pbit[x]) continue;
+            if (lmap[x] != (u32)b * P + off) DIE("comap switch merge: page %d not in log block", off);
+            lmap[x] = NONE; logpages--;
+        }
+        u32 old = dmap[lb]; if (old != NONE) erase(old);
+        dmap[lb] = (u32)b; btag[b] = C_DATA; lkind[b] = K_NONE; lnext[b] = 0; llb[b] = NONE;
+    }
+    void partial_merge(int b) {
+        st.n_partial++;
+        u32 lb = llb[b]; int from = lnext[b];
+        int n = copy_lb(lb, from, b, S_PARTIALMERGE);
+        for (int off = from; off < P; ++off) { u64 x = (u64)lb * P + off; if (!pbit[x]) lmap[x] = (u32)b * P + off; }
+        bvalid[b] += n; logpages += n; lnext[b] = P;
+        switch_merge(b);
+    }
+    void merge_reclaim(int b) {         // full-merge every LB with live pages in b (offset scan order), then erase b
+        st.n_merge_reclaim++;
+        u32 base = (u32)b * P;
+        for (int off = 0; off < lnext[b] && bvalid[b] > 0; ++off) {
+            u32 ppn = base + off, x = p2l[ppn];
+            if (x == NONE || lmap[x] != ppn) continue;
+            st.full_assoc_sum++;
+            full_merge(x / P);
+        }
+        if (bvalid[b] != 0) DIE("comap merge_reclaim left valid=%d", bvalid[b]);
+        erase(b);
+    }
+    void seq_reclaim(int b) {
+        if (bvalid[b] == 0) { st.n_dead_reclaim++; erase(b); return; }
+        if (lnext[b] == P && bvalid[b] == P) { switch_merge(b); return; }
+        if (bvalid[b] == lnext[b]) { partial_merge(b); return; }
+        merge_reclaim(b);
+    }
+    int rw_block() {                    // active random log block (oldest reclaimed when rwcap are open and full)
+        if (rw.empty() || lnext[rw.back()] == P) {
+            if ((int)rw.size() >= rwcap) { int v = rw.front(); rw.pop_front(); if (bvalid[v] == 0) { st.n_dead_reclaim++; erase(v); } else merge_reclaim(v); }
+            int b = pop_free(C_LOG); lkind[b] = K_RW; rw.push_back(b);
+        }
+        return rw.back();
+    }
+    void log_append(int b, u64 x) {
+        u32 ppn = (u32)b * P + lnext[b]++;
+        invalidate(x);
+        p2l[ppn] = (u32)x; lmap[x] = ppn; bvalid[b]++; logpages++; st.prog[S_HOST]++;
+    }
+    void blk_write_page(u64 x) {        // = HybridSim::fast_write_page
+        u32 lb = (u32)(x / P); int off = (int)(x % P);
+        if (off == 0) {
+            if (sw >= 0) { seq_reclaim(sw); sw = -1; }
+            sw = pop_free(C_LOG); lkind[sw] = K_SW; llb[sw] = lb;
+        }
+        if (sw >= 0 && llb[sw] == lb) {
+            if (lnext[sw] == off) {
+                log_append(sw, x);
+                if (lnext[sw] == P) { seq_reclaim(sw); sw = -1; }
+                return;
+            }
+            seq_reclaim(sw); sw = -1;
+        }
+        log_append(rw_block(), x);
+    }
+
+    // ================= page side =================
+    void demote(u64 x, u32 ppn) {       // page-area GC: live page -> block mapping through the random log
+        int b = rw_block();             // (a reclaim run here sees x still page-mapped: a hole in its merge)
+        st.read_gc_copy++;
+        bvalid[blk_of(ppn)]--; pmap[x] = NONE; pbit[x] = 0; pm_valid--; cmt_drop(x);
+        u32 np = (u32)b * P + lnext[b]++;
+        p2l[np] = (u32)x; lmap[x] = np; bvalid[b]++; logpages++; st.prog[S_PGC]++; n_demote++;
+    }
+    void page_gc() {
+        int v = -1, bv = INT32_MAX;
+        for (int b = 0; b < NB; ++b) if (btag[b] == C_PAGE && b != pf.blk && bvalid[b] < bv) { bv = bvalid[b]; v = b; }
+        if (v < 0) DIE("comap: no page-area victim");
+        st.n_pgc++; st.pgc_valid_sum += bvalid[v];
+        u32 base = (u32)v * P;
+        for (int s = 0; s < P && bvalid[v] > 0; ++s) {
+            u32 ppn = base + s, x = p2l[ppn];
+            if (x == NONE || !pbit[x] || pmap[x] != ppn) continue;
+            demote(x, ppn);
+        }
+        if (bvalid[v] != 0) DIE("comap page gc left valid=%d", bvalid[v]);
+        erase(v); page_blocks--;
+    }
+    u32 pm_alloc() {
+        if (pf.blk >= 0 && pf.next == P) pf.blk = -1;     // a full frontier is an ordinary page block (GC candidate)
+        if (pf.blk < 0) {
+            while (page_blocks >= page_cap) page_gc();
+            pf.blk = pop_free(C_PAGE); pf.next = 0; page_blocks++;
+        }
+        return (u32)pf.blk * P + pf.next++;
+    }
+    void pm_write_page(u64 x) {         // = Sim::page_write (dftl) on the page area
+        u32 ppn = pm_alloc();
+        if (pbit[x]) bvalid[blk_of(pmap[x])]--;
+        else { invalidate_block(x); pbit[x] = 1; pm_valid++; }
+        p2l[ppn] = (u32)x; pmap[x] = ppn; bvalid[blk_of(ppn)]++; st.prog[S_HOST]++;
+        cmt_update(x);
+    }
+
+    // ================= feature collector + agent =================
+    // A request is one write handed to the FTL (post write buffer) or one run of consecutive single-page reads.
+    static u64 dist(u64 o, const Req& r) { return o < r.s ? r.s - o : (o > r.e ? o - r.e : 0); }
+    void new_req(u64 s, u64 e, bool rd) {
+        if (wn) {   // close the newest request: re-access = it overlaps one of the (up to W-1) requests before it
+            int i = (wh + CM_W - 1) % CM_W; uint8_t rea = 0;
+            for (int j = 1; j < wn && !rea; ++j) { const Req& q = win[(i + CM_W - j) % CM_W]; if (win[i].s < q.e && q.s < win[i].e) rea = 1; }
+            win_rea[i] = rea; win_rean += rea;
+        }
+        if (per_req == c.comap_period) period_end();
+        uint8_t rnd = 1;
+        if (wn) { u64 m = ~0ull; for (int j = 1; j <= std::min(wn, CM_K); ++j) m = std::min(m, dist(s, win[(wh + CM_W - j) % CM_W])); rnd = m > (u64)CM_DIST; }
+        if (wn == CM_W) { win_rnd -= win[wh].rnd; win_rean -= win_rea[wh]; } else wn++;
+        win[wh] = {s, e, rnd}; win_rea[wh] = 0; wh = (wh + 1) % CM_W; win_rnd += rnd;
+        per_req++; per_rd += rd; per_rnd += rnd;
+    }
+    static const int PCT[NA];
+    void period_end() {
+        n_periods++;
+        int type = 2 * win_rnd > wn ? 0 : (10 * win_rean > 3 * wn ? 1 : 2);   // Algorithm 1: random / temporal / spatial
+        int rwb = (int)std::min<u64>(9, per_rd * 10 / per_req), rnb = (int)std::min<u64>(9, per_rnd * 10 / per_req);
+        int big = per_pages > 6 * per_req;                                      // mean request > 24 KiB
+        int s2 = ((type * 10 + rwb) * 10 + rnb) * 2 + big;
+        u64 tv = 0; for (int b = 0; b < NB; ++b) tv += (u64)bvalid[b];
+        long long frac = tv ? (long long)((pm_valid << 16) / tv) : 0;            // page-mapped share of valid pages
+        long long r = 0;
+        if (c.comap_learn) {
+            if (prev_s >= 0) {   // reward (1), alpha = beta = 1, gamma = 0.1
+                long long d = frac - frac_prev;
+                r = -(Tb ? (long long)((Rb << 16) / Tb) : 0) + (Tp ? (long long)((Rp << 16) / Tp) : 0) - (d < 0 ? -d : d) / 10;
+                long long mq = Q[s2 * NA]; for (int a = 1; a < NA; ++a) mq = std::max(mq, Q[s2 * NA + a]);
+                long long& q = Q[prev_s * NA + prev_a];
+                q += (r + 9 * mq / 10 - q) / 10;                                  // learning rate 0.1, discount 0.9
+            }
+            int a = 0;
+            if (xs(ax) % 10 == 0) a = (int)(xs(ax) % NA);                       // epsilon 0.1
+            else for (int k = 1; k < NA; ++k) if (Q[s2 * NA + k] > Q[s2 * NA + a]) a = k;
+            P_ppm = P_ppm * (u64)(100 + PCT[a]) / 100;
+            if (P_ppm < 10000) P_ppm = 10000; if (P_ppm > 990000) P_ppm = 990000;
+            prev_s = s2; prev_a = a;
+            if (measuring) m_act[a]++;
+        }
+        if (measuring) { m_periods++; m_psum += P_ppm; m_type[type]++; m_rsum += r; m_tb += Tb; m_rb += Rb; m_tp += Tp; m_rp += Rp; }
+        frac_prev = frac;
+        per_req = per_rd = per_rnd = per_pages = Tb = Rb = Tp = Rp = 0;
+    }
+
+    void host_write(u64 lpn, u64 n) {
+        st.host_pages += n;
+        rd_run = false;
+        new_req(lpn, lpn + n, false); per_pages += n;
+        bool page = (xs(rx) >> 11) % 1000000 < P_ppm;
+        if (page) { st.host_fine += n; if (measuring) m_req_page++; for (u64 p = lpn; p < lpn + n; ++p) pm_write_page(p); }
+        else { st.host_coarse += n; if (measuring) m_req_block++; for (u64 p = lpn; p < lpn + n; ++p) blk_write_page(p); }
+        if (measuring && ts && st.host_pages >= ts_next) { ts_sample(); ts_next += ts_interval; }
+        if (c.comap_verify && ++n_wreq % c.comap_verify == 0) verify();
+    }
+    void read_lookup(u64 x) {
+        int i = (wh + CM_W - 1) % CM_W;
+        if (rd_run && x == win[i].e) win[i].e++;
+        else { new_req(x, x + 1, true); rd_run = true; i = (wh + CM_W - 1) % CM_W; }
+        per_pages++;
+        bool rnd = win[i].rnd;
+        st.d_rd_ops++;
+        if (pbit[x]) { rctx = 0; cmt_read(x); rctx = 1; Tp++; Rp += rnd; }
+        else if (latest(x) != NONE) { Tb++; Rb += rnd; }
+        else st.d_rd_unmapped++;
+    }
+
+    void ts_header() { fprintf(ts, "host_pages,waf_cum,P_ppm,pm_valid,page_blocks,log_blocks,free\n"); }
+    void ts_sample() {
+        u64 tp = st.total_prog();
+        fprintf(ts, "%llu,%.5f,%llu,%llu,%d,%zu,%zu\n", (unsigned long long)st.host_pages, st.host_pages ? (double)tp / st.host_pages : 0.0,
+                (unsigned long long)P_ppm, (unsigned long long)pm_valid, page_blocks, rw.size() + (sw >= 0), freelist.size());
+    }
+    // every lpn has at most one live copy, found through exactly one map; block valid counts, bitmap, page area, log map,
+    // CMT (only page-mapped entries) and block budgets are consistent
+    void verify() {
+        std::vector<int32_t> v(NB, 0); u64 lp = 0, pv = 0;
+        for (u64 x = 0; x < L; ++x) {
+            if (pbit[x]) {
+                u32 p = pmap[x];
+                if (p == NONE || lmap[x] != NONE || btag[blk_of(p)] != C_PAGE || p2l[p] != (u32)x) DIE("comap verify: page-mapped lpn %llu inconsistent", (unsigned long long)x);
+                pv++;
+            } else if (pmap[x] != NONE) DIE("comap verify: lpn %llu has a page map entry but its bit is clear", (unsigned long long)x);
+            if (lmap[x] != NONE) {
+                lp++;
+                if (btag[blk_of(lmap[x])] != C_LOG || p2l[lmap[x]] != (u32)x) DIE("comap verify: log copy of lpn %llu inconsistent", (unsigned long long)x);
+            }
+            u32 p = latest(x);
+            if (p != NONE) { v[blk_of(p)]++; if (p2l[p] != (u32)x) DIE("comap verify: p2l of lpn %llu", (unsigned long long)x); }
+        }
+        int nd = 0, nlg = 0, npg = 0;
+        for (int b = 0; b < NB; ++b) {
+            if (v[b] != bvalid[b]) DIE("comap verify: block %d tag=%d kind=%d computed=%d tracked=%d", b, btag[b], lkind[b], v[b], bvalid[b]);
+            nd += btag[b] == C_DATA; nlg += btag[b] == C_LOG; npg += btag[b] == C_PAGE;
+        }
+        if (lp != logpages || pv != pm_valid) DIE("comap verify: logpages %llu/%llu pm_valid %llu/%llu", (unsigned long long)lp, (unsigned long long)logpages, (unsigned long long)pv, (unsigned long long)pm_valid);
+        if (npg != page_blocks || npg > page_cap || nlg > nl || nd > (int)NLB || (int)rw.size() > rwcap || nd + nlg + npg + (int)freelist.size() != NB)
+            DIE("comap verify: blocks data=%d log=%d page=%d(%d, cap %d) free=%zu", nd, nlg, npg, page_blocks, page_cap, freelist.size());
+        if (cmt.size() != cmt_lru.size() || cmt.size() > cmt_cap) DIE("comap verify: CMT size");
+        for (u64 x : cmt_lru) if (!pbit[x]) DIE("comap verify: CMT holds block-mapped lpn %llu", (unsigned long long)x);
+        fprintf(stderr, "[verify] ok. page_mapped=%llu (%.4f) log_pages=%llu blocks data=%d log=%d page=%d free=%zu cmt=%zu P=%.4f\n",
+                (unsigned long long)pm_valid, (double)pm_valid / L, (unsigned long long)logpages, nd, nlg, npg, freelist.size(), cmt.size(), P_ppm / 1e6);
+    }
+    u64 mem_bytes() const { return fixed_bytes + (logpages * 80 + 3) / 7 + ((u64)cmt.size() * 80 + 3) / 7; }
+    void report() {
+        u64 tp = st.total_prog();
+        auto R = [](double a, double b) { return b ? a / b : 0.0; };
+        printf("{\n");
+        printf("  \"tag\": \"%s\", \"mode\": \"%s\", \"seed\": %llu,\n", c.tag.c_str(), c.mode.c_str(), (unsigned long long)c.seed);
+        printf("  \"capacity_gb\": %.2f, \"P\": %d, \"U\": %d, \"op\": %.3f, \"NB\": %d, \"NLB\": %u,\n", L * 4096.0 / (1 << 30), P, U, c.op, NB, NLB);
+        { u64 hs = st.host_submitted ? st.host_submitted : st.host_pages;
+          printf("  \"host_pages\": %llu, \"host_pages_ftl\": %llu, \"buffer_absorbed\": %.4f, \"total_prog\": %llu, \"WAF\": %.4f, \"WAF_ftl\": %.4f,\n",
+                 (unsigned long long)hs, (unsigned long long)st.host_pages, hs ? 1.0 - (double)st.host_pages / hs : 0.0,
+                 (unsigned long long)tp, hs ? (double)tp / hs : 0.0, st.host_pages ? (double)tp / st.host_pages : 0.0); }
+        printf("  \"prog\": {"); for (int i = 0; i < S_N; ++i) printf("%s\"%s\": %llu", i ? ", " : "", SRC_NAME[i], (unsigned long long)st.prog[i]); printf("},\n");
+        printf("  \"reads\": {\"gc_copy\": %llu, \"map\": %llu},\n", (unsigned long long)st.read_gc_copy, (unsigned long long)st.read_map);
+        printf("  \"erases\": %llu, \"map_miss\": %llu, \"map_flush\": %llu,\n", (unsigned long long)st.erases, (unsigned long long)st.map_miss, (unsigned long long)st.map_flush);
+        printf("  \"events\": {\"switch\": %llu, \"partial\": %llu, \"full\": %llu, \"dead_reclaim\": %llu, \"merge_reclaim\": %llu, \"avg_assoc\": %.2f, "
+               "\"page_gc\": %llu, \"page_gc_avg_valid\": %.1f, \"demoted_pages\": %llu, \"merge_holes_total\": %llu},\n",
+               (unsigned long long)st.n_switch, (unsigned long long)st.n_partial, (unsigned long long)st.n_full, (unsigned long long)st.n_dead_reclaim,
+               (unsigned long long)st.n_merge_reclaim, R(st.full_assoc_sum, st.n_merge_reclaim), (unsigned long long)st.n_pgc, R(st.pgc_valid_sum, st.n_pgc),
+               (unsigned long long)st.prog[S_PGC], (unsigned long long)n_hole);
+        printf("  \"dram\": {\"host_read_pages\": %llu, \"flash_map_reads_per_host_read\": %.5f, \"read_from_buffer\": %llu, \"read_unmapped\": %llu, "
+               "\"host_write_pages\": %llu, \"flash_map_reads_per_host_write\": %.5f},\n",
+               (unsigned long long)st.d_rd_ops, R(st.dfr[0], st.d_rd_ops), (unsigned long long)st.d_rd_buf, (unsigned long long)st.d_rd_unmapped,
+               (unsigned long long)st.host_pages, R(st.dfr[1], st.host_pages));
+        printf("  \"mem\": {\"total_bytes\": %llu, \"budget_bytes\": %llu, \"block_map\": %llu, \"bitmap\": %llu, \"gtd\": %llu, \"log_map_cap\": %llu, \"cmt_cap_bytes\": %llu, "
+               "\"log_pages_end\": %llu, \"cmt_entries_end\": %zu},\n",
+               (unsigned long long)mem_bytes(), (unsigned long long)c.cache_bytes, (unsigned long long)NLB * 4, (unsigned long long)((L + 7) / 8),
+               (unsigned long long)(ntp * 4), (unsigned long long)log_bytes, (unsigned long long)cmt_bytes, (unsigned long long)logpages, cmt.size());
+        printf("  \"comap\": {\"log_blocks\": %d, \"rw_cap\": %d, \"cmt_cap\": %llu, \"page_cap_blocks\": %d, \"period\": %llu, \"learn\": %d, "
+               "\"P_end\": %.4f, \"P_mean\": %.4f, \"page_mapped_end\": %llu, \"page_mapped_frac_end\": %.4f, \"page_mapped_frac_of_valid\": %.4f, "
+               "\"host_pages_page\": %llu, \"host_pages_block\": %llu, \"write_req_page\": %llu, \"write_req_block\": %llu, "
+               "\"periods\": %llu, \"periods_measured\": %llu, \"actions\": [%llu,%llu,%llu,%llu,%llu], \"access_type\": [%llu,%llu,%llu], \"reward_mean\": %.4f, "
+               "\"reads_block\": %llu, \"reads_block_rand\": %llu, \"reads_page\": %llu, \"reads_page_rand\": %llu, \"page_blocks_end\": %d, \"free_end\": %zu}\n",
+               nl, rwcap, (unsigned long long)cmt_cap, page_cap, (unsigned long long)c.comap_period, c.comap_learn,
+               P_ppm / 1e6, m_periods ? (double)m_psum / m_periods / 1e6 : P_ppm / 1e6, (unsigned long long)pm_valid, (double)pm_valid / L,
+               [&] { u64 tv = 0; for (int b = 0; b < NB; ++b) tv += bvalid[b]; return R(pm_valid, tv); }(),
+               (unsigned long long)st.host_fine, (unsigned long long)st.host_coarse, (unsigned long long)m_req_page, (unsigned long long)m_req_block,
+               (unsigned long long)n_periods, (unsigned long long)m_periods, (unsigned long long)m_act[0], (unsigned long long)m_act[1], (unsigned long long)m_act[2],
+               (unsigned long long)m_act[3], (unsigned long long)m_act[4], (unsigned long long)m_type[0], (unsigned long long)m_type[1], (unsigned long long)m_type[2],
+               m_periods ? (double)m_rsum / m_periods / 65536.0 : 0.0, (unsigned long long)m_tb, (unsigned long long)m_rb, (unsigned long long)m_tp, (unsigned long long)m_rp,
+               page_blocks, freelist.size());
+        printf("}\n");
+    }
+};
+const int CoMapSim::PCT[CoMapSim::NA] = {0, 3, -3, 9, -9};   // action a: P <- P x (1 + a)
 
 // ----------------------------------------------------------------------------
 // MuSim: mu-FTL (Lee et al., EMSOFT 2008) — extent-based mapping <l,p,n> in a flash-resident mu-tree with a RAM cache,
@@ -3117,10 +3769,13 @@ int main(int argc, char** argv) {
         else if (k == "gc_fine_bias") c.gc_fine_bias = atof(v.c_str());
         else if (k == "spill") c.spill = atoi(v.c_str());
         else if (k == "spill_ipf") c.spill_ipf = atoi(v.c_str());
+        else if (k == "ct_kick") c.ct_kick = atoi(v.c_str());
         else if (k == "fold_on_read") c.fold_on_read = atoi(v.c_str());
         else if (k == "spill_rp") c.spill_rp = atoi(v.c_str());
         else if (k == "spill_rp_rate") c.spill_rp_rate = atoi(v.c_str());
         else if (k == "spill_rp_clean") c.spill_rp_clean = atoi(v.c_str());
+        else if (k == "pbm") c.pbm = atoi(v.c_str());
+        else if (k == "ssum") c.ssum = atoi(v.c_str());
         else if (k == "cgc_diag") c.cgc_diag = atoi(v.c_str());
         else if (k == "uni_quota") c.uni_quota = atof(v.c_str());
         else if (k == "age_sep") c.age_sep = atoi(v.c_str());
@@ -3139,6 +3794,14 @@ int main(int argc, char** argv) {
         else if (k == "oracle") c.oracle = atoi(v.c_str());
         else if (k == "uni_vict") c.uni_vict = v;
         else if (k == "uni_cc") c.uni_cc = atoi(v.c_str());
+        else if (k == "fast_cap") c.fast_cap = atoi(v.c_str());
+        else if (k == "comap_logfrac") c.comap_logfrac = atof(v.c_str());
+        else if (k == "comap_period") c.comap_period = strtoull(v.c_str(), nullptr, 10);
+        else if (k == "comap_seed") c.comap_seed = strtoull(v.c_str(), nullptr, 10);
+        else if (k == "comap_p0") c.comap_p0 = atoi(v.c_str());
+        else if (k == "comap_learn") c.comap_learn = atoi(v.c_str());
+        else if (k == "comap_tpbuf") c.comap_tpbuf = atoi(v.c_str());
+        else if (k == "comap_verify") c.comap_verify = strtoull(v.c_str(), nullptr, 10);
         else { fprintf(stderr, "unknown key %s\n", k.c_str()); return 1; }
     }
     if (c.mode == "cftl") c.mode = "dftl";  // alias
@@ -3147,6 +3810,7 @@ int main(int argc, char** argv) {
     if (c.P == 0) { u64 pages = c.capacity / 4096; u64 p = pages * 3 / 1024; p -= p % (64 * c.U); if (p < (u64)(64 * c.U)) p = 64 * c.U; c.P = (int)p; }
     if (c.mode == "fast" || c.mode == "last" || c.mode == "janus") { HybridSim s(c); Runner<HybridSim> r(s); r.run(); }
     else if (c.mode == "mu") { MuSim s(c); Runner<MuSim> r(s); r.run(); }
+    else if (c.mode == "comap") { CoMapSim s(c); Runner<CoMapSim> r(s); r.run(); }
     else { Sim s(c); Runner<Sim> r(s); r.run(); }
     return 0;
 }

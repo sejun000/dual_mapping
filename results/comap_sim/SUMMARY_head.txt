@@ -1,0 +1,54 @@
+COMAP BASELINE IN FTLSIM (2026-10-29) -- mode=comap vs DUET BASE / DFTL / FAST at 1/8 mapping DRAM (B12)
+CoMap = Zhou, Wang, Feng, "How to Manage the Mapping Table of Large-Capacity SSDs", DATE 2026. No public code: paper parts as
+written, the rest = the approved FAST-based interpretation. Full description, every constant, parity runs:
+~/nvmevirt_comap/dm/NOTES_comap.md (NVMeVirt port, bit-identical to this ftlsim mode). Code: ftlsim/ftlsim.cpp struct CoMapSim.
+
+In one paragraph: per host write request (post write buffer) an RL probability P picks page mapping (R < P) or block mapping.
+Block side = FAST (offset-fixed data block per logical block of P pages, SW + RW log blocks, merges); page side = DFTL
+(translation pages, LRU CMT, GTD, tpbuf) on a page area of at most NB - NLB - T - logblocks blocks (18 of 373); a 1-bit/page
+bitmap says which side holds a page. Collector: random iff min distance to the last K=8 requests' ranges > 128 KiB, window
+W=64, Algorithm 1 (rand > 50 / rar > 0.3). Agent: 600 states x 5 actions {0, +-3, +-9 %}, lr 0.1, discount 0.9, eps 0.1,
+period 4096 requests, P0 0.5 clamped [0.01, 0.99], reward -Rb/Tb + Rp/Tp - 0.1 |dMap| (integer fixed point x 2^16).
+Page-area GC (area full): greedy victim, live pages move to block mapping via the random log (required: offset-fixed data
+blocks keep a slot for every page, so at 7 % OP the page side can hold only ~5 % of the data). The paper's data-cache
+allocator is omitted (no read data cache in ftlsim / NVMeVirt). Logical space = whole logical blocks (L - L % P, as FAST).
+
+DRAM split at B12 (cache_bytes = L x 4 / 8 of page4k's L): fixed block map 4 B/LB + bitmap L/8 + GTD 4 B/1024 pages (25.7 %
+of B12); comap_logfrac = 0.5 of the rest buys whole log blocks (P x 8 / 0.7 B each), the CMT gets what is left (8 B / 0.7).
+  96G device (L 23559648, Lc 23519232, P 67584): budget 11779824 = block map 1392 + bitmap 2939904 + GTD 91872 + log 5 blocks
+  (SW + 4 RW) 3861945 + CMT 427412 entries 4884711; page area <= 18 blocks. Same 5 log blocks on every workload here
+  (SPFresh CMT 95424, apps 195830, Ali-3 263847). For comparison at B12: FAST gets 15 log blocks (SW + 14 RW), DFTL 1.03M CMT
+  entries (96G).
+
+Jobs (jobs.txt, run.sh; 8 parallel on node-0 CPUs 4-40 even, binary results/comap_sim/ftlsim.bin): the BASE lines of
+results/frag_bitmap/jobs1.txt with the policy options replaced by
+  comap : mode=comap cache_bytes=B12 dram_stats=1 [trace_clip=1 on the identity-address app traces: Lc < L]
+  dftl  : mode=dftl cache_bytes=B12 dftl_tpbuf=1 dram_stats=1                           (= NVMeVirt dftl:cache_bytes=B12,dftl_tpbuf=1)
+  fast  : mode=fast fast_cap=1 cache_bytes=B12 op=0.072 dram_stats=1 [trace_clip=1]     (= NVMeVirt fast:cache_bytes=B12; op 0.072
+          gives NB 373 after FAST's L truncation, as results/op7s_dev)
+  comap_lf90 (jobs_sens.txt): comap with comap_logfrac=0.9 (10 log blocks, CMT 20k-89k entries)
+  Clipped pages (identity traces, Lc < L): <= 0.3 % of the write pages (ycsbfstd 299698 of 178.7M).
+
+Checks
+  * Options off are bit-identical: 12 synthetic runs (proposed BASE, +pbm, page4k, dftl, fast, fast cache_bytes=1M, last, janus,
+    mu, leaftl, iu_rmw, sepbit) identical byte for byte to results/frag_bitmap/ftlsim.bin; re-runs of the spfresh and f37 BASE
+    jobs (bitid/) equal results/frag_bitmap/*/base.json in every JSON field.
+  * verify() at warm-up end and run end of every comap job (16/16 ok): every lpn has one live copy reached through exactly one
+    map (bit -> page area, else log map, else data slot), p2l matches, recomputed block valid counts == tracked, bitmap ==
+    page-map entries, log-page / page-mapped counters, block budgets (data <= NLB, log <= SW + rwcap, page <= page_cap,
+    sum + free == NB), CMT holds only page-mapped lpns and <= cmt_cap. Plus stress runs with comap_verify=997 (verify every
+    997 write requests; 5 configurations, all ok).
+  * NVMeVirt harness parity: bit-identical WAF / programs / erases on skew, rand4k, kvsmoke (P=256, with and without host
+    reads, non-default options; P=4096) and on the SPFresh trace at the NVMeVirt geometry with reads (WAF 74.5904,
+    550680027 programs, 38194 erases; parity/).
+
+Findings
+  * CoMap's WAF is 2.0-3.2x FAST's and 3.9-7.3x DUET's at the same DRAM. Cause = the DRAM split, not the page side: the bitmap
+    (L/8) and the CMT take ~2/3 of B12, leaving 5 log blocks instead of FAST's 15, and FAST-style merges (each RW reclaim
+    full-merges every logical block with a page in it, avg 80+ blocks x P pages) scale with 1 / log blocks. Diagnostic
+    (diag/): FAST itself with CoMap's 4 RW blocks on SPFresh = WAF 81.3 vs CoMap 74.6, i.e. the page area slightly helps.
+    comap_logfrac=0.9 (10 log blocks) halves CoMap's WAF (still 1.3-1.5x FAST).
+  * The agent's P drifts low on most workloads (P_mean 0.02-0.50); with mostly random reads Rb/Tb ~ Rp/Tp ~ 1 the two read
+    terms cancel and the reward is dominated by the |dMap| term. The page-mapped share stays <= 5 % of the pages (space bound),
+    so few reads touch page-mapped data (rdP% 1-5 %) and map reads per host read are tiny (<= 0.03): CoMap pays in WAF, not
+    in map reads.

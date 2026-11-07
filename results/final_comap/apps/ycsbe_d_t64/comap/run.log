@@ -1,0 +1,90 @@
+[11:23:30] === ycsbe_d_t64_comap_20261029T112330Z -> /home/sejun000/dual_mapping/results/final_comap/apps/ycsbe_d_t64/comap
+[11:23:30] insmod /home/sejun000/nvmevirt_comap/nvmev.ko memmap_start=256G memmap_size=44G cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=5399080,comap_logfrac_ppm=900000'
+[11:23:31] target /dev/nvme3n1 (CSL_Virt_MN_01 41.1G)
+[11:23:31] memory cgroup dmapp.slice: MemoryMax=8421M MemoryHigh=7368M (20% of 44153438208 B)
+[11:23:31] [prefill] sequential 128K write of the whole /dev/nvme3n1 (44153438208 B) before mkfs
+[11:24:39] [prefill] done in 68 s
+[11:24:39] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[11:24:40] ext4 capacity (used+avail) 40917221376 B, util 0%
+[11:24:40] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 40917221376 B)
+[11:24:41] [ycsb] 16 instances x (records=625000 threads=4 workloade)
+[11:29:49] [ballast] writing 7687 MiB to reach ~76% (pending 0 MiB)
+[11:30:41] [ballast] df util now 75%
+[11:30:59] measurement start utilisation=75% (window 73-85)
+[11:30:59] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/final_comap/apps/ycsbe_d_t64/comap
+workload=ycsbe_d_t64
+policy=comap
+status=DONE
+start_util_pct=75.9988
+end_util_pct=93.1181
+ext4_write_kbytes_delta=85643720
+blk_read_ios=1585967
+blk_write_ios=8411020
+blk_read_bytes=14404669440
+blk_write_bytes=87699169280
+blk_avg_write_req_kb=10.1823
+dev_read_lat_ms_avg=0.447622
+dev_write_lat_ms_avg=6.70336
+write_qd_max=511
+blk_read_lat_us_mean=446.745
+blk_read_lat_us_p50=128.736
+blk_read_lat_us_p90=365.137
+blk_read_lat_us_p99=1639.1
+blk_read_lat_us_p99.9=46824.9
+blk_read_lat_us_p99.99=449527
+blk_write_lat_us_mean=6765.43
+blk_write_lat_us_p50=18.5394
+blk_write_lat_us_p90=1457.56
+blk_write_lat_us_p99=195680
+blk_write_lat_us_p99.9=750980
+blk_write_lat_us_p99.99=1.57486e+06
+app_write_bytes=95048683776
+fs_waf=0.922676
+dev_host_write_pages=21410994
+dev_host_read_pages=3516765
+dev_nand_progs=132200696
+dev_waf=6.17443
+dev_waf_gc=5.5921
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.00141315
+dev_waf_other=0
+dev_nand_reads=124024302
+dev_map_reads_per_host_page=0.0310988
+dev_map_reads_per_host_read=0.220437
+dev_erases=4374
+dev_map_miss=3749249
+dev_mapping_mem_bytes_end=2996544
+total_waf=5.697
+memcg_max=8830058496
+memcg_high=7725907968
+memcg_peak=7732727808
+memcg_events_high=25951
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=261591040
+throughput=165186
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.INSERT.ops=4.95423e+06
+ycsb_ops.INSERT.avg_us=3682.46
+ycsb_ops.INSERT.p50_us=246.625
+ycsb_ops.INSERT.p90_us=1018.81
+ycsb_ops.INSERT.p95_us=9394.5
+ycsb_ops.INSERT.p99_us=67733
+ycsb_ops.INSERT.p99.9_us=469919
+ycsb_ops.INSERT.max_us=4.44006e+06
+ycsb_ops.SCAN.ops=9.41906e+07
+ycsb_ops.SCAN.avg_us=192.085
+ycsb_ops.SCAN.p50_us=144
+ycsb_ops.SCAN.p90_us=341
+ycsb_ops.SCAN.p95_us=406.5
+ycsb_ops.SCAN.p99_us=528.938
+ycsb_ops.SCAN.p99.9_us=912.188
+ycsb_ops.SCAN.max_us=3.60038e+06
+app_write_lat_ms_avg=3.68246
+app_write_lat_ms_p99=67.733
+app_read_lat_ms_avg=0.192085
+app_read_lat_ms_p99=0.528937
+[11:42:05] === ycsbe_d_t64_comap_20261029T112330Z status DONE
