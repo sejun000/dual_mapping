@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include "dm_wbuf.h"
 
+static inline u64 wb_pop(dm_wbm_t x) { return (u64)dm_popcount64((u64)x) + (u64)dm_popcount64((u64)(x >> 64)); }
+
 static u32 h_slot(struct dm_wbuf *wb, u64 iu) { return (u32)((iu * 0x9E3779B97F4A7C15ull) >> 32) & (wb->hsize - 1); }
 
 static s32 h_find(struct dm_wbuf *wb, u64 iu)
@@ -54,16 +56,16 @@ int dm_wbuf_init(struct dm_wbuf *wb, u32 U, u64 cap_pages, dm_emit_fn emit, void
 
 void dm_wbuf_destroy(struct dm_wbuf *wb) { dm_free(wb->htab); dm_free(wb->ent); }
 
-static void flush_runs(struct dm_wbuf *wb, u64 iu, u32 bm)
+static void flush_runs(struct dm_wbuf *wb, u64 iu, dm_wbm_t bm)
 {
 	u32 off = 0, U = wb->U;
 	while (off < U) {
 		u32 start;
-		if (!(bm & (1u << off))) { off++; continue; }
-		start = off; while (off < U && (bm & (1u << off))) off++;
+		if (!(bm & ((dm_wbm_t)1 << off))) { off++; continue; }
+		start = off; while (off < U && (bm & ((dm_wbm_t)1 << off))) off++;
 		wb->emit(wb->ctx, iu * U + start, off - start);
 	}
-	wb->pages -= (u64)dm_popcount(bm);
+	wb->pages -= wb_pop(bm);
 }
 
 /* remove entry e (hash slot s) and return it to the free list */
@@ -75,7 +77,7 @@ static void ent_release(struct dm_wbuf *wb, s32 e, u32 s)
 
 static void evict_lru(struct dm_wbuf *wb)
 {
-	s32 e = wb->lru; u64 iu = wb->ent[e].iu; u32 bm = wb->ent[e].bm;
+	s32 e = wb->lru; u64 iu = wb->ent[e].iu; dm_wbm_t bm = wb->ent[e].bm;
 	s32 s = h_find(wb, iu);
 	ent_release(wb, e, (u32)s);
 	flush_runs(wb, iu, bm);
@@ -89,8 +91,8 @@ void dm_wbuf_write(struct dm_wbuf *wb, u64 lpn, u64 n)
 	while (cur < end) {
 		u64 iu = cur / U; u32 off = (u32)(cur % U);
 		u32 w = (u32)((end - cur) < (u64)(U - off) ? (end - cur) : (U - off));
-		u32 bits = (w == 32 ? 0xFFFFFFFFu : ((1u << w) - 1)) << off;
-		s32 s = h_find(wb, iu), e; u32 old, nb;
+		dm_wbm_t bits = (w == 128 ? ~(dm_wbm_t)0 : (((dm_wbm_t)1 << w) - 1)) << off;
+		s32 s = h_find(wb, iu), e; dm_wbm_t old, nb;
 		if (s < 0) {
 			e = wb->free_head; if (e < 0) dm_die("wbuf: out of entries\n");
 			wb->free_head = wb->ent[e].next;
@@ -98,9 +100,9 @@ void dm_wbuf_write(struct dm_wbuf *wb, u64 lpn, u64 n)
 			s = -1 - s; wb->htab[s] = e; l_push_mru(wb, e);
 		} else { e = wb->htab[s]; l_unlink(wb, e); l_push_mru(wb, e); }
 		old = wb->ent[e].bm; nb = old | bits;
-		wb->pages += (u64)dm_popcount(nb) - (u64)dm_popcount(old);
+		wb->pages += wb_pop(nb) - wb_pop(old);
 		wb->ent[e].bm = nb;
-		if ((u32)dm_popcount(nb) == U) { ent_release(wb, e, (u32)s); wb->emit(wb->ctx, iu * U, U); wb->pages -= U; }
+		if (wb_pop(nb) == U) { ent_release(wb, e, (u32)s); wb->emit(wb->ctx, iu * U, U); wb->pages -= U; }
 		cur += w;
 		while (wb->pages > wb->cap_pages && wb->lru >= 0) evict_lru(wb);
 	}

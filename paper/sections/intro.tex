@@ -1,7 +1,7 @@
 % DUET -- Introduction (DAC 2027 draft, 2026-10-20)
 % Numbers: results/paper_dac/tables.md (NVMeVirt, 12.5% mapping DRAM, OP 7%). TODO-marked cites need sources.
 % Class numbers: best FTL of each class per workload (on-demand = DFTL, LeaFTL; hybrid = FAST, CoMap; coarse IU = IU+RMW).
-% Read 2.4x = min(DFTL, LeaFTL) / DUET avg read, max over workloads (YCSB-B). p99 write 4.6x = FAST / DUET on TPC-C.
+% Read 2.4x = min(DFTL, LeaFTL) / DUET avg read, max over workloads (YCSB-B). p99 write 4.6x = FAST / DUET on TPC-C. FAST = FAST-B12 (same budget). FAST full (cache_bytes=1e9, results/final_fastfull): 72%, 2.7x.
 
 \section{Introduction}
 \label{sec:intro}
@@ -15,11 +15,11 @@ commercial SSDs deployed today map at 4\,KB granularity and keep this table in
 on-device DRAM.
 
 With QLC NAND, SSDs of 64 and 128\,TB are being released and
-developed~\cite{TODO-qlc-capacity}. At 4\,KB granularity, a 64\,TB SSD has
+developed~\cite{solidigm-122tb,samsung-bm1743}. At 4\,KB granularity, a 64\,TB SSD has
 $2^{34}$ logical pages, so each entry needs at least 34 bits and the table takes
 68\,GB. A 128\,TB SSD needs 35-bit entries and 140\,GB. Providing this much
 on-device DRAM is impractical because of its cost, power, and board
-area~\cite{TODO-dram-cost}, so large SSDs have to translate addresses with a
+area~\cite{micron-iu}, so large SSDs have to translate addresses with a
 mapping DRAM budget that is only a fraction of the full page-level table
 (Figure~\ref{fig:intro}a).
 
@@ -30,7 +30,7 @@ mapping DRAM budget that is only a fraction of the full page-level table
   \caption{Address translation of four FTLs. In (d), page-level mappings spill to
   map pages instead of being merged when the DRAM table is full, and are loaded back on access.}
   \label{fig:intro}
-  \vspace{-4mm}
+  \vspace{-2.5mm}
 \end{figure}
 
 Techniques that reduce the mapping DRAM fall into two broad classes, and both
@@ -45,12 +45,12 @@ latency spikes whenever the map cache misses.
 per NAND block and appends updates to page-mapped log blocks. When free space
 runs low, the log blocks are merged back into their data blocks, and a merge
 must copy all valid pages of a whole NAND block. Each 3D NAND generation
-enlarges the NAND block~\cite{TODO-block-size}, so a merge copies more pages,
+enlarges the NAND block~\cite{pen}, so a merge copies more pages,
 and these copies compete with host writes for NAND bandwidth. In our measurements, the p99 write latency
 of FAST~\cite{fast}, a representative block-level hybrid mapping FTL, is 2.8--3.4$\times$ that of a page-level FTL under random I/O.
 
 Many recent commercial high-capacity SSDs instead map all data with a
-\emph{uniform coarse indirection unit} (uniform coarse IU) of 16--64\,KB~\cite{TODO-iu}. The
+\emph{uniform coarse indirection unit} (uniform coarse IU) of 16--64\,KB~\cite{micron-iu,solidigm-csal}. The
 whole coarse table fits in on-device DRAM, with no mapping misses and no block-level merges.
 The cost moves to small writes. When a write is smaller than a coarse IU, the FTL
 reads the rest of the unit, merges the new data, and writes the whole unit again

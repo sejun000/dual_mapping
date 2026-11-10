@@ -58,6 +58,11 @@ policy_params() {
     #   + per page in 18 fine blocks 159962 B (map_budget_ppm 125476); FAST none (block position + log map; same log-block count
     #   as B12, not rerun); CoMap per page in its NB-NLB-T=23 non-data blocks 89056 B (its GTD is inside cache_bytes)
     proposed_vb)  echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    # coarse-IU sensitivity (2026-11-09, results/nvmevirt/q_usens.sh): proposed_vb with U = 32 / 64 / 128 (128 / 256 / 512 KB),
+    # same map_budget_ppm; ~/nvmevirt_proposed built with 128-bit fragment masks (U=16 bit-identical)
+    proposed_vbu32) echo "U=32,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_vbu64) echo "U=64,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_vbu128) echo "U=128,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
     # ablation (2026-11-06, ~/nvmevirt_proposedab, results/nvmevirt/q_ablation.sh): cumulative removals from proposed_vb
     proposedab_ns)   echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0" ;;     # - spill (table overflow -> merge)
     proposedab_nsm)  echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125476,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0,fold_all=1" ;;    # - spill - merge cost model (fine GC always merges), GC choice kept
@@ -73,6 +78,9 @@ policy_params() {
     mu_vb)        echo "cache_bytes=4102215" ;;
     fast_vb)      echo "cache_bytes=5579612" ;;
     comap_vb)     echo "cache_bytes=5490556,comap_logfrac_ppm=900000" ;;
+    # CoMap tuned (2026-11-08, results/comap_sim/tune: ftlsim sweep, WAF -8% geomean vs comap_vb): log blocks get 99% of the
+    # budget left after block map + bitmap + GTD (11 instead of 10), agent starts at P = 0.99 (learning on)
+    comap_vbt)    echo "cache_bytes=5490556,comap_logfrac_ppm=990000,comap_p0=990000" ;;
     # ablation (2026-10-30): proposed_b12q + standard cuckoo displacement (BFS, <= 500 buckets) before a spill
     proposed_b12qk) echo "U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1,ct_kick=500" ;;
     proposed_f)    echo "U=16,fine_extra=0,fine_quota_ppm=42900,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=187500,onefront_fix=1,pool_cap=4" ;;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """DAC ablation figure, same style as tools/plot_eval.py (black bar edges, hatches, DUET saturated).
-Build-up from Basic (nsfm: no spill, fine GC always merges, fine area fixed at its cap): + victim selection (nsm),
+Build-up from Basic (nsfm: no spill, fine GC always merges, fine area fixed at its cap): + coarse-or-fine victim selection (nsm),
 + copy-or-merge decision (ns), + spill/load (= DUET). Normalized to Basic.
 DUET = results/final_vbm (same runs as the main figures), the others = results/final_ablation.
 avg. fine pages (smp_* counters of the instrumented module) are kept in the CSV only (DUET from results/final_stats).
@@ -14,10 +14,10 @@ from matplotlib.patches import Patch
 B = '/home/sejun000/dual_mapping/results'
 OUT, PAPER = B + '/paper_dac', '/home/sejun000/dual_mapping/paper/figs'
 VAR = ['nsfm', 'nsm', 'ns', 'full']
-LABEL = {'nsfm': 'Basic', 'nsm': '+ Victim selection', 'ns': '+ Copy-or-merge', 'full': '+ Spill/load (DUET)'}
+LABEL = {'nsfm': 'Basic', 'nsm': '+ Coarse-or-fine', 'ns': '+ Copy-or-merge', 'full': '+ Spill/load (DUET)'}
 COLOR = {'nsfm': '#EEECFB', 'nsm': '#CBC6F3', 'ns': '#9A91E6', 'full': '#3F2FD0'}
 HATCH = {'nsfm': '..', 'nsm': '\\\\', 'ns': '//', 'full': ''}
-WL = [('app', 'ycsba_d_t64', 'YCSB-A'), ('trace', 'trace_ali3', 'Ali'), ('trace', 'replay_a128_r50_s70', 'R:W 50:50')]
+WL = [('app', 'ycsba_d_t64', 'YCSB-A'), ('trace', 'trace_ali3', 'Alibaba'), ('trace', 'replay_a128_r50_s70', 'R:W 50:50')]
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4, 'axes.linewidth': 0.6})
 
 
@@ -69,7 +69,7 @@ def main():
               ('waf', 'WA', False, (0, 18.5), [0, 5, 10, 15], '{:.1f}'),
               ('r_p99', 'p99 read\n(ms)', False, (1, 200), [1, 10, 100], '{:.1f}'),
               ('w_p99', 'p99 write\n(ms)', False, (10, 1000), [10, 100, 1000], '{:.1f}')]
-    fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.95))
+    fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.4))   # was 1.95 (2026-11-10)
     nb = len(VAR); bw = 0.84 / nb; xs = list(range(len(data)))
     for ax, (m, yl, norm, ylim, yt, fmt) in zip(axs.flat, panels):
         for i, v in enumerate(VAR):
@@ -89,7 +89,7 @@ def main():
         ax.tick_params(axis='y', labelsize=5.6, pad=1); ax.tick_params(axis='x', pad=1, length=0)
         ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
     fig.align_ylabels(axs[:, 0]); fig.align_ylabels(axs[:, 1])
-    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.86)
+    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.875)   # was 0.86 (2026-11-10)
     h = [Patch(fc=COLOR[v], hatch=HATCH[v], ec='black', lw=0.35, label=LABEL[v]) for v in VAR]
     fig.legend(handles=h, ncol=4, fontsize=5.6, loc='upper center', bbox_to_anchor=(0.5, 1.005), frameon=False,
                handlelength=1.5, handleheight=0.9, columnspacing=0.8, handletextpad=0.4)

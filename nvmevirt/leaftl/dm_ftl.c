@@ -244,12 +244,12 @@ static void dm_dump_stats(struct dm_ns *d, const char *when)
 	u64 tp = 0; int i;
 	for (i = 0; i < DM_P_N; i++) tp += d->st.prog[i];
 	NVMEV_INFO("[dm %s] policy=%s L=%llu NB=%u P=%u submitted=%llu host=%llu prog=%llu (host %llu gc %llu rmw %llu fold %llu map %llu other %llu) "
-		   "WAFx1000=%llu reads(host %llu gc %llu rmw %llu fold %llu map %llu) host_read_pages=%llu erases=%llu map_miss=%llu mem=%llu\n",
+		   "WAFx1000=%llu reads(host %llu gc %llu rmw %llu fold %llu map %llu) host_read_pages=%llu erases=%llu map_miss=%llu mem=%llu read_other=%llu\n",
 		   when, dm_policy.name, d->g.L, d->g.NB, d->g.P, d->st.host_submitted, d->st.host_pages, tp,
 		   d->st.prog[DM_P_HOST], d->st.prog[DM_P_GC], d->st.prog[DM_P_RMW], d->st.prog[DM_P_FOLD], d->st.prog[DM_P_MAP], d->st.prog[DM_P_OTHER],
 		   d->st.host_submitted ? tp * 1000 / d->st.host_submitted : 0,
 		   d->st.read[DM_R_HOST], d->st.read[DM_R_GC], d->st.read[DM_R_RMW], d->st.read[DM_R_FOLD], d->st.read[DM_R_MAP],
-		   d->st.host_read_pages, d->st.erases, d->st.map_miss, dm_policy.mem_bytes(d->core));
+		   d->st.host_read_pages, d->st.erases, d->st.map_miss, dm_policy.mem_bytes(d->core), d->st.read[DM_R_OTHER]);
 }
 
 void conv_init_namespace(struct nvmev_ns *ns, uint32_t id, uint64_t size, void *mapped_addr,

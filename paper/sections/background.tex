@@ -1,4 +1,5 @@
 % DUET -- Background and Motivation (DAC 2027 draft, 2026-10-21)
+% DUET vs others (geomean, 2026-11-07): read avg 1.032 vs LeaFTL 1.651 (-37.5%), DFTL 2.411 (-57.2%). write avg (excl. read-only YCSB-C) 1.109 vs FAST 2.394 (-53.7%), IU+RMW 2.095 (-47.1%). WA FAST 2.62x, IU+RMW 2.36x of Page.
 % Numbers: geomean over the 10 evaluation workloads normalized to Page (results/paper_dac/eval_data.csv, tools/plot_eval.py), 1/8 DRAM, OP 7%.
 % Previous single-config version (R70, 4K:128K=70:30, results/final_rp_a128/replay_a128_r70_s70): MOTIV_CFG=r70_s70 tools/plot_motiv.py.
 % Figure: results/paper_dac/fig_motiv.pdf (tools/plot_motiv.py).
@@ -21,7 +22,7 @@ A page-level FTL keeps one entry per 4\,KB logical page, so its table is
 about 0.1\% of the capacity and grows linearly with it. Conventional commercial
 SSDs keep the whole table in on-device DRAM, but high-capacity QLC SSDs can
 hold only a fraction of it because of the cost, power, and
-board area that so much DRAM would take~\cite{TODO-dram-cost}. The FTL must then
+board area that so much DRAM would take~\cite{micron-iu}. The FTL must then
 either keep part of the mapping in flash or map data in larger units. The
 three approaches below take these two routes, and each one moves the cost to a
 different part of the I/O path.
@@ -36,8 +37,10 @@ serialized on the read path. Evicting a dirty entry also writes its FTP
 back, which adds write amplification. LeaFTL~\cite{leaftl} compresses the
 map cache into learned linear segments, so the same DRAM covers more pages.
 The segments, however, are built only from runs of sequentially placed pages,
-and a mispredicted location imposes an extra flash read. For randomly written
-data, both FTLs miss often, and every miss turns
+and a mispredicted location imposes an extra flash read. $\mu$-FTL~\cite{mftl}
+maps data at multiple granularities with variable-size extents, but it keeps the
+extents in a B+-tree in flash and caches only part of the tree in DRAM. For randomly
+written data, these FTLs miss often, and every miss turns
 one read into two dependent flash reads. Read latency therefore depends on the
 map-cache hit ratio, not on the device.
 
@@ -58,14 +61,14 @@ to many logical blocks, all of which must be merged before it is erased.
 The merge copies compete with host writes for NAND bandwidth, which raises
 write latency and lowers write throughput. Each merge also rewrites a whole NAND
 block, and NAND blocks keep growing with 3D NAND
-generations~\cite{TODO-block-size}, so the work behind a single merge grows with
+generations~\cite{pen}, so the work behind a single merge grows with
 them. CoMap~\cite{comap} selects page or block mapping for each
 write request with reinforcement learning, but the data that it maps per block
 are still reorganized at NAND-block granularity.
 
 \textbf{Uniform coarse-IU mapping.}
-High-capacity SSDs in production avoid both problems by mapping all data with a
-\emph{uniform coarse indirection unit} (uniform coarse IU) of 16--64\,KB~\cite{TODO-iu}. One entry per coarse IU
+High-capacity SSDs in production simply map all data with a
+\emph{uniform coarse indirection unit} (uniform coarse IU) of 16--64\,KB~\cite{micron-iu,solidigm-csal}. One entry per coarse IU
 shrinks the table by the coarse-IU size over 4\,KB, so the whole table fits in DRAM:
 every read takes a single flash access, and there are no block-level merges. The cost
 moves to writes smaller than a coarse IU. The FTL must read the rest of the unit,
@@ -79,31 +82,30 @@ amplification by up to the coarse-IU size over the write size. In our evaluation
 Figure~\ref{fig:motiv} compares the three approaches with a page-level FTL
 that keeps its whole table in DRAM. All FTLs run in NVMeVirt~\cite{nvmevirt}
 with the same NAND timing and the same 1/8 mapping-DRAM budget. Each bar is the
-geometric mean over the 10 workloads of Section~\ref{sec:eval} (real traces,
-applications, and raw I/O), normalized to the page-level FTL.
+geometric mean over the 10 workloads of Section~\ref{sec:eval} (synthetic raw I/O,
+real-world traces, and applications). WA and write latency leave out YCSB-C,
+which is read-only.
 
 \textbf{On-demand mapping slows reads.}
 With mapping misses, DFTL needs 1.46 flash reads per host read and LeaFTL 1.22
-(Figure~\ref{fig:motiv}a, where LeaFTL's misprediction reads are not counted, so its
-value is a lower bound). Their average read latency is 2.4$\times$ and
-1.7$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b), although the
-flash itself is the same.
+(Figure~\ref{fig:motiv}a). Their average read latency is 2.4$\times$ and
+1.7$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
+miss adds a synchronous flash read before the data read.
 
 \textbf{Block-level hybrid mapping and uniform coarse IUs slow writes.}
-FAST's block-level merges raise WA by 2.1$\times$ (Figure~\ref{fig:motiv}c),
+FAST's block-level merges raise WA by 2.6$\times$ (Figure~\ref{fig:motiv}c),
 so its average write latency is 2.4$\times$ that of the page-level
-FTL (Figure~\ref{fig:motiv}d) and it delivers only 57\% of the page-level
-throughput. The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
-its 32\,KB unit: WA grows by 2.2$\times$ and write latency by 2.8$\times$.
+FTL (Figure~\ref{fig:motiv}d). The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
+its 32\,KB unit, so its WA grows by 2.4$\times$ and its write latency by 2.1$\times$.
 
-DUET, shown for reference, uses the same DRAM budget as the other bounded FTLs and
-stays within 1.05$\times$ of the page-level FTL in flash reads per read, average
-read and write latency, and WA.
+DUET, shown for reference, uses the same DRAM budget as the other bounded FTLs.
+With fewer flash reads per host read, its average read latency is 38--57\% lower
+than that of on-demand mapping. With a lower WA, its average write latency is
+47--54\% lower than that of block-level hybrid mapping and the uniform coarse IU.
 
 \textbf{Goal.}
 An FTL that fits a limited DRAM budget should therefore (i) minimize mapping
-reads, so that a host read costs a single flash read as with a uniform coarse IU,
-(ii) eliminate block-level merges, and (iii) absorb small writes without RMW.
+reads from flash, so that a host read costs a single flash read, (ii) eliminate block-level merges, and (iii) absorb small writes without RMW.
 DUET meets all three by keeping the coarse IU and adding a fine-grained level
 within the same DRAM budget.
 
@@ -111,9 +113,9 @@ within the same DRAM budget.
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_motiv.pdf}
   \vspace{-6mm}
-  \caption{Existing FTLs with 1/8 of the page-level mapping DRAM, geometric mean over
-  10 workloads. Latency is normalized to Page. (a) Flash reads per host read. (b) Average read
+  \caption{Existing FTLs with about 1/8 of the page-level mapping DRAM, geometric mean over
+  10 workloads, and 9 for WA and write latency (YCSB-C is read-only). Latency is normalized to Page. (a) Flash reads per host read. (b) Average read
   latency. (c) Write amplification. (d) Average write latency.}
   \label{fig:motiv}
-  \vspace{-3mm}
+  \vspace{-2.5mm}
 \end{figure}

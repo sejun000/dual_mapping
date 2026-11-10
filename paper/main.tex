@@ -15,12 +15,26 @@
 \newcommand{\cgc}[1]{\gcbadge{cgcol}{#1}}
 \newcommand{\fgc}[1]{\gcbadge{fgcol}{#1}}
 \usepackage[hidelinks,pdfauthor={},pdfcreator={},pdfproducer={}]{hyperref}
+% (2026-11-09) tighter heading and float spacing (IEEEtran conference: section 1.5ex+1.5ex-0.5ex / 0.7ex+1ex,
+% textfloatsep 1.55 baselineskip); fonts, margins, and columns stay as in the template
+\makeatletter
+\def\section{\@startsection{section}{1}{\z@}{1.0ex plus 0.5ex minus 0.3ex}%
+{0.4ex plus 0.3ex minus 0ex}{\normalfont\normalsize\centering\scshape}}%
+\def\subsection{\@startsection{subsection}{2}{\z@}{0.8ex plus 0.4ex minus 0.3ex}%
+{0.3ex plus 0.2ex minus 0ex}{\normalfont\normalsize\itshape}}%
+\makeatother
+\setlength{\textfloatsep}{0.9\baselineskip plus 0.2\baselineskip minus 0.3\baselineskip}
+\setlength{\dbltextfloatsep}{0.9\baselineskip plus 0.2\baselineskip minus 0.3\baselineskip}
+\setlength{\floatsep}{0.6\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}
+\setlength{\dblfloatsep}{0.6\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}
+\setlength{\abovecaptionskip}{0.35\baselineskip}
 
 \begin{document}
+\bstctlcite{IEEEexample:BSTcontrol}
 
 \title{DUET: Dual-Granularity Address Translation for High-Capacity SSDs}   % TODO: final title
 
-% double-blind: placeholder that keeps room for the final author block
+% double-blind: placeholder that keeps room for the final author block (DAC: leave room for author information)
 \author{\IEEEauthorblockN{Anonymous Author(s)}
 \IEEEauthorblockA{Affiliation omitted for double-blind review}}
 
@@ -28,26 +42,27 @@
 \suppressfloats[t]  % keep Figure 1 out of the left column, so it goes to the top of the right column
 
 \begin{abstract}
-% Numbers = geomean throughput over 10 workloads, results/paper_dac/eval_data.csv (final_vbm).
+% Numbers = geomean throughput over 10 workloads, results/paper_dac/eval_data.csv (final_vbm). 73% = LeaFTL, the best
+% existing bounded FTL. (2026-11-09) shortened to ~100 words (DAC: abstract of about 100 words); previous 149-word
+% version listed 73/57/66% per class and the NVMeVirt setup.
 High-capacity QLC SSDs cannot keep a 4\,KB page-level mapping table in
-on-device DRAM. Existing FTLs that fit a limited mapping DRAM budget slow reads
-with mapping misses, slow writes with block-level merges, or turn every small write into
-a read-modify-write (RMW) of a \emph{uniform coarse indirection unit} (uniform coarse IU). We present
-DUET, an FTL that keeps the coarse IU and maps writes smaller than a coarse IU as
-4\,KB fine pages in a fixed-size DRAM hash table. When the table fills, DUET
-spills the fine-map entries of a coarse IU to NAND instead of moving data, and
-it merges fine pages one coarse IU at a time. In NVMeVirt with 1/8 of the
-page-level mapping DRAM, DUET reaches 93\% of the throughput of a page-level FTL
-with unlimited DRAM, whereas on-demand mapping, block-level hybrid mapping, and a
-uniform coarse IU reach at most 73\%, 57\%, and 66\%, respectively.
+on-device DRAM. Under a limited DRAM budget, existing FTLs slow reads with
+mapping misses, slow writes with block-level merges, or turn small writes into
+read-modify-writes of a uniform coarse indirection unit (IU). We present DUET,
+an FTL that keeps the coarse IU and maps smaller writes as 4\,KB pages in a DRAM
+hash table. DUET spills these entries to NAND when the table fills and merges
+fine pages one coarse IU at a time. With 1/8 of the page-level mapping DRAM,
+DUET reaches 93\% of the throughput of a page-level FTL with unlimited DRAM,
+whereas existing FTLs reach at most 73\%.
 \end{abstract}
 
 \input{sections/intro}
 \input{sections/background}
 \input{sections/design}
+\input{sections/impl}
 \input{sections/eval}
 % \input{sections/related}
-% \input{sections/conclusion}
+\input{sections/conclusion}
 
 \clearpage
 \bibliographystyle{IEEEtran}

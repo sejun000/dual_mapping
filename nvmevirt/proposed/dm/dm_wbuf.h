@@ -8,7 +8,8 @@
 
 typedef void (*dm_emit_fn)(void *ctx, u64 lpn, u64 n);
 
-struct dm_wbuf_ent { u64 iu; u32 bm; s32 prev, next; };
+typedef unsigned __int128 dm_wbm_t;   /* per-IU page bitmap, U <= 128 (2026-11-09; was u32) */
+struct dm_wbuf_ent { u64 iu; dm_wbm_t bm; s32 prev, next; };
 struct dm_wbuf {
 	u32 U; u64 cap_pages; u64 pages;
 	u32 hsize; s32 *htab;               /* open addressing, linear probing, -1 empty */

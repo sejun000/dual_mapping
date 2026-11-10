@@ -491,3 +491,46 @@ lookups for host_birth.
   The harness equivalents are in the Validation section (commas or spaces both work as separators).
 - Optional: a stats-reset hook in `dm_ftl_ops` would make the frag_folded/frag_freed reset explicit instead of inferred.
 - Optional: the glue treats `DM_P_FOLD` as host-path timing, but here fine-reclaim folds run inside space reclamation (GC). The glue may want to time them as GC.
+
+### ct_kick: BFS cuckoo displacement before an eviction (2026-10-30)
+
+Option: ftlsim `ct_kick=N`, core `ct_kick=N` (params key, 0..65536; needs `fine_index_cuckoo2=1`). Default 0 = off.
+When an insert finds both candidate buckets full (`ct_ensure` where `room` is false, and the `unspill` room loop),
+a MemC3-style BFS runs before any eviction: start from b1(lpn), b2(lpn); for each dequeued bucket B and way k = 0..3
+the entry's other bucket alt (`b1(e) == B ? b2(e) : b1(e)`); a free way in alt (lowest index) ends the search,
+otherwise alt is enqueued with parent (B, k) if unvisited and fewer than N buckets were visited (b1, b2 count).
+Visited buckets are distinct, so the path is executed from its end (core: lpn and ppn move together) and frees one
+way of b1/b2; the insert then follows the usual less-loaded-bucket rule. No path -> the unchanged spill / fold
+eviction. ct_ensure uses `room = ct_room(lpn) || kick`, so the pool_cap `over` test is unchanged. ftlsim never moves
+SUMTAG entries; dram_stats charges 1 access per bucket probed for a free way and 1 per entry moved. Counters
+(searches / found / failed / moves, cumulative incl. warmup in both) appear only with N > 0: ftlsim top-level
+`"ct_kick"`, core inside `"cuckoo2"`. The core keeps the visited set in a small epoch-stamped open-addressed hash
+(>= 2N slots) and the BFS queue in N+2 preallocated nodes (create(); no per-I/O allocation).
+
+Default off: ftlsim JSON + stderr and harness JSON + stderr byte-identical to the pre-change binaries on skew and
+rand4k (traces regenerated with gen_trace.py, same seed) for the paper config (reads=1), V3_18 and
+spill=0/0.125 (pool_cap=4).
+
+Parity (paper config `U=16,fine_extra=0,fine_quota_ppm=48300,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,
+cgc_vict_cb=1,coarse_class=2,adapt=2,uni_onefront=1,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125000,
+onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1`, op=0.07, READS=1; ftlsim `fine_quota=0.0483 ...
+map_budget=0.125 spill=2 spill_rp=1 spill_rp_clean=1 dram_stats=1`). Columns: WAF prog erases map_prog map_read
+used_end [searches found failed moves]; all = harness, order_viol 0, verify ok at warmup and end.
+```
+rand4k  off  [15.3407 43429739 6772 1828446 2678616 41927]
+rand4k  N=2  [15.1893 43001120 6773 1399807 2029751 53508 [2132509 2015284 117225 2015284]]
+rand4k  N=4  [15.0801 42691875 6737 1300911 1883971 58476 [2975499 2871199 104300 3241833]]
+rand4k  N=16 [14.9994 42463404 6722 1168174 1695651 61563 [4237031 4146901 90130 6352658]]
+rand4k  N=64 [15.1132 42785561 6780 1138478 1647519 57521 [4800942 4715596 85346 9904950]]
+rand4k  N=500 [15.0492 42604258 6755 1107720 1606583 59623 [4992671 4909215 83456 14610981]]
+skew    off / N=4 / N=500  [5.7124 21627648 3553 0 0 8594] (table never full: 0 searches)
+also = harness, reads=0, N=500: V3_18 rand4k [19.1718 54275566 9046 0 0 81356 [75645 75645 0 75686]],
+  spill=0 0.125 pool_cap=4 rand4k [17.8756 50605811 8398 0 0 57418 [3439459 3200142 239317 6345331]], skew unchanged
+```
+ftlsim rand4k (paper config) off vs N=500: spills 98957 -> 42552, FTP programs (spill + gc_update) 1828446 -> 1107720,
+map reads 2678616 -> 1606583, eviction spills 78008 -> 35627, pool_cap folds 60905 -> 68555, end occupancy
+41927 -> 59623 of 64512 (0.650 -> 0.924), WAF 15.3407 -> 15.0492; DRAM accesses per host write 7.51 -> 271.25
+(per host read 6.49 -> 50.20: failed searches of up to 500 buckets, also inside read promotion); N=16: 16.80 / 6.09.
+Without spill/pool_cap (V3_18 rand4k) kicks remove every eviction fold and WAF rises 14.985 -> 19.1718: fine-GC copies
+drop 5.14M -> 2.49M, but fold programs rise 1.15M -> 1.81M and coarse-GC clean copies 9.14M -> 20.13M.
+`make -j16` of nvmev.ko: no new warnings (only "compiler differs").

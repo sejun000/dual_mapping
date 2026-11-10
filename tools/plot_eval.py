@@ -5,7 +5,8 @@ black bar edges, hatches. 1/8 mapping DRAM, OP 7%, NVMeVirt. Outputs results/pap
  read : (a) flash reads per host read page (1 + mapping-page reads), (b) average and (c) p99 read latency
  write: (a) device WA (log scale), (b) average and (c) p99 write latency
  tput : throughput. Latency and throughput are normalized to Page.
-Sources: bounded FTLs (DUET, DFTL, LeaFTL, uFTL, CoMap) = results/final_vbm (valid-bitmap budget rerun).
+Sources: bounded FTLs (DUET, DFTL, LeaFTL, uFTL) = results/final_vbm (valid-bitmap budget rerun).
+CoMap = results/final_comap_tune (tuned rerun, 2026-11-08, was final_vbm).
 Page / FAST / IU+RMW (not rerun, see results/nvmevirt/q_vbm.sh) = results/final_rp (traces, apps) and
 results/final_rp_a128 (raw I/O replays). Latency: apps = block-layer latency, traces / raw I/O = replayer completion."""
 import csv, json, math, shutil
@@ -16,21 +17,24 @@ from matplotlib.patches import Patch
 
 B = '/home/sejun000/dual_mapping/results'
 VBM, RP, A128 = B + '/final_vbm', B + '/final_rp', B + '/final_rp_a128'
+FF = B + '/final_fastfull'   # FAST with cache_bytes=1e9 (map of every log block in DRAM), 2026-11-07
+CT = B + '/final_comap_tune'   # CoMap tuned: comap_logfrac_ppm=990000, comap_p0=990000 (q_comap_tune.sh, 2026-11-08)
+FAST_FULL = False            # False = FAST-B12 (final_rp / final_rp_a128), the figures before 2026-11-07
 OUT = B + '/paper_dac'
 PAPER = '/home/sejun000/dual_mapping/paper/figs'
 POL = ['page4k', 'dftl', 'leaftl', 'comap', 'fast', 'iurmw', 'proposed']   # uFTL dropped (2026-11-06)
 NEW = {'proposed', 'dftl', 'leaftl', 'comap'}
 LABEL = {'page4k': 'Page (full DRAM)', 'dftl': 'DFTL', 'leaftl': 'LeaFTL', 'mu': 'μFTL', 'comap': 'CoMap',
-         'fast': 'FAST', 'iurmw': 'IU+RMW', 'proposed': 'DUET'}
+         'fast': 'FAST', 'iurmw': 'CoarseIU', 'proposed': 'DUET'}
 COLOR = {'page4k': '#DDDCD6', 'dftl': '#B3E0CC', 'leaftl': '#F5C2AE', 'mu': '#F2C9DD', 'comap': '#DCE6B4',
          'fast': '#EED6AA', 'iurmw': '#BBD7F3', 'proposed': '#3F2FD0'}
 HATCH = {'page4k': '', 'dftl': '//', 'leaftl': '\\\\', 'mu': 'xx', 'comap': '++', 'fast': '..', 'iurmw': '--',
          'proposed': ''}
-WL = [('trace', 'ali3', 'Ali'), ('trace', 'spfresh', 'SPFresh'),
+WL = [('raw', f'a128_r{r}_s70', f'{r}:{100 - r}') for r in (50, 70, 90)] + \
+     [('trace', 'ali3', 'Alibaba'), ('trace', 'spfresh', 'SPFresh'),
       ('app', 'ycsba_d_t64', 'YCSB-A'), ('app', 'ycsbb_d_t64', 'YCSB-B'), ('app', 'ycsbc_d_t64', 'YCSB-C'),
-      ('app', 'ycsbe_d_t64', 'YCSB-E'), ('app', 'tpcc_d_t64', 'TPC-C')] + \
-     [('raw', f'a128_r{r}_s70', f'{r}:{100 - r}') for r in (50, 70, 90)]   # 4K:128K = 70:30 only (2026-11-06)
-GROUP = {'trace': 'Real traces', 'app': 'Applications', 'raw': 'Raw I/O (R:W)'}
+      ('app', 'ycsbe_d_t64', 'YCSB-E'), ('app', 'tpcc_d_t64', 'TPC-C')]   # raw I/O first, 4K:128K = 70:30 only
+GROUP = {'trace': 'Real-world traces', 'app': 'Applications', 'raw': 'Synthetic raw I/O (R:W)'}
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4, 'axes.linewidth': 0.6})
 
 
@@ -47,6 +51,10 @@ def replay(d, p):
 
 def app(wl, p):
     d, al = (f'{VBM}/apps/{wl}', p + '_vb') if p in NEW else (f'{RP}/apps/{wl}', p)
+    if p == 'fast' and FAST_FULL:
+        d, al = f'{FF}/apps/{wl}', 'fast_full'
+    if p == 'comap':
+        d, al = f'{CT}/apps/{wl}', 'comap_vbt'
     s = dict(l.strip().split('=', 1) for l in open(f'{d}/{al}/summary.txt') if '=' in l)
     assert s['status'] == 'DONE', (wl, p)
     g = lambda k: float(s[k])
@@ -58,9 +66,19 @@ def app(wl, p):
 def row(kind, key, p):
     if kind == 'app':
         return app(key, p)
+    ff = p == 'fast' and FAST_FULL
+    if p == 'comap':
+        return replay(f'{CT}/{"trace_" if kind == "trace" else "replay_"}{key}', p)
     if kind == 'trace':
-        return replay(f'{VBM if p in NEW else RP}/trace_{key}', p)
-    return replay(f'{VBM if p in NEW else A128}/replay_{key}', p)
+        return replay(f'{FF if ff else VBM if p in NEW else RP}/trace_{key}', p)
+    return replay(f'{FF if ff else VBM if p in NEW else A128}/replay_{key}', p)
+
+
+# Read-only workloads: almost no host writes in the measured window (YCSB-C: 92 .. 1.6 M pages across FTLs, PostgreSQL
+# hint-bit / checkpoint timing), so WA and write latency are noise. Their write bars are left empty ('Read-only') and
+# they are excluded from the write-metric geomeans (2026-11-08).
+READ_ONLY = {'YCSB-C'}
+WRITE_M = ('waf', 'w_avg', 'w_p99')
 
 
 def collect():
@@ -78,15 +96,20 @@ def xpos():
 
 def panel(ax, data, metric, ylabel, title, norm=False, clip=None, logy=False, ylim=None, fmt='{:.1f}', xt=True):
     xs = xpos(); nb = len(POL); bw = 0.86 / nb
+    skip = [metric in WRITE_M and l in READ_ONLY for _, l, _ in data]
     for i, p in enumerate(POL):
-        px = [x + (i - (nb - 1) / 2) * bw for x in xs]
-        ys = [r[p][metric] / (r['page4k'][metric] if norm else 1) for _, _, r in data]
+        px = [x + (i - (nb - 1) / 2) * bw for x, sk in zip(xs, skip) if not sk]
+        ys = [r[p][metric] / (r['page4k'][metric] if norm else 1) for (_, _, r), sk in zip(data, skip) if not sk]
         bars = ax.bar(px, [min(y, clip) if clip else y for y in ys], bw, color=COLOR[p], hatch=HATCH[p],
                       edgecolor='black', linewidth=0.35)
         if clip:
             for x, y in zip(px, ys):
                 if y > clip:
                     ax.text(x, clip * 0.97, fmt.format(y), ha='center', va='top', fontsize=4.2, rotation=90)
+    for x, sk in zip(xs, skip):
+        if sk:
+            ax.text(x, 0.5, 'Read-only', transform=ax.get_xaxis_transform(), ha='center', va='center',
+                    fontsize=5.0, color='#444441')
     if norm:
         ax.axhline(1.0, color='#444441', lw=0.6, ls='--', zorder=0)
     if logy:
@@ -161,17 +184,18 @@ def main():
     rows_fig([('fr', 'Reads/read', dict(clip=2.2, ylim=(0, 2.45), fmt='{:.2f}', yticks=[0, 1, 2])),
               ('r_avg', 'Avg. read\n(ms)', dict(logy=True, ylim=(0.05, 50), yticks=[0.1, 1, 10])),
               ('r_p99', 'p99 read\n(ms)', dict(logy=True, ylim=(0.1, 500), yticks=[1, 10, 100]))],
-             'fig_eval_read', 1.7)
+             'fig_eval_read', 2.04)
     rows_fig([('waf', 'WA', dict(logy=True, ylim=(1, 100))),
               ('w_avg', 'Avg. write\n(ms)', dict(logy=True, ylim=(0.05, 50), yticks=[0.1, 1, 10])),
               ('w_p99', 'p99 write\n(ms)', dict(logy=True, ylim=(0.2, 1000), yticks=[1, 10, 100, 1000]))],
-             'fig_eval_write', 1.7)
+             'fig_eval_write', 2.04)
     rows_fig([('tput', 'Throughput', dict(norm=True, clip=1.3, ylim=(0, 1.42), fmt='{:.2f}',
-                                                    yticks=[0, 0.5, 1]))], 'fig_eval_tput', 0.8)
+                                                    yticks=[0, 0.5, 1]))], 'fig_eval_tput', 0.96)
 
     gm = lambda v: math.exp(sum(map(math.log, v)) / len(v))
     for m in ('tput', 'r_avg', 'w_avg', 'r_p99', 'w_p99', 'waf', 'fr'):
-        print(m, {LABEL[p]: round(gm([r[p][m] / r['page4k'][m] for _, _, r in data]), 3) for p in POL[1:]})
+        print(m, {LABEL[p]: round(gm([r[p][m] / r['page4k'][m] for _, l, r in data
+                                      if not (m in WRITE_M and l in READ_ONLY)]), 3) for p in POL[1:]})
     print('wrote', OUT + '/fig_eval_{read,write,tput}.{pdf,png} and', PAPER)
 
 

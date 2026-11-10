@@ -271,7 +271,10 @@ void conv_init_namespace(struct nvmev_ns *ns, uint32_t id, uint64_t size, void *
 	d->g.T = 2;
 	np = (u64)d->g.NB * d->g.P;
 	d->g.L = np * 1000000ull / (1000000ull + DM_OP_PPM);
-	d->g.L -= d->g.L % d->g.U;
+	/* (2026-11-09, coarse-IU sensitivity) U > DM_IU_PAGES: round L up instead of down, so the namespace still holds the
+	 * U=16 logical space (the raw I/O traces span exactly the U=16 L); costs < U pages of OP. U <= 16 unchanged. */
+	if (d->g.U > DM_IU_PAGES && d->g.L % d->g.U) d->g.L += d->g.U - d->g.L % d->g.U;
+	else d->g.L -= d->g.L % d->g.U;
 
 	fo.ctx = d; fo.prog = dm_cb_prog; fo.read = dm_cb_read; fo.erase = dm_cb_erase;
 	d->core = dm_policy.create(&d->g, &fo, &d->st, dm_params);

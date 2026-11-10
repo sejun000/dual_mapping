@@ -1,4 +1,4 @@
-% Verify every entry (authors, venue, pages) before submission. TODO-* keys are placeholders.
+% Verify every entry (authors, venue, pages) before submission.
 
 @inproceedings{dftl,
   author    = {Aayush Gupta and Youngjae Kim and Bhuvan Urgaonkar},
@@ -49,6 +49,12 @@
   year      = {2010}
 }
 
+@misc{tpcc,
+  author       = {{Transaction Processing Performance Council}},
+  title        = {{TPC} Benchmark {C} Standard Specification, Revision 5.11},
+  year         = {2010}
+}
+
 @inproceedings{alibaba-trace,
   author    = {Jinhong Li and Qiuping Wang and Patrick P. C. Lee and Chao Shi},
   title     = {An In-Depth Analysis of Cloud Block Storage Workloads in Large-Scale Production},
@@ -86,7 +92,7 @@
 }
 
 @article{dwf,
-  author  = {Benny Van Houdt},
+  author  = {Van Houdt, Benny},
   title   = {Performance of Garbage Collection Algorithms for Flash-Based Solid State Drives with Hot/Cold Data},
   journal = {Performance Evaluation},
   volume  = {70},
@@ -96,7 +102,7 @@
 }
 
 @article{hotcold,
-  author  = {Benny Van Houdt},
+  author  = {Van Houdt, Benny},
   title   = {On the Necessity of Hot and Cold Data Identification to Reduce the Write Amplification in Flash-Based {SSDs}},
   journal = {Performance Evaluation},
   volume  = {82},
@@ -191,11 +197,6 @@
   year      = {2014}
 }
 
-@misc{TODO-qlc-capacity, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO}, note = {TODO: 64/128 TB-class QLC SSD announcements or products}}
-@misc{TODO-dram-cost, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO},   note = {TODO: source for controller DRAM cost/power not scaling with capacity}}
-@misc{TODO-block-size, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO},  note = {TODO: source for erase-block size growth across 3D NAND generations}}
-@misc{TODO-iu, author = {TODO}, title = {TODO}, year = {2026}, key = {TODO},          note = {TODO: 16-64 KB IUs in high-capacity QLC SSDs. Candidates: Solidigm D5-P5316 (64 KB IU) / D5-P5336 (16 KB IU) product briefs;
-  FMS 2024 QLCP-304-1 (Gonzalez) and Samsung LBS talks ("16 KB IUs are the norm for 64 TB", OCP 2.0 exposes IU via NPWG)}}
 
 @article{lfs,
   author    = {Mendel Rosenblum and John K. Ousterhout},
@@ -205,4 +206,70 @@
   number    = {1},
   pages     = {26--52},
   year      = {1992}
+}
+
+@inproceedings{shards,
+  author    = {Carl A. Waldspurger and Nohhyun Park and Alexander Garthwaite and Irfan Ahmad},
+  title     = {Efficient {MRC} Construction with {SHARDS}},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  year      = {2015}
+}
+
+@IEEEtranBSTCTL{IEEEexample:BSTcontrol,
+  CTLdash_repeated_names = "no"
+}
+
+@misc{solidigm-122tb,
+  author       = {{Solidigm}},
+  title        = {Solidigm Extends {AI} Portfolio Leadership with the Introduction of 122{TB} Drive, the World's Highest Capacity {PCIe} {SSD}},
+  howpublished = {Press release},
+  month        = nov,
+  year         = {2024}
+}
+
+@misc{samsung-bm1743,
+  author       = {{AnandTech}},
+  title        = {Samsung's 128 {TB}-Class {BM1743} Enterprise {SSD} Displayed at {FMS} 2024},
+  howpublished = {https://www.anandtech.com/show/21526},
+  month        = aug,
+  year         = {2024}
+}
+
+@misc{micron-iu,
+  author       = {Luca Bert},
+  title        = {Real Life Workloads Allow More Efficient Data Granularity and Enable Very Large {SSD} Capacities},
+  howpublished = {Micron Technology blog},
+  month        = sep,
+  year         = {2023}
+}
+
+@misc{solidigm-csal,
+  author       = {{Solidigm and Wiwynn}},
+  title        = {Platform Optimization for Performance and Endurance},
+  howpublished = {Solidigm solution brief},
+  month        = aug,
+  year         = {2025}
+}
+
+@inproceedings{pen,
+  author    = {Chun-Yi Liu and Jagadish B. Kotra and Myoungsoo Jung and Mahmut T. Kandemir},
+  title     = {{PEN}: Design and Evaluation of Partial-Erase for {3D} {NAND}-Based High Density {SSDs}},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  year      = {2018}
+}
+
+@inproceedings{midas,
+  author    = {Seonggyun Oh and Jeeyun Kim and Soyoung Han and Jaeho Kim and Sungjin Lee and Sam H. Noh},
+  title     = {{MiDAS}: Minimizing Write Amplification in Log-Structured Systems through Adaptive Group Number and Size Configuration},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  pages     = {259--275},
+  year      = {2024}
+}
+
+@inproceedings{dogi,
+  author    = {Jeeyun Kim and Seonggyun Oh and Jungwoo Kim and Jisung Park and Jaeho Kim and Sungjin Lee and Sam H. Noh},
+  title     = {{DOGI}: Data Placement with Oracle-Guided Insights for Log-Structured Systems},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  pages     = {543--559},
+  year      = {2026}
 }

@@ -13,8 +13,8 @@ in DRAM, so most reads need no flash read to find their mapping. Part of the fin
 can move to NAND, but unlike demand-paging FTLs~\cite{dftl,leaftl,mftl}, most of the
 map stays in DRAM, so far fewer reads need a second flash read. Unlike hybrid
 FTLs~\cite{bast,fast}, which merge one block at a time, DUET merges fine pages one
-coarse IU at a time, which reduces the cost of each merge. Unlike coarse-IU
-FTLs~\cite{TODO-iu}, DUET writes small writes as fine pages instead of RMW.
+coarse IU at a time, so each merge costs less. Unlike coarse-IU
+FTLs~\cite{micron-iu,solidigm-csal}, DUET writes small writes as fine pages without RMW.
 % TODO: user mentioned "comboftl" as a demand-paging scheme to cite, not in refs.bib yet.
 
 \begin{figure}[t]
@@ -23,7 +23,7 @@ FTLs~\cite{TODO-iu}, DUET writes small writes as fine pages instead of RMW.
   \vspace{-6mm}
   \caption{DUET mapping structures.}
   \label{fig:design}
-  \vspace{-4mm}
+  \vspace{-2.5mm}
 \end{figure}
 
 \subsection{Two Mapping Granularities}
@@ -31,8 +31,8 @@ FTLs~\cite{TODO-iu}, DUET writes small writes as fine pages instead of RMW.
 ($4U$\,KB), so a logical page number (LPN) belongs to coarse IU $i=\lfloor \mathrm{LPN}/U \rfloor$ at
 page offset $k=\mathrm{LPN} \bmod U$. Each coarse IU is stored as a \emph{chunk}
 of $U$ physically consecutive, $U$-page-aligned pages in a \emph{coarse block},
-and its 4\,B coarse entry holds the chunk index. Since a coarse entry is as large as a page-level
-entry, the coarse map takes $1/U$ of the DRAM of a page-level table.
+and its 4\,B coarse entry holds the chunk index. Since a coarse entry covers $U$ pages and is as
+large as a page-level entry, the coarse map takes $1/U$ of the DRAM of a page-level table.
 
 \textbf{Fine map.} A write smaller than a coarse IU is written out of place as 4\,KB
 \emph{fine pages} into separate \emph{fine blocks}. The fine map is a two-choice
@@ -77,10 +77,10 @@ access~\cite{rixner}. Only a read of a spilled coarse IU adds one map-page read.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_write.pdf}
-  \vspace{-6mm}
+  \vspace{-8.5mm}
   \caption{DUET write and reclamation paths. Coarse GC (purple) and fine GC (blue) either (1) copy valid data or (2) merge it into new chunks.}
   \label{fig:write}
-  \vspace{-4mm}
+  \vspace{-2.5mm}
 \end{figure}
 
 \textbf{Write path.} Host writes go to two \emph{active blocks}, an active
@@ -119,7 +119,7 @@ DUET thus has two kinds of GC. \emph{Fine GC} reclaims a fine block, and
 DUET keeps a valid bitmap with one bit per chunk slot of the coarse blocks and
 one bit per page of the fine blocks.
 
-\textbf{Victim selection.} DUET picks a victim with fewer valid pages to copy, whether it is a coarse
+\textbf{Coarse-or-fine victim selection.} DUET picks a victim with fewer valid pages to copy, whether it is a coarse
 block or a fine block. The number of fine blocks, however, is limited by the OP
 space. A fine page makes one page of a chunk invalid, but the chunk still takes
 its place in a coarse block. The coarse blocks must therefore be able to cover
@@ -168,9 +168,15 @@ every coarse IU that has valid fine pages in the victim fine block.
 % Implementation also keeps hot fine pages (cost_cold, rec_block=1): no merge if a fine page of the IU sits in a host
 % fine block newer than the victim. Not described in the paper.
 
-Copying fine pages keeps them in the fine blocks, whereas a merge moves them
-into a chunk and frees their fine-map entries. The size of the fine map thus
-adapts to the workload (Section~\ref{sec:eval}).
+\textbf{Fine-area size.} The number of fine blocks and the number of fine-map entries
+change at runtime with these two decisions. When coarse-or-fine victim selection
+often picks a coarse block, fine pages accumulate in the fine blocks, and the number
+of fine blocks grows up to the OP limit. When it often picks a fine block, the number
+of fine blocks shrinks. The copy-or-merge decision then sets the number of fine-map
+entries. Copying keeps the fine pages and their fine-map entries, so the fine map
+grows as new small writes arrive, whereas a merge moves the fine pages into a chunk
+and frees their fine-map entries, so the fine map shrinks. The size of the fine map
+thus adapts to the workload (Section~\ref{sec:eval}).
 
 \subsection{Fine-Map Spill and Load}
 \label{sec:spill}
@@ -220,7 +226,7 @@ coarse IUs of the FTP stay spilled. A write loads the entries and then updates t
 A read reads the FTP before the data, loads the entries, and sets the C bit of the
 coarse IU. The coarse IU stays clean until one of its entries changes.
 
-\textbf{Spill victim.} DUET picks a clean coarse IU first to reduce FTP writes to NAND.
+\textbf{What to spill.} DUET picks a clean coarse IU first to reduce FTP writes to NAND.
 A clean coarse IU is simply dropped from the table and marked spilled because its FTP
 copy is still valid. If there is no clean coarse IU, DUET picks the coarse IU with the
 most fine pages, so one FTP program frees the most table slots.
@@ -232,11 +238,5 @@ entries from the FTP and then clears its F and S bits.
 % Dropped detail (2026-11-06): one recently used FTP is kept in controller SRAM. A coarse IU becomes dirty when one of its
 % fine pages changes (write, merge, GC copy).
 
-\subsection{Overhead}
-The per-coarse-IU state is the 4\,B coarse entry with its three flag bits, the fine
-map is the two-choice hash table, and the GTD adds 4\,B per FTP, all within the budget.
-% Valid bitmaps are not charged (prop_mem = NIU*4 + GTD + table slots), as for every other FTL. Not described.
-A host read takes at most three DRAM accesses, and a spill or load
-touches at most $1024/U$ coarse entries and 1024 table slots.
-Mapping reads and programs happen only for spilled coarse IUs and are counted in all
-WA and latency results.
+% Overhead subsection removed (2026-11-07): DRAM parts are in Sections A and D, the three DRAM accesses in the read path.
+% Left for the eval setup: mapping reads and programs (spilled coarse IUs only) are counted in all WA and latency results.
