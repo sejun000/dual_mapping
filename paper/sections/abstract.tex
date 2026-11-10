@@ -1,0 +1,15 @@
+% DUET -- Abstract (DAC 2027: about 100 words)
+\begin{abstract}
+% Numbers = geomean throughput over 10 workloads, results/paper_dac/eval_data.csv (final_vbm). 73% = LeaFTL, the best
+% existing bounded FTL. (2026-11-09) shortened to ~100 words (DAC: abstract of about 100 words); previous 149-word
+% version listed 73/57/66% per class and the NVMeVirt setup.
+High-capacity QLC SSDs cannot keep a 4\,KB page-level mapping table in
+on-device DRAM. Under a limited DRAM budget, existing FTLs slow reads with
+mapping misses, slow writes with block-level merges, or turn small writes into
+read-modify-writes of a uniform coarse indirection unit (IU). We present DUET,
+an FTL that keeps the coarse IU and maps smaller writes as 4\,KB pages in a DRAM
+hash table. DUET spills these entries to NAND when the table fills and merges
+fine pages one coarse IU at a time. With 1/8 of the page-level mapping DRAM,
+DUET reaches 93\% of the throughput of a page-level FTL with unlimited DRAM,
+whereas existing FTLs reach at most 73\%.
+\end{abstract}
