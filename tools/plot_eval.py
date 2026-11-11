@@ -28,7 +28,9 @@ LABEL = {'page4k': 'Page (full DRAM)', 'dftl': 'DFTL', 'leaftl': 'LeaFTL', 'mu':
          'fast': 'FAST', 'iurmw': 'CoarseIU', 'proposed': 'DUET'}
 COLOR = {'page4k': '#DDDCD6', 'dftl': '#B3E0CC', 'leaftl': '#F5C2AE', 'mu': '#F2C9DD', 'comap': '#DCE6B4',
          'fast': '#EED6AA', 'iurmw': '#BBD7F3', 'proposed': '#3F2FD0'}
-HATCH = {'page4k': '', 'dftl': '//', 'leaftl': '\\\\', 'mu': 'xx', 'comap': '++', 'fast': '..', 'iurmw': '--',
+# (2026-11-10) denser hatches: with '//' etc. the small legend patches and thin bars showed a single line, so CoMap's
+# '++' looked like a vertical bar
+HATCH = {'page4k': '', 'dftl': '////', 'leaftl': '\\\\\\\\', 'mu': 'xxx', 'comap': '+++', 'fast': '...', 'iurmw': '---',
          'proposed': ''}
 WL = [('raw', f'a128_r{r}_s70', f'{r}:{100 - r}') for r in (50, 70, 90)] + \
      [('trace', 'ali3', 'Alibaba'), ('trace', 'spfresh', 'SPFresh'),

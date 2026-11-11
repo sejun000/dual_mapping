@@ -93,6 +93,25 @@ policy_params() {
     dftl_b25)     echo "cache_bytes=B25,dftl_tpbuf=1" ;;
     leaftl_b10)   echo "cache_bytes=B10" ;;
     leaftl_b25)   echo "cache_bytes=B25" ;;
+    # (2026-11-11) 32 GB device (NVMEV_MEMMAP_SIZE=35073M, BLKS_PER_PLN 274, 128 MiB superblocks), results/final_32g.
+    # Budgets from tools/budget_vb.py 35073M 274 (same rule as the *_vb aliases): T = 4335816 B; DUET fine quota 11 blocks
+    # (uniform-mode cap, 18 at 44G) and map_budget_ppm 125747. page4k / iurmw take no budget parameter.
+    proposed_g32)   echo "U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_g32u32)  echo "U=32,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_g32u64)  echo "U=64,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_g32u128) echo "U=128,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposed_g32k)  echo "U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1,ct_kick=500" ;;   # + standard cuckoo displacement (BFS <= 500 buckets) before a spill
+    proposedst_g32) echo "U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=2,spill_rp=1,spill_rp_clean=1" ;;
+    proposedab_g32ns)   echo "U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0" ;;
+    proposedab_g32nsm)  echo "U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0,fold_all=1" ;;
+    proposedab_g32nsfm) echo "U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=0,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0,fold_all=1" ;;
+    dftl_g32)   echo "cache_bytes=3180736,dftl_tpbuf=1" ;;
+    leaftl_g32) echo "cache_bytes=3082400,leaftl_batch=128" ;;
+    fast_g32)   echo "cache_bytes=4335816" ;;
+    comap_g32)  echo "cache_bytes=4270280,comap_logfrac_ppm=990000,comap_p0=990000" ;;
+    iurmw_g32)  echo "U=8" ;;
+    page4k_g32) echo "" ;;
+    mu_g32)     echo "cache_bytes=3180470" ;;   # T - NB*P/8 - 32 KiB bitmap cache - NB (rule of mu_vb)
     *) return 1 ;;
   esac
 }

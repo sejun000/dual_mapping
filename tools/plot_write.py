@@ -18,10 +18,10 @@ OUT = '/home/sejun000/dual_mapping/results/paper_dac/fig_write'
 PAPER = '/home/sejun000/dual_mapping/paper/figs/fig_write.pdf'
 plt.rcParams.update({'font.size': FS, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4})
 
-XMAX, YMAX = 20.0, 11.65
+XMAX, YMAX = 19.2, 11.65   # was 20.0 with CX 4.5 (2026-11-10: less left margin)
 HY = 10.7                        # y of the two column headers (legend row above it)
 BP, PH = 0.34, 0.7               # page width / height: 16-page blocks (5.44 wide), a chunk = 4 pages
-CX, FX = 4.5, 14.3               # coarse / fine column
+CX, FX = 3.7, 13.5               # coarse / fine column
 RA, RB, RC, RD = 8.5, 6.8, 4.2, 1.55  # rows: active host, active GC, GC victims, blocks read by merges
 C_CG, C_FG = '#5B3FA0', '#1F5FA8'     # badge colors: coarse GC, fine GC
 
@@ -32,7 +32,7 @@ def line(ax, p, q, rad=0.0, color=C_AR):
 
 
 def badge(ax, x, y, s, c):
-    ax.text(x, y, s, fontsize=SF - 1.2, color='white', ha='center', va='center', fontweight='bold',
+    ax.text(x, y, s, fontsize=SF - 0.9, color='white', ha='center', va='center', fontweight='bold',
             bbox=dict(boxstyle='circle,pad=0.1', fc=c, ec='none'))
 
 
@@ -47,8 +47,8 @@ def cx(b, c):                    # x center of chunk c of block b
 def main():
     fig, ax = plt.subplots(figsize=(3.4, 3.4 * YMAX / XMAX))
     ax.set_xlim(0, XMAX); ax.set_ylim(0, YMAX); ax.axis('off')
-    sm = dict(fontsize=SF - 0.7)
-    tiny = dict(fontsize=SF - 1.1)
+    sm = dict(fontsize=SF - 0.3)     # was SF - 0.7 (2026-11-10)
+    tiny = dict(fontsize=SF - 0.7)   # was SF - 1.1 (2026-11-10)
 
     # ---- active blocks
     ch = blk(ax, CX, RA, [F_CO] * 4 + [F_FREE] * 12, iu_split=True)
@@ -80,15 +80,15 @@ def main():
         x += LW + LG + w + GAP
 
     # ---- host writes
-    lab(ax, 2.85, RA + PH / 2, 'IU-aligned\nwrite', ha='right', multialignment='center', linespacing=0.95, **sm)
-    arrow(ax, (3.0, RA + PH / 2), (CX - 0.05, RA + PH / 2))
+    lab(ax, CX - 1.6, RA + PH / 2, 'IU-aligned\nwrite', ha='right', multialignment='center', linespacing=0.95, **sm)
+    arrow(ax, (CX - 1.45, RA + PH / 2), (CX - 0.05, RA + PH / 2))
     arrow(ax, (CX + ch.w + 0.75, RA + PH / 2), (FX - 0.05, RA + PH / 2))   # starts clear of the coarse box
-    lab(ax, (CX + ch.w + FX) / 2 + 0.15, RA - 0.3, 'partial write\n(< IU, unaligned)', ha='center', linespacing=0.95,
+    lab(ax, (CX + ch.w + FX) / 2 + 0.15, RA - 0.3, 'partial write\n(< IU,\nunaligned)', ha='center', linespacing=0.95,
         **sm)
 
     # ---- coarse GC victim: 0-3 all valid, 20-23 partly valid (21, 23 invalid, newer data in fine pages), the rest invalid
     cv = blk(ax, CX, RC, [F_CO] * 16, hatch=(5, 7) + tuple(range(8, 16)), iu_split=True)
-    lab(ax, cv.x + cv.w / 2, RC - 0.8, 'coarse block', ha='center', fontweight='bold', **sm)
+    lab(ax, cv.x + cv.w / 2, RC - 0.8, 'victim coarse block', ha='center', fontweight='bold', **sm)
     lab(ax, CX - 0.2, RC - 0.3, 'LPN', ha='right', **tiny)
     for c, s in ((0, '0–3'), (1, '20–23')):
         lab(ax, cx(cv, c), RC - 0.3, s, ha='center', **tiny)
@@ -118,7 +118,7 @@ def main():
     for k, s in ((2, '9'), (4, '11'), (8, '25')):                 # merged by (2)
         lab(ax, fv.x + (k + 0.5) * BP, RC - 0.3, s, ha='center', **tiny)
         ax.add_patch(Rectangle((fv.x + k * BP + 0.03, RC + 0.03), BP - 0.06, PH - 0.06, fc='none', ec=C_FG, lw=1.0))
-    lab(ax, fv.x + fv.w / 2, RC - 0.8, 'fine block', ha='center', fontweight='bold', **sm)
+    lab(ax, fv.x + fv.w / 2, RC - 0.8, 'victim fine block', ha='center', fontweight='bold', **sm)
     by = RC + PH + 0.35                                            # (1) copy: only the valid pages, gathered
     live = (0, 5, 7, 9, 11, 12, 14, 15)
     for k in live:

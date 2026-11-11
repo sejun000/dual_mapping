@@ -7,12 +7,12 @@
 
 DUET maps every logical page at two mapping granularities (Figure~\ref{fig:design}).
 A \emph{coarse map} keeps one entry per coarse IU, and a \emph{fine map}
-maps the 4\,KB fine pages written for parts of a coarse IU. The corresponding pages
-of the coarse IU, which are mapped by the coarse map, then become invalid. The coarse map is always
-in DRAM, so most reads need no flash read to find their mapping. Part of the fine map
+maps the 4\,KB fine pages written for parts of a coarse IU. The coarse map is always
+in DRAM and maps every page except those currently stored as fine pages, so most
+reads need no flash read to find their mapping. Part of the fine map
 can move to NAND, but unlike demand-paging FTLs~\cite{dftl,leaftl,mftl}, most of the
 map stays in DRAM, so far fewer reads need a second flash read. Unlike hybrid
-FTLs~\cite{bast,fast}, which merge one block at a time, DUET merges fine pages one
+FTLs~\cite{fast}, which merge one block at a time, DUET merges fine pages one
 coarse IU at a time, so each merge costs less. Unlike coarse-IU
 FTLs~\cite{micron-iu,solidigm-csal}, DUET writes small writes as fine pages without RMW.
 % TODO: user mentioned "comboftl" as a demand-paging scheme to cite, not in refs.bib yet.
@@ -21,7 +21,7 @@ FTLs~\cite{micron-iu,solidigm-csal}, DUET writes small writes as fine pages with
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_design.pdf}
   \vspace{-6mm}
-  \caption{DUET mapping structures.}
+  \caption{DUET mapping structures and read path.}
   \label{fig:design}
   \vspace{-2.5mm}
 \end{figure}
@@ -31,20 +31,24 @@ FTLs~\cite{micron-iu,solidigm-csal}, DUET writes small writes as fine pages with
 ($4U$\,KB), so a logical page number (LPN) belongs to coarse IU $i=\lfloor \mathrm{LPN}/U \rfloor$ at
 page offset $k=\mathrm{LPN} \bmod U$. Each coarse IU is stored as a \emph{chunk}
 of $U$ physically consecutive, $U$-page-aligned pages in a \emph{coarse block},
-and its 4\,B coarse entry holds the chunk index. Since a coarse entry covers $U$ pages and is as
-large as a page-level entry, the coarse map takes $1/U$ of the DRAM of a page-level table.
+and its 4\,B coarse entry holds the chunk index. The coarse map takes $1/U$ of the
+DRAM of a page-level table, because an entry of the same size covers $U$ times as
+many pages.
 
 \textbf{Fine map.} A write smaller than a coarse IU is written out of place as 4\,KB
 \emph{fine pages} into separate \emph{fine blocks}. The fine map is a two-choice
-bucketized hash table~\cite{balanced}. With two candidate
-buckets, a bucket fills up much later than in an ordinary hash table with a
-single candidate bucket~\cite{balanced}, so DUET evicts entries less often.
+bucketized hash table~\cite{balanced}. Each 8\,B entry holds an LPN and the physical
+page number (PPN) of its fine page. Each LPN has two candidate buckets of four
+entries each, and a new entry goes to the less loaded bucket. Reading a 32\,B bucket
+costs one random DRAM access~\cite{samsung-ddr4,rixner}.
+Placing each entry in the less loaded of two candidate buckets spreads the entries
+far more evenly than a single candidate bucket~\cite{balanced}. A bucket thus
+overflows much less often, so DUET evicts entries less often. The table takes all
+of the DRAM budget that the coarse map leaves.
+% [balanced] Azar et al.: n balls into n bins, max load ln ln n / ln d + O(1) with d >= 2 choices vs ~ ln n / ln ln n
+% with one random choice.
 % ftlsim (results/coarse_gc/diag, end of run): mean fine pages per flagged IU 1.8 (fio) to 5.0 (YCSB-A) of U = 16,
 % d <= 4 for 66-98% of IUs. Per-IU array 16 x 4 B = 64 B per IU vs 8 B x d in the table.
-Each 8\,B entry holds an LPN and the
-physical page number (PPN) of its fine page. Each LPN has two candidate buckets of four
-entries each, and a new entry goes to the less loaded one. The table takes all of
-the DRAM budget that the coarse map leaves.
 % Implementation (92 GB, 1/8 budget): coarse map 5.6 MB, table 5.5 MB = fine pages of ~3% of logical pages.
 
 The table is similar to cuckoo hashing~\cite{cuckoo} in that each entry has two
@@ -64,15 +68,17 @@ read returns it.
 copy in NAND (Section~\ref{sec:spill}).
 
 \subsection{Host I/O Path}
-\textbf{Read path.} A read first checks the coarse entry of coarse IU $i$. If F is set and S is clear, DUET
-looks up the LPN in the fine map. If S is set, the global translation directory
-(GTD)~\cite{dftl} locates the FTP of the
-LPN, and DUET reads its slot. When the fine map or the slot points to a
-fine page, DUET reads the fine page. Otherwise, including when F is clear, it
-reads page $k$ of the chunk. A read thus reads at most three DRAM
-locations, the coarse entry and the two candidate buckets. A 32\,B bucket lies
-within one DRAM row, so each location costs one random DRAM
-access~\cite{rixner}. Only a read of a spilled coarse IU adds one map-page read.
+\textbf{Read path.} As shown in Figure~\ref{fig:design}, a read first checks the
+coarse entry of coarse IU $i$, and its flag bits select one of four cases. If F is
+clear, DUET reads page $k$ of the chunk~(\rp{1}). If F is set and S is clear, DUET
+looks up the LPN in the fine map. It reads the fine page when the LPN is
+found~(\rp{2}), and page $k$ of the chunk otherwise~(\rp{3}). If S is set, the global
+translation directory (GTD)~\cite{dftl} locates the FTP of the LPN, and DUET reads
+its slot~(\rp{4}), then the fine page that the slot points to, or page $k$ of the chunk
+when the slot is empty. Unless the coarse IU is spilled, a read thus reads at most
+three DRAM locations, the coarse entry and the two candidate buckets, each with one
+random DRAM access. Only a read
+of a spilled coarse IU adds one map-page read from NAND.
 
 \begin{figure}[t]
   \centering
@@ -85,22 +91,24 @@ access~\cite{rixner}. Only a read of a spilled coarse IU adds one map-page read.
 
 \textbf{Write path.} Host writes go to two \emph{active blocks}, an active
 coarse block for chunks and an active fine block for fine pages. A host write
-is split at coarse-IU boundaries. Each IU-aligned write is written as a new chunk
+is split at coarse-IU boundaries. Each \emph{IU-aligned write} is written as a new chunk
 in the active coarse block. The old chunk and all fine pages of the coarse IU
 become invalid, and the corresponding fine-map entries are removed. If the coarse IU
-already has fine pages, DUET instead writes the IU-aligned write as fine pages
-while the fine blocks are below their cap (Section~\ref{sec:reclaim}).
+already has fine pages, DUET instead writes the IU-aligned write as fine pages,
+because part of the coarse IU was written relatively recently and the coarse IU is
+likely to be split again soon.
 % fine_full=1: keeps a hot coarse IU in the fine blocks instead of turning it back into a chunk on every full rewrite.
 
 A \emph{partial write}, which is smaller than a coarse IU, is written as fine
-pages into the active fine block. For each fine page, DUET inserts its LPN and
-PPN into one of the two candidate buckets of the LPN, the less loaded one. The
-page of the chunk with the same LPN becomes invalid. If the LPN already has a
+pages into the active fine block. DUET inserts the LPN and PPN of each fine page into
+the fine map. If the
+LPN already has a
 fine page, DUET updates the PPN of its fine-map entry instead, and the old fine
 page becomes invalid.
 
-DUET keeps fine pages and chunks in different blocks. Fine pages hold recently
-rewritten data and chunks hold colder data, and mixing data of different update
+DUET keeps fine pages and chunks in different blocks. Fine pages hold small and
+hot data that was written recently, and chunks hold data that was written long ago.
+Mixing data of different update
 frequencies in one NAND block raises the GC cost~\cite{hotcold,dwf,multistream}.
 As in other FTLs~\cite{sepbit}, DUET also separates host writes from internal
 writes (GC and merges), so it keeps four active blocks (Figure~\ref{fig:write}).
@@ -111,22 +119,26 @@ When an active block is full, DUET takes a free block as the new active block.
 
 \subsection{Reclaiming Path}
 \label{sec:reclaim}
-DUET reclaims a block when the free blocks run low. Its written blocks
-are divided into fine blocks, which hold fine pages, and coarse blocks,
-which hold chunks.
-DUET thus has two kinds of GC. \emph{Fine GC} reclaims a fine block, and
+DUET reclaims a block when the free blocks run low, and it has two kinds of GC. \emph{Fine GC} reclaims a fine block, and
 \emph{coarse GC} reclaims a coarse block. To find the valid data of a victim,
 DUET keeps a valid bitmap with one bit per chunk slot of the coarse blocks and
 one bit per page of the fine blocks.
 
-\textbf{Coarse-or-fine victim selection.} DUET picks a victim with fewer valid pages to copy, whether it is a coarse
-block or a fine block. The number of fine blocks, however, is limited by the OP
-space. A fine page makes one page of a chunk invalid, but the chunk still takes
-its place in a coarse block. The coarse blocks must therefore be able to cover
-the whole logical capacity, and the fine blocks can only use the space beyond
-it. When the fine blocks reach this cap, DUET thus reclaims a fine block.
-Otherwise, it compares the coarse and fine blocks and runs GC on the side whose
-block has fewer valid pages.
+\textbf{Fine-block cap.} A coarse IU with fine pages still keeps its whole chunk in a
+coarse block, even though some pages of the chunk are no longer valid. In the worst
+case, no coarse IU is entirely in fine pages, and every coarse IU has part of its
+data in its chunk and the rest in fine blocks. The coarse blocks must therefore be
+able to hold the whole logical capacity. Considering this case, DUET sets the \emph{fine-block cap} to the OP
+space minus the blocks reserved for GC, the active blocks, and the blocks that
+hold FTPs.
+% Cap = NB - ceil(L/P) - T - 3 - 1 (ftl_proposed.c fq_uni rule; fine_quota_ppm 40200 -> 11 of 274 at 32 GB, 18 of 373 at 44 GB)
+% = OP blocks - 2 GC-reserve blocks - 4 active blocks. FTPs are counted as map programs only (DM_NOPPN), they take no
+% blocks of NB, like the map pages of DFTL/LeaFTL. All FTPs together are < 1 block (8195 x 4 KB = 32 MB at 32 GB);
+% the user chose to name FTP blocks in the text (2026-11-11).
+
+\textbf{Coarse-or-fine victim selection.} When the fine blocks reach the fine-block cap, DUET
+reclaims a fine block. Otherwise, it picks whichever of the coarse and fine victim
+blocks has fewer valid pages to copy.
 % Exact cap: OP blocks - GC reserve (T) - active blocks.
 % Implementation: below the cap, the fewest-valid coarse and fine blocks are compared (gc_select_cost=1), and coarse GC
 % then picks its actual victim by cost-benefit (not described in the paper).
@@ -170,8 +182,9 @@ every coarse IU that has valid fine pages in the victim fine block.
 
 \textbf{Fine-area size.} The number of fine blocks and the number of fine-map entries
 change at runtime with these two decisions. When coarse-or-fine victim selection
-often picks a coarse block, fine pages accumulate in the fine blocks, and the number
-of fine blocks grows up to the OP limit. When it often picks a fine block, the number
+often picks a coarse block, the fine pages of partial writes from the host
+accumulate in the fine blocks, and the number
+of fine blocks grows up to the fine-block cap. When it often picks a fine block, the number
 of fine blocks shrinks. The copy-or-merge decision then sets the number of fine-map
 entries. Copying keeps the fine pages and their fine-map entries, so the fine map
 grows as new small writes arrive, whereas a merge moves the fine pages into a chunk
@@ -181,14 +194,18 @@ thus adapts to the workload (Section~\ref{sec:eval}).
 \subsection{Fine-Map Spill and Load}
 \label{sec:spill}
 Under a fixed DRAM budget, the table cannot index every fine page that the fine
-blocks can hold. For example, a budget of 128\,MB per TB of capacity, 1/8 of
-the page-level table, holds the whole map of an SSD with uniform 32\,KB coarse IUs. If
-DUET uses 64\,KB chunks under this budget, the coarse map takes 64\,MB per TB.
-Since each fine-map entry takes 8\,B, the remaining 64\,MB holds about 8M
-entries, which map 32\,GB of fine pages. If the fine blocks use all of
-the 7\% OP space, however, they can hold 70\,GB of fine pages per TB. The table thus has no room for more
-than half of their fine-map entries. The DRAM capacity is fixed when the SSD hardware is designed.
-Unlike the FTL, which can be updated with the firmware, it cannot be changed easily.
+blocks can hold. The DRAM capacity is fixed in hardware, so a firmware update cannot
+enlarge it.
+For example, a commercial 122.88\,TB SSD~\cite{solidigm-p5336-spec} has DRAM for
+1/8 of a page-level table. When DUET runs within this budget, the
+coarse map takes about half of it, so only about 6\% of the DRAM of a page-level
+table is left for the fine map. In our
+evaluation setup, this indexes about 72\% of the fine pages that the fine blocks can
+hold at the fine-block cap.
+% 32 GB device: table 261,256 entries (dmesg "cuckoo2 fine table: 65314 buckets x 4") vs fine-block cap 11 x 32768 =
+% 360,448 pages -> 72%. (44 GB device: 334,736 / 557,568 = 60%.)
+% (2026-11-11) budget L*4/8 - coarse map (L/16)*4 = L/4 B = 1/16 = 6.25% of the page-level table (L*4 B). Was: the other
+% half indexes only 3% of the logical pages (8 B per entry) vs fine blocks in the whole 7% OP space.
 % Illustration: 7% of 1 TB = 70 GB vs 32 GB in the table -> 54% do not fit. (Device: fine cap 18 blocks after GC reserve and active blocks, 1 - 334,736 / 557,568 = 40%.) Per TB: table 334,736 / L 10,798,160 = 3.10% of logical pages = 31.7 GB, fine cap 557,568 / L = 5.16% = 52.9 GB. FAST under the same budget (old text): rwcap=14 of nlog=23, 8 spare blocks unused.
 % Numbers: apps device P=30976, fine cap 18 blocks = 557,568 pages, cuckoo2 table 334,736 entries (spill=2, GTD charged).
 % FAST (results/final_rp apps dmesg): NB=373 NLB=348 T=2 -> nlog=23, cache_bytes=B12 -> rwcap=14 (SW + 14 RW = 15 log blocks).
@@ -197,7 +214,9 @@ Another challenge is hash collisions within the fine map. An insert can find
 both of its candidate buckets full even when other buckets still have free slots.
 Hashing schemes that place a colliding entry in another
 bucket~\cite{cuckoo,onemove,hopscotch,robinhood} make a lookup probe more buckets or an
-insert move existing entries, so they need more DRAM accesses. On the other hand,
+insert move existing entries, which takes more DRAM accesses. An insert that moves
+entries along a chain of buckets must also lock them, which blocks concurrent
+lookups, because a lookup could otherwise miss an entry in flight. On the other hand,
 merging the coarse IU whose entries are pushed out of the full buckets into the coarse map
 causes extra NAND writes.
 

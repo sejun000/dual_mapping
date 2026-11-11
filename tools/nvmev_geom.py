@@ -8,7 +8,9 @@
 """
 import sys
 MiB = 1 << 20
-BLKS, DIES, ONESHOT, OP_PPM, U = 373, 16, 32768, 70000, 16
+import os
+BLKS = int(os.environ.get("NVMEV_BLKS", "373"))   # BLKS_PER_PLN of the build (274 since 2026-11-11: 32 GB device)
+DIES, ONESHOT, OP_PPM, U = 16, 32768, 70000, 16
 
 def geom(memmap_bytes):
     storage = memmap_bytes - MiB                       # main.c: storage starts at +1 MiB

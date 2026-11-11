@@ -1,0 +1,94 @@
+[04:33:49] === ycsba_d_t64_fast_g32_20261111T043349Z -> /home/sejun000/dual_mapping/results/final_32g/apps/ycsba_d_t64/fast_g32
+[04:33:50] insmod /home/sejun000/nvmevirt_fast/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=4335816'
+[04:33:50] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[04:33:51] memory cgroup dmapp.slice: MemoryMax=6553M MemoryHigh=5733M (20% of 34359738368 B)
+[04:33:51] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34359738368 B) before mkfs
+[04:34:06] [prefill] done in 15 s
+[04:34:06] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[04:34:06] ext4 capacity (used+avail) 31766994944 B, util 0%
+[04:34:06] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31766994944 B)
+[04:34:07] [ycsb] 16 instances x (records=625000 threads=4 workloada)
+[04:38:37] [ballast] writing 1055 MiB to reach ~76% (pending 0 MiB)
+[04:38:38] [ballast] df util now 75%
+[04:38:59] measurement start utilisation=75% (window 73-85)
+[04:38:59] [ycsb] run 600s, 16 x 4 threads
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 348: /sys/fs/cgroup/dmapp.slice/run-r0d828560c38b4dcf90cbdadcdbfbcc07.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 348: /sys/fs/cgroup/dmapp.slice/run-r830533584f834be787da21dc326763dd.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 348: /sys/fs/cgroup/dmapp.slice/run-rfe0302d221d44e51bb44338137b88a5c.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 348: /sys/fs/cgroup/dmapp.slice/run-r4a16a564d7ce45b6bc9067a823205e7f.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/final_32g/apps/ycsba_d_t64/fast_g32
+workload=ycsba_d_t64
+policy=fast_g32
+status=DONE
+start_util_pct=75.9984
+end_util_pct=83.4283
+ext4_write_kbytes_delta=63749612
+blk_read_ios=4277055
+blk_write_ios=5033712
+blk_read_bytes=43613065216
+blk_write_bytes=65279602688
+blk_avg_write_req_kb=12.6645
+dev_read_lat_ms_avg=1.17038
+dev_write_lat_ms_avg=15.1103
+write_qd_max=740
+blk_read_lat_us_mean=1171.63
+blk_read_lat_us_p50=154.162
+blk_read_lat_us_p90=319.268
+blk_read_lat_us_p99=8812.89
+blk_read_lat_us_p99.9=234264
+blk_read_lat_us_p99.99=1.13578e+06
+blk_write_lat_us_mean=15119.9
+blk_write_lat_us_p50=79.3198
+blk_write_lat_us_p90=9703.96
+blk_write_lat_us_p99=395908
+blk_write_lat_us_p99.9=1.31866e+06
+blk_write_lat_us_p99.99=2.48507e+06
+app_write_bytes=65278943760
+fs_waf=1.00001
+dev_host_write_pages=15937681
+dev_host_read_pages=10647721
+dev_nand_progs=240403398
+dev_waf=15.084
+dev_waf_gc=14.3113
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=238736940
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=7338
+dev_map_miss=0
+dev_mapping_mem_bytes_end=1818064
+total_waf=15.0841
+memcg_max=6871318528
+memcg_high=6011486208
+memcg_peak=6017232896
+memcg_events_high=40237
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=255401984
+throughput=8584.53
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.58212e+06
+ycsb_ops.READ.avg_us=878.472
+ycsb_ops.READ.p50_us=221.125
+ycsb_ops.READ.p90_us=403.625
+ycsb_ops.READ.p95_us=506.688
+ycsb_ops.READ.p99_us=3534.25
+ycsb_ops.READ.p99.9_us=138275
+ycsb_ops.READ.max_us=3.50208e+06
+ycsb_ops.UPDATE.ops=2.57825e+06
+ycsb_ops.UPDATE.avg_us=14020.1
+ycsb_ops.UPDATE.p50_us=504.25
+ycsb_ops.UPDATE.p90_us=13056
+ycsb_ops.UPDATE.p95_us=43757
+ycsb_ops.UPDATE.p99_us=332239
+ycsb_ops.UPDATE.p99.9_us=1.27571e+06
+ycsb_ops.UPDATE.max_us=6.94272e+06
+app_write_lat_ms_avg=14.0201
+app_write_lat_ms_p99=332.239
+app_read_lat_ms_avg=0.878472
+app_read_lat_ms_p99=3.53425
+[04:50:58] === ycsba_d_t64_fast_g32_20261111T043349Z status DONE

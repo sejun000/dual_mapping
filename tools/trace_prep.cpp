@@ -17,6 +17,8 @@
 //              replays the file with an identity remap and a block-device replayer sees the same LBAs). order=addr
 //              (default) keeps address order. order=touch also selects the segment mode.
 //   seed=N     hash seed for sample= (default 0).
+//   rtouch=1   (segment mode) regions touched only by reads are kept too, so reads of never-written data stay in the
+//              output (2026-11-11: SPFresh at region=4096 on the 32 GB device).
 //
 // Segment mode (sample= or order=touch): every request is rounded out to 4 KiB pages first (as ftlsim does), cut per
 // region, and kept segments that stay contiguous after the remap are merged back into one output request; reads are
@@ -34,7 +36,7 @@
 using u64 = uint64_t;
 
 struct Args { std::string in, out; u64 stride = 0, unscale = 1, region = 1ull << 20; bool reads = false;
-              u64 samp_k = 0, samp_K = 0, seed = 0; bool touch = false; };
+              u64 samp_k = 0, samp_K = 0, seed = 0; bool touch = false, rtouch = false; };
 
 static bool next_io(FILE* f, const Args& a, u64& off, u64& len, bool want_reads, char* opc) {
     char line[256];
@@ -69,9 +71,10 @@ static int segment_mode(const Args& a) {
     std::vector<u64> remap;            // source region -> dense region (NONE = not kept or never written)
     std::vector<uint8_t> touched;      // source region written at all (before sampling)
     u64 nreg = 0, src_regions = 0, src_wpages = 0, off, len;
-    while (next_write(f, a, off, len)) {
+    char opc1;
+    while (next_io(f, a, off, len, a.rtouch, &opc1)) {   // rtouch=1: regions only read also get a place (and keep their reads)
         u64 p0 = off / PG, p1 = (off + len + PG - 1) / PG;
-        src_wpages += p1 - p0;
+        if (opc1 == 'W') src_wpages += p1 - p0;
         u64 r0 = p0 / RPG, r1 = (p1 - 1) / RPG;
         if (r1 + 1 > remap.size()) { u64 n = std::max(r1 + 1, remap.size() * 2); remap.resize(n, NONE); touched.resize(n, 0); }
         for (u64 r = r0; r <= r1; ++r) {
@@ -181,6 +184,7 @@ int main(int argc, char** argv) {
             if (!strcmp(s + 6, "touch")) a.touch = true; else if (strcmp(s + 6, "addr")) { fprintf(stderr, "bad order\n"); return 1; }
         }
         else if (!strncmp(s, "seed=", 5)) a.seed = strtoull(s + 5, nullptr, 10);
+        else if (!strncmp(s, "rtouch=", 7)) a.rtouch = atoi(s + 7) != 0;
         else { fprintf(stderr, "bad arg %s\n", s); return 1; }
     }
     const u64 PG = 4096;

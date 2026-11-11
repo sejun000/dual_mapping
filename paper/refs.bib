@@ -83,6 +83,16 @@
   year      = {2010}
 }
 
+@article{superblock,
+  author    = {Dawoon Jung and Jeong-Uk Kang and Heeseung Jo and Jin-Soo Kim and Joonwon Lee},
+  title     = {Superblock {FTL}: A Superblock-Based Flash Translation Layer with a Hybrid Address Translation Scheme},
+  journal   = {ACM Transactions on Embedded Computing Systems},
+  volume    = {9},
+  number    = {4},
+  pages     = {40:1--40:41},
+  year      = {2010}
+}
+
 @inproceedings{comap,
   author    = {Yang Zhou and Fang Wang and Dan Feng},
   title     = {How to Manage the Mapping Table of Large-Capacity Solid-State Drives},
@@ -272,4 +282,26 @@
   booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
   pages     = {543--559},
   year      = {2026}
+}
+
+% Official: "The Solidigm D5-P5336 utilizes a 16KB indirection unit, with the exception of 122.88TB E1.L and U.2 units
+% which utilize a 32KB indirection unit." Product Specification, Rev 006, December 2024. The product brief
+% (solidigm.com, Solidigm-D5P5336-ProductBrief.pdf) footnote also names the "32KB IU 122.88TB SKU".
+@misc{solidigm-p5336-spec,
+  author       = {{Solidigm}},
+  title        = {Solidigm {D5-P5336} Product Specification},
+  howpublished = {Rev. 006},
+  month        = dec,
+  year         = {2024}
+}
+
+% Samsung K4A8G165WC 8Gb C-die DDR4 x16 datasheet Rev 1.5 Apr 2017: "Burst Length: 8, 4"; x16 page (row) size 2 KB.
+% BL8 on a 32-bit (64-bit) bus = 32 B (64 B). download.semiconductor.samsung.com/resources/user-manual/
+% x16%20only_8G_C_DDR4_Samsung_Spec_Rev1.5_Apr.17.pdf
+@misc{samsung-ddr4,
+  author       = {{Samsung Electronics}},
+  title        = {8{Gb} {C}-die {DDR4} {SDRAM} x16 ({K4A8G165WC}) Datasheet},
+  howpublished = {Rev. 1.5},
+  month        = apr,
+  year         = {2017}
 }

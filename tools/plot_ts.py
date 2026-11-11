@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fine-area size over time for DUET (results/final_ts, q_ts.sh: [dm flush] dumped every 5 s).
-Left axis: number of fine blocks. Right axis: fine pages (= fine-map entries), split into entries in the DRAM table
+Right axis: fine blocks as % of all blocks (NB). Right axis: fine pages (= fine-map entries), split into entries in the DRAM table
 (fpages - spages) and spilled entries (spages). Blue line: all fine-map entries. Table capacity (mem = NIU*4 + GTD + slots*8) printed only, not drawn.
 Single column, two panels. Outputs results/paper_dac/fig_ts.{pdf,png} (also copied to paper/figs)."""
 import re, shutil
@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 B = '/home/sejun000/dual_mapping/results'
 OUT = B + '/paper_dac'
 WL = [('apps/ycsba_d_t64', 'YCSB-A'), ('trace_ali3', 'Alibaba')]   # R:W 50:50 dropped (flat, no spill)
-C_DUET, C_SP, C_FB, C_TOT = '#9A91E6', '#E2DFF8', '#C0392B', '#1F3FBF'
+C_DUET, C_SP, C_FB, C_TOT = '#7468D8', '#BDB7EE', '#C0392B', '#1F3FBF'   # was #9A91E6 / #E2DFF8 (2026-11-10)
 YMAX = 5.0   # % of logical pages
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'axes.linewidth': 0.6})
 
@@ -32,7 +32,7 @@ def main():
     fig, axs = plt.subplots(1, 2, figsize=(3.4, 1.25))   # was 1.45 (2026-11-09)
     for ax, (d, lab) in zip(axs, WL):
         t, rows, cap = load(d)
-        fb = [r['fine_blocks'] for _, r in rows]
+        fb = [r['fine_blocks'] * 100 / r['NB'] for _, r in rows]   # % of all blocks (2026-11-11, was a count)
         L = rows[0][1]['L']   # fine-map entries as % of all logical pages (2026-11-08)
         tab = [(r['fpages'] - r['spages']) * 100 / L for _, r in rows]
         sp = [r['spages'] * 100 / L for _, r in rows]
@@ -46,9 +46,9 @@ def main():
             ax.set_ylabel('Fine-map entries (%)', fontsize=6.5, labelpad=1.5, color=C_TOT)
         a2 = ax.twinx()
         a2.plot(t, fb, color=C_FB, lw=0.9)
-        a2.set_ylim(0, 20); a2.tick_params(labelsize=6, pad=1, length=2, colors=C_FB)
+        a2.set_ylim(0, 6); a2.tick_params(labelsize=6, pad=1, length=2, colors=C_FB)
         if ax is axs[-1]:
-            a2.set_ylabel('Fine blocks', fontsize=6.5, color=C_FB, labelpad=1.5)
+            a2.set_ylabel('Fine blocks (%)', fontsize=6.5, color=C_FB, labelpad=1.5)
         print(lab, 'cap', cap, 'max table', max(tab), 'max spilled', max(sp), 'max fb', max(fb), 'samples', len(t))
     from matplotlib.patches import Patch
     from matplotlib.lines import Line2D

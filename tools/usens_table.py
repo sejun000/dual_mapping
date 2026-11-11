@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Coarse-IU sensitivity of DUET (U = 16 / 32 / 64 / 128 pages): results/final_vbm (U=16) and results/final_usens/u<U>
-(q_usens.sh, 2026-11-09). Prints per-workload metrics normalized to Page, and writes results/paper_dac/usens_data.csv."""
+(q_usens.sh, 2026-11-09; raw I/O 50:50 from q_usens50.sh, 2026-11-10). Prints per-workload metrics normalized to Page, and writes results/paper_dac/usens_data.csv."""
 import sys, os, csv, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import plot_eval as pe
 US = [16, 32, 64, 128]
-WL = [('raw', 'a128_r70_s70', '70:30'), ('trace', 'ali3', 'Alibaba'), ('trace', 'spfresh', 'SPFresh'),
+WL = [('raw', 'a128_r50_s70', '50:50'), ('trace', 'ali3', 'Alibaba'), ('trace', 'spfresh', 'SPFresh'),
       ('app', 'ycsba_d_t64', 'YCSB-A'), ('app', 'tpcc_d_t64', 'TPC-C')]
 M = ['tput', 'fr', 'waf', 'r_avg', 'w_avg', 'r_p99', 'w_p99']
 

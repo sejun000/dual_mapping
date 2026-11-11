@@ -17,7 +17,7 @@ WLS = [w for w in dict.fromkeys(r['workload'] for r in rows) if w != 'GEOMEAN'] 
 WLN = {w: ('Geo. mean' if w == 'GEOMEAN' else w) for w in WLS}
 val = {(r['workload'], int(r['U'])): r for r in rows}
 
-fig, axs = plt.subplots(1, 2, figsize=(3.4, 0.9))   # was 1.15 (2026-11-10)
+fig, axs = plt.subplots(1, 2, figsize=(3.4, 1.0))   # was 1.15, then 0.9 (2026-11-10)
 for ax, m, yl, ttl in ((axs[0], 'tput', 'Throughput', '(a) Throughput'), (axs[1], 'waf', 'WA', '(b) Write amplification')):
     bw = 0.8 / len(US)
     for i, u in enumerate(US):
@@ -31,7 +31,7 @@ for ax, m, yl, ttl in ((axs[0], 'tput', 'Throughput', '(a) Throughput'), (axs[1]
     ax.tick_params(axis='y', labelsize=5.4, pad=1); ax.tick_params(axis='x', pad=1, length=0)
     ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
 axs[0].set_ylim(0, 1.4); axs[0].set_yticks([0, 0.5, 1]); axs[1].set_ylim(0, 2.1); axs[1].set_yticks([0, 1, 2])
-fig.tight_layout(pad=0.2, w_pad=0.8); fig.subplots_adjust(top=0.80)   # was 0.84 (2026-11-10)
+fig.tight_layout(pad=0.2, w_pad=0.8); fig.subplots_adjust(top=0.82)   # was 0.84, then 0.80 (2026-11-10)
 h = [Patch(fc=COL[u], ec='black', lw=0.35, label=LAB[u]) for u in US]
 fig.legend(handles=h, ncol=4, fontsize=5.8, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,
            handlelength=1.2, columnspacing=1.0, handletextpad=0.4)

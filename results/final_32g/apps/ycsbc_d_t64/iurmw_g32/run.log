@@ -1,0 +1,80 @@
+[08:42:18] === ycsbc_d_t64_iurmw_g32_20261111T084218Z -> /home/sejun000/dual_mapping/results/final_32g/apps/ycsbc_d_t64/iurmw_g32
+[08:42:18] insmod /home/sejun000/nvmevirt_iurmw/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='U=8'
+[08:42:18] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[08:42:19] memory cgroup dmapp.slice: MemoryMax=6555M MemoryHigh=5735M (20% of 34369765376 B)
+[08:42:19] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34369765376 B) before mkfs
+[08:42:34] [prefill] done in 15 s
+[08:42:34] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[08:42:35] ext4 capacity (used+avail) 31775420416 B, util 0%
+[08:42:35] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31775420416 B)
+[08:42:35] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[08:45:51] [ballast] writing 1064 MiB to reach ~76% (pending 0 MiB)
+[08:45:53] [ballast] df util now 75%
+[08:46:15] measurement start utilisation=75% (window 73-85)
+[08:46:15] [ycsb] run 600s, 16 x 4 threads
+case=/home/sejun000/dual_mapping/results/final_32g/apps/ycsbc_d_t64/iurmw_g32
+workload=ycsbc_d_t64
+policy=iurmw_g32
+status=DONE
+start_util_pct=75.9997
+end_util_pct=76.0079
+ext4_write_kbytes_delta=868972
+blk_read_ios=102462757
+blk_write_ios=20732
+blk_read_bytes=911794298880
+blk_write_bytes=889835520
+blk_avg_write_req_kb=41.9149
+dev_read_lat_ms_avg=0.126131
+dev_write_lat_ms_avg=43.0469
+write_qd_max=610
+blk_read_lat_us_mean=124.184
+blk_read_lat_us_p50=108.965
+blk_read_lat_us_p90=177.259
+blk_read_lat_us_p99=273.183
+blk_read_lat_us_p99.9=376.25
+blk_read_lat_us_p99.99=588.867
+blk_write_lat_us_mean=49108.8
+blk_write_lat_us_p50=2349.09
+blk_write_lat_us_p90=159000
+blk_write_lat_us_p99=606933
+blk_write_lat_us_p99.9=820930
+blk_write_lat_us_p99.99=935186
+app_write_bytes=813449480
+fs_waf=1.0939
+dev_host_write_pages=217111
+dev_host_read_pages=222606027
+dev_nand_progs=1315664
+dev_waf=6.05987
+dev_waf_gc=4.53619
+dev_waf_rmw=0.523939
+dev_waf_fold=0
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=223699608
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=40
+dev_map_miss=0
+dev_mapping_mem_bytes_end=4195528
+total_waf=6.62891
+memcg_max=6873415680
+memcg_high=6013583360
+memcg_peak=6020464640
+memcg_events_high=267504
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=364343296
+throughput=343119
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.05944e+08
+ycsb_ops.READ.avg_us=183.442
+ycsb_ops.READ.p50_us=147.562
+ycsb_ops.READ.p90_us=293.75
+ycsb_ops.READ.p95_us=327.25
+ycsb_ops.READ.p99_us=416.188
+ycsb_ops.READ.p99.9_us=2937.75
+ycsb_ops.READ.max_us=1.25542e+06
+app_read_lat_ms_avg=0.183442
+app_read_lat_ms_p99=0.416187
+[08:57:06] === ycsbc_d_t64_iurmw_g32_20261111T084218Z status DONE

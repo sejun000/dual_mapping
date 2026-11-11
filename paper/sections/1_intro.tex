@@ -33,61 +33,76 @@ mapping DRAM budget that is only a fraction of the full page-level table
   \vspace{-2.5mm}
 \end{figure}
 
-Techniques that reduce the mapping DRAM fall into two broad classes, and both
-pay for it in latency.
-\emph{On-demand mapping}~\cite{dftl,leaftl} (Figure~\ref{fig:intro}b) keeps the
+Existing techniques reduce the mapping DRAM, but each of them pays for it in
+latency.
+\emph{On-demand mapping}~\cite{dftl,leaftl,cftl} (Figure~\ref{fig:intro}b) keeps the
 page-level table in flash and keeps part of it in an on-device map cache.
 A read that misses in the map cache must first read its mapping entry from
-NAND before it can read the data. This extra read is synchronous, so read
-latency spikes whenever the map cache misses.
-\emph{Block-level hybrid mapping}~\cite{bast,fast,janusftl,cftl}
+NAND. This extra read is synchronous because the data read can start only after it
+completes. Read latency thus spikes whenever the map cache misses.
+\emph{Block-level hybrid mapping}~\cite{fast,janusftl,superblock}
 (Figure~\ref{fig:intro}c), on the other hand, maps most data
 per NAND block and appends updates to page-mapped log blocks. When free space
 runs low, the log blocks are merged back into their data blocks, and a merge
 must copy all valid pages of a whole NAND block. Each 3D NAND generation
 enlarges the NAND block~\cite{pen}, so a merge copies more pages,
 and these copies compete with host writes for NAND bandwidth. In our measurements, the p99 write latency
-of FAST~\cite{fast}, a representative block-level hybrid mapping FTL, is 2.8--3.4$\times$ that of a page-level FTL under random I/O.
+of FAST~\cite{fast}, a representative hybrid mapping FTL, is 2.8--3.4$\times$ that of a page-level FTL under random I/O.
 
 Many recent commercial high-capacity SSDs instead map all data with a
-\emph{uniform coarse indirection unit} (uniform coarse IU) of 16--64\,KB~\cite{micron-iu,solidigm-csal}. The
-whole coarse table fits in on-device DRAM, with no mapping misses and no block-level merges.
+\emph{uniform coarse indirection unit} (uniform coarse IU) of 16--64\,KB~\cite{micron-iu,solidigm-csal}. For example,
+Solidigm's 122.88\,TB D5-P5336 maps data in 32\,KB IUs~\cite{solidigm-p5336-spec},
+so its mapping table needs only 1/8 of the DRAM of a page-level table. The whole coarse table fits in on-device DRAM, with no mapping misses and no block-level merges.
 The cost moves to small writes. When a write is smaller than a coarse IU, the FTL
 reads the rest of the unit, merges the new data, and writes the whole unit again
 (read-modify-write, RMW). This raises the write amplification (WA) and
 lengthens write latency.
+
+% (2026-11-10) challenge. 1.8x = WA of Basic / Basic + coarse-or-fine + copy-or-merge on 50:50 (16.8 / 9.4),
+% results/paper_dac/ablation_data.csv (Fig. 8).
+% (2026-11-11) challenge rewritten with the user (was: manage 4 KB mappings and coarse-IU mappings together, how many
+% 4 KB blocks to keep, merge or keep). 1.8x to be rechecked with the 32 GB rerun ablation.
+To keep the small table of the uniform coarse IU and still absorb small writes
+without RMW, our approach lets page-level mapping and coarse-IU mapping coexist. This
+raises several design challenges. First, the DRAM budget for page-level mapping is limited.
+It is smaller than in block-level hybrid mapping, because a coarse IU is much
+smaller than a NAND block, so the coarse map needs many more entries to cover the
+same capacity and takes a large amount of DRAM. The FTL thus has to
+merge page-mapped data into coarse IUs more often, which raises WA. The FTL must therefore find another way to handle the page-level mappings that
+outgrow this budget. Second, with two mapping granularities, the FTL has
+many more choices on both the host-write path and the reclamation path. On the
+host-write path, it must decide where to place the data mapped per coarse IU and
+per page in physical blocks. On the reclamation path, it must decide which kind of
+block to reclaim and whether to merge page-mapped data back into coarse IUs. In our
+experiments, these decisions change WA by up to 1.8$\times$.
 
 We present \textbf{DUET} (\textbf{DU}al-granularity \textbf{E}conomical
 \textbf{T}ranslation), an FTL that keeps two mapping granularities, the coarse IU
 and the 4\,KB page, under a fixed mapping DRAM budget (Figure~\ref{fig:intro}d). Most data are mapped per coarse IU, and recent writes smaller than a
 coarse IU are mapped at 4\,KB granularity. They are written out of place as 4\,KB
 pages, and the corresponding pages of the coarse IU become invalid, so the host
-write path has no RMW. Most of the page-level mappings stay in on-device
-DRAM, and DUET uses NAND only to stage a small part of them so that they fit
-the DRAM budget, which is fixed in hardware. DUET thus needs far fewer mapping
-reads than on-demand mapping, which reduces its read latency.
-When either the page-level or the coarse-IU-level area runs out of
+write path has no RMW. Most of the page-level mappings stay in on-device DRAM.
+DUET thus needs far fewer mapping reads from NAND than on-demand mapping, which
+reduces its read latency. When the 4\,KB page mappings outgrow the DRAM budget,
+DUET does not merge them into coarse IUs right away. It stages them in NAND and
+merges them later.
+DUET writes the 4\,KB pages of small writes and the coarse IUs of large writes to
+separate physical blocks. When either the page-level or the coarse-IU-level area runs out of
 space, its garbage collection (GC) merges the 4\,KB pages of a coarse IU into it and
 rewrites the whole coarse IU. A merge rewrites only one coarse IU regardless of the NAND
 block size, so DUET never performs the block-level merges of existing hybrid mapping FTLs.
 
+% (2026-11-10) contributions list merged into this paragraph. Averages = geomean over the 10 workloads,
+% results/paper_dac/eval_data.csv: mapping reads per host read DUET 0.05, DFTL 0.46, LeaFTL 0.22. avg read DUET/x 0.43
+% (DFTL), 0.63 (LeaFTL). WA DUET/x 0.44 (FAST), 0.35 (CoMap), 0.49 (CoarseIU), excl. YCSB-C.
+% Previous version also had: read latency up to 2.4x lower than on-demand (YCSB-B), p99 write 4.6x lower than FAST on TPC-C.
 We implement DUET and six other FTLs in NVMeVirt~\cite{nvmevirt}, a kernel-level
-NVMe SSD emulator, and evaluate them under a limited mapping-DRAM budget with
-microbenchmarks, application workloads, and real-world traces. DUET reaches 93\%
-of the throughput of a page-level FTL with unlimited DRAM,
-whereas on-demand mapping, block-level hybrid mapping, and a uniform coarse IU reach at most
-73\%, 57\%, and 66\%, respectively. Its average read latency is up to
-2.4$\times$ lower than that of on-demand mapping, and its p99 write latency is
-4.6$\times$ lower than that of block-level hybrid mapping on TPC-C.
-
-This paper makes the following contributions:
-\begin{itemize}
-  \item An analysis showing that existing FTLs fit a limited mapping DRAM budget only by
-  paying in read latency (on-demand mapping), merge cost and tail latency
-  (block-level hybrid mapping), or RMW (uniform coarse IU).
-  \item The design of DUET, which combines dual-granularity mapping with coarse-IU-level
-  merging.
-  \item An implementation of DUET and six other FTLs in a common emulator. Under the
-  same DRAM budget, DUET achieves the highest average throughput among the
-  bounded-DRAM FTLs, within 7\% of a page-level FTL with unlimited DRAM.
-\end{itemize}
+NVMe SSD emulator, and evaluate them under 1/8 of the page-level mapping DRAM with
+synthetic raw I/O, real-world traces, and applications. On average, DUET reaches 93\%
+of the throughput of a page-level FTL with unlimited DRAM, whereas on-demand mapping,
+block-level hybrid mapping, and a uniform coarse IU reach at most 73\%, 57\%, and 66\%,
+respectively. Compared with on-demand mapping, DUET cuts the mapping reads per host
+read from 0.22--0.46 to 0.05, so its average read latency is 38--57\% lower. Because it
+merges one coarse IU at a time and writes small writes without RMW, its WA is
+56--65\% lower than that of block-level hybrid mapping and 51\% lower than that of the
+uniform coarse IU.

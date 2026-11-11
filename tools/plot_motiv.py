@@ -19,7 +19,7 @@ D = B + '/final_rp_a128/replay_a128_' + CFG
 OUT = B + '/paper_dac'
 LABEL = {'page4k': 'Page', 'dftl': 'DFTL', 'leaftl': 'LeaFTL', 'fast': 'FAST', 'iurmw': 'CoarseIU', 'proposed': 'DUET'}
 COLOR = {'page4k': '#DDDCD6', 'dftl': '#B3E0CC', 'leaftl': '#F5C2AE', 'fast': '#EED6AA', 'iurmw': '#BBD7F3', 'proposed': '#3F2FD0'}   # pastel baselines, saturated DUET
-HATCH = {'page4k': '', 'dftl': '//', 'leaftl': '\\\\', 'fast': '..', 'iurmw': '--', 'proposed': ''}
+HATCH = {'page4k': '', 'dftl': '////', 'leaftl': '\\\\\\\\', 'fast': '...', 'iurmw': '---', 'proposed': ''}   # denser, same as plot_eval (2026-11-10)
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4, 'axes.linewidth': 0.6})
 
 
