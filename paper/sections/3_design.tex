@@ -220,20 +220,21 @@ lookups, because a lookup could otherwise miss an entry in flight. On the other 
 merging the coarse IU whose entries are pushed out of the full buckets into the coarse map
 causes extra NAND writes.
 
-DUET instead keeps the fine-map entries of some coarse IUs in FTPs in NAND, so the
-fine blocks can use all of the OP space without more DRAM.
+DUET instead keeps the fine-map entries of some coarse IUs in FTPs in NAND, so that
+DUET can map more fine pages in the fine blocks without more DRAM.
 The fine-map entries of a coarse IU move to its FTP when the table fills
 (\emph{spill}) and back to the table when the coarse IU is accessed again
-(\emph{load}), and no data moves in either direction. In theory, the spilled entries map
-at most 7\% of the data, the size of the OP space, because most data are mapped by the
-coarse map, which is always in DRAM.
-% Bound: spilled <= fine pages <= OP (7%). Spill can start before the table is full (bucket pairs fill unevenly), so
-% 70 - 32 GB is not a bound. Measured: YCSB-A max spilled 312,824 / L 10,798,160 = 2.9% (results/final_stats).
+(\emph{load}), and no data moves in either direction. Only fine pages have fine-map
+entries, so the spilled entries map at most the fine pages at the fine-block cap, which
+are 4.3\% of the logical capacity in our evaluation setup.
+% (2026-11-11, 32 GB) cap 11 blocks x 32768 = 360,448 pages / L 8,391,056 = 4.3%. Not cap - table (360,448 - 261,256
+% = 1.2%): spills start before the table is full (bucket pairs fill unevenly). At 44 GB YCSB-A max spilled was 2.9% of
+% L (results/final_stats) vs cap - table = (18 x 32768 - 0.6 x 18 x 32768) / 10,798,160 = 2.2%.
 
 \textbf{Spill.} As shown in Figure~\ref{fig:design}, the fine-map entry of each LPN has a
 fixed 4\,B slot in an FTP,
 which holds the entries of 1024 consecutive LPNs. As in DFTL, the GTD locates each
-FTP with one 4\,B entry, charged to the same DRAM budget. When an insert finds both
+FTP with one 4\,B entry. When an insert finds both
 candidate buckets full, DUET picks a victim among the coarse IUs that have an entry in
 the two buckets. It writes all entries of the victim to its FTP, sets its S bit, and
 frees its table entries. The other coarse IUs of the same FTP are spilled with the

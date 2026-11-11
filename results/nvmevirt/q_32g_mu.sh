@@ -1,8 +1,8 @@
 #!/bin/bash
-# (2026-11-11) uFTL (mu-FTL) on the 32 GB device, after results/nvmevirt/q_32g.sh and q_32g_rest.sh: same workloads as the main matrix.
+# (2026-11-11) uFTL (mu-FTL) on the 32 GB device, after results/nvmevirt/q_32g.sh and q_32g_rest.sh, q_32g_ab.sh: same workloads as the main matrix.
 # ~/nvmevirt_mu rebuilt with BLKS_PER_PLN 274; budget mu_g32 = T - NB*P/8 - 32768 - NB = 3180470 B (rule of mu_vb).
 cd /home/sejun000/dual_mapping
-while pgrep -f '^/bin/bash (/home/sejun000/dual_mapping/)?results/nvmevirt/q_32g(_rest)?\.sh' >/dev/null; do sleep 60; done
+while pgrep -f '^(/bin/)?bash (/home/sejun000/dual_mapping/)?results/nvmevirt/q_32g(_rest|_ab)?\.sh' >/dev/null; do sleep 60; done
 export NVMEV_MEMMAP_SIZE=35073M NVMEV_BLKS=274
 busy() { pgrep -f '^/bin/bash (/home/sejun000/dual_mapping/)?tools/(apps/run_all|nvmev_cycle)\.sh' >/dev/null || lsmod | grep -q '^nvmev '; }
 idle() { while busy; do sleep 60; done; }
