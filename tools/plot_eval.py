@@ -83,8 +83,9 @@ def duet_dir(kind, key):
     return None, None
 
 
+NEW_DUET = False   # (2026-11-12, user) back to the spill/load DUET: YCSB-B p99 read 2.61 ms with cuckoo vs 1.00 ms
 def row(kind, key, p):
-    if USE_G32 and p == 'proposed':
+    if USE_G32 and p == 'proposed' and NEW_DUET:
         d, k = duet_dir(kind, key)
         if d and k == 'trace': return replay(d.rsplit('/', 1)[0], d.rsplit('/', 1)[1])
         if d:

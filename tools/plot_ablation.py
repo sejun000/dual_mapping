@@ -13,12 +13,12 @@ from matplotlib.patches import Patch
 
 B = '/home/sejun000/dual_mapping/results'
 OUT, PAPER = B + '/paper_dac', '/home/sejun000/dual_mapping/paper/figs'
-VAR = ['nsfm', 'nsm', 'ns', 'ck', 'full']   # (2026-11-12) + cuckoo displacement (ck), then + spill/load = DUET
-LABEL = {'nsfm': 'Basic', 'nsm': '+ Coarse-or-fine', 'ns': '+ Copy-or-merge', 'ck': '+ Cuckoo', 'full': '+ Spill/load (DUET)'}
-COLOR = {'nsfm': '#EEECFB', 'nsm': '#D3CEF5', 'ns': '#ADA5EC', 'ck': '#8378E0', 'full': '#3F2FD0'}
+VAR = ['nsfm', 'nsm', 'ns', 'ck', 'full']   # (2026-11-12, user) coarse-or-fine + copy-or-merge shown as one step (GC decisions)   # (2026-11-12) DUET = spill/load; ck = cuckoo displacement instead of spill/load   # (2026-11-12) + cuckoo displacement (ck), then + spill/load = DUET
+LABEL = {'nsfm': 'Basic', 'nsm': '+ Coarse-or-fine', 'ns': '+ Copy-or-merge', 'ck': '+ Cuckoo', 'full': 'Spill/load instead of cuckoo (DUET)'}
+COLOR = {'nsfm': '#EEECFB', 'nsm': '#CBC6F3', 'ns': '#9A91E6', 'ck': '#8378E0', 'full': '#3F2FD0'}
 HATCH = {'nsfm': '..', 'nsm': '\\\\', 'ns': '//', 'ck': 'xx', 'full': ''}
-WL = [('app', 'ycsba_d_t64', 'YCSB-A'), ('trace', 'trace_ali3', 'Alibaba'), ('trace', 'replay_a128_r70_s70', '70:30'),
-      ('trace', 'trace_spfresh', 'SPFresh')]   # (2026-11-12) 32 GB device, results/final_32g
+WL = [('app', 'ycsba_d_t64', 'YCSB-A'), ('app', 'ycsbb_d_t64', 'YCSB-B'), ('trace', 'trace_ali3', 'Alibaba'),
+      ('trace', 'replay_a128_r70_s70', '70:30')]   # (2026-11-12, user) SPFresh -> YCSB-B; TPC-C tried and dropped   # (2026-11-12) 32 GB device, results/final_32g
 G = B + '/final_32g'
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4, 'axes.linewidth': 0.6})
 
@@ -52,10 +52,10 @@ def trace(d):
 # pair, so ck = nsk (no DRAM timing needed) and full = the main DUET run (0 spills, cuckoo never runs).
 KD = {'ycsba_d_t64': True, 'trace_spfresh': True}
 def row(kind, key, v):
-    if kind == 'app' and v in ('ck', 'full'):
-        d = f'{G}/kick_dram/apps/{key}/' + ('proposedab_g32nskl' if v == 'ck' else 'proposedst_g32kl')
+    if kind == 'app' and v == 'ck':
+        d = f'{G}/kick_dram/apps/{key}/proposedab_g32nskl' if key == 'ycsba_d_t64' else f'{G}/ablation/apps/{key}/proposedab_g32nskl'
         r = app(d); r['fp'] = float('nan'); return r
-    if kind != 'app' and v in ('ck', 'full'):
+    if kind != 'app' and v == 'ck':
         if key in KD:
             d = f'{G}/kick_dram/' + ('nskl' if v == 'ck' else 'kl') + f'/{key}/' + ('proposedab' if v == 'ck' else 'proposedst')
         else:
@@ -114,15 +114,15 @@ def main():
         if m in ('r_p99', 'w_p99'):
             from matplotlib.ticker import FuncFormatter
             ax.yaxis.set_major_formatter(FuncFormatter(lambda t, _: f'{t:g}')); ax.minorticks_off()
-        ax.set_xticks(xs); ax.set_xticklabels([l for l, _ in data], fontsize=5.2)
-        ax.set_xlim(-0.55, len(xs) - 0.45)
+        ax.set_xticks(xs); ax.set_xticklabels([l for l, _ in data], fontsize=4.6)
+        ax.set_xlim(-0.5, len(xs) - 0.5)
         ax.set_ylabel(yl, fontsize=5.6, labelpad=1.5, linespacing=0.9)
         ax.tick_params(axis='y', labelsize=5.6, pad=1); ax.tick_params(axis='x', pad=1, length=0)
         ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
     fig.align_ylabels(axs[:, 0]); fig.align_ylabels(axs[:, 1])
     fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.80)   # was 0.86 (2026-11-10)
     h = [Patch(fc=COLOR[v], hatch=HATCH[v], ec='black', lw=0.35, label=LABEL[v]) for v in VAR]
-    fig.legend(handles=h, ncol=3, fontsize=5.6, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,
+    fig.legend(handles=h, ncol=3, fontsize=5.5, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,
                handlelength=1.5, handleheight=0.9, columnspacing=0.8, handletextpad=0.4)
     for ext in ('pdf', 'png'):
         fig.savefig(f'{OUT}/fig_ablation.{ext}', dpi=250, bbox_inches='tight', pad_inches=0.02)

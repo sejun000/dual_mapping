@@ -104,16 +104,16 @@ which is 1/8 of that of Page. Each bar is the geometric mean over the 10 workloa
 of Section~\ref{sec:eval} (synthetic raw I/O, real-world traces, and applications).
 
 \textbf{On-demand mapping slows reads.}
-With mapping misses, DFTL needs 1.46 flash reads per host read and LeaFTL 1.22
-(Figure~\ref{fig:motiv}a). Their average read latency is 2.4$\times$ and
-1.7$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
+With mapping misses, DFTL needs 1.45 flash reads per host read and LeaFTL 1.23
+(Figure~\ref{fig:motiv}a). Their average read latency is 2.2$\times$ and
+1.6$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
 miss adds a synchronous flash read before the data read.
 
 \textbf{Block-level hybrid mapping and uniform coarse IUs slow writes.}
 FAST's block-level merges raise WA by 2.6$\times$ (Figure~\ref{fig:motiv}c),
-so its average write latency is 2.4$\times$ that of the page-level
+so its average write latency is 2.3$\times$ that of the page-level
 FTL (Figure~\ref{fig:motiv}d). The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
-its 32\,KB unit, so its WA grows by 2.4$\times$ and its write latency by 2.1$\times$.
+its 32\,KB unit, so its WA grows by 2.2$\times$ and its write latency by 2.1$\times$.
 
 DUET uses the same DRAM budget. It lowers read latency by
 issuing fewer flash reads per host read, and it lowers write latency by merging

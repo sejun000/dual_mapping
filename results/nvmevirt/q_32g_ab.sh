@@ -33,24 +33,17 @@ apps() {     # $1 results root, $2 workloads, rest = aliases
   PREFILL_SEQ=1 RESULTS_ROOT=$o WORKLOADS="$w" POLICIES="$*" tools/apps/run_all.sh >> $o.run_all.log 2>&1
 }
 wait_traces() { while pgrep -f '^/home/sejun000/dual_mapping/tools/trace_prep ' >/dev/null; do sleep 60; done; }
-# (2026-11-12 12:1x KST) restarted (user): DUET now moves entries as in cuckoo hashing (ct_kick=500) before a spill, with
-# DRAM timing (50 ns per visited bucket, 4 FTL cores). Old DUET results stay; RW 50:50, 70:30 and Alibaba never filled a
-# bucket pair (0 spills), so DUET-kl is identical there. Reruns go to $R/duet_kl. The r90 cycle (old DUET) keeps running.
-mkdir -p $R/duet_kl $R/usens_kl $R/ts_kl
-# (2026-11-12 12:4x KST, user) SPFresh and YCSB-A not rerun: kick_dram/kl (proposedst build, same decisions) is used
-# (user) Fig. 8 candidates first, then the new DUET (YCSB-B and TPC-C first: their DUET bars)
-apps $R/ablation/apps "ycsbb_d_t64 tpcc_d_t64" proposedab_g32nsfm proposedab_g32nsm proposedab_g32ns proposedab_g32nskl
-# r90: old DUET had 0 spills -> identical, not rerun (user, 2026-11-12)
-# --- Fig. 8 ablation on YCSB-B and TPC-C (candidates, user): Basic, coarse-or-fine, copy-or-merge, cuckoo (DRAM model)
-apps $R/duet_kl/apps "ycsbb_d_t64 tpcc_d_t64 ycsbc_d_t64 ycsbe_d_t64" proposed_g32kl
-# --- Fig. 10 coarse-IU sensitivity with the new DUET: RW 70:30, SPFresh, YCSB-A, YCSB-B, TPC-C (Alibaba dropped, user)
+# (2026-11-12 16:1x KST, user) back to the earlier DUET (spill/load, no cuckoo displacement): new DUET (kl) had a 2.6x
+# p99 read on YCSB-B. The duet_kl apps run in progress finishes; Fig. 10 / Fig. 9 use the earlier DUET.
+mkdir -p $R/usens $R/ts
+# --- Fig. 10 coarse-IU sensitivity: RW 70:30, SPFresh, YCSB-A, YCSB-B, TPC-C (U = 16 is the main matrix)
 for u in 32 64 128; do
-  replay a128_r70_s70 $D $R/usens_kl/u$u/replay_a128_r70_s70 proposed_g32u${u}kl
-  replay spfresh $D $R/usens_kl/u$u/trace_spfresh proposed_g32u${u}kl
+  replay a128_r70_s70 $D $R/usens/u$u/replay_a128_r70_s70 proposed_g32u$u
+  replay spfresh $D $R/usens/u$u/trace_spfresh proposed_g32u$u
 done
-apps $R/usens_kl/apps "ycsba_d_t64 ycsbb_d_t64 tpcc_d_t64" proposed_g32u32kl proposed_g32u64kl proposed_g32u128kl
-# --- Fig. 9 time series: Alibaba and SPFresh; instrumented DUET (same decisions) with the same cuckoo / DRAM settings
+apps $R/usens/apps "ycsba_d_t64 ycsbb_d_t64 tpcc_d_t64" proposed_g32u32 proposed_g32u64 proposed_g32u128
+# --- Fig. 9 time series: Alibaba and SPFresh; instrumented DUET, decisions unchanged
 idle; echo "$(date) ts"
-TRACE=ali3 TRACE_DIR=$D RESULTS=$R/ts_kl/trace_ali3 run_ts $R/ts_kl/trace_ali3 tools/nvmev_cycle.sh tools/nvmev_trace.sh "" $(sp proposedst_g32kl)
-idle; TRACE=spfresh TRACE_DIR=$D RESULTS=$R/ts_kl/trace_spfresh run_ts $R/ts_kl/trace_spfresh tools/nvmev_cycle.sh tools/nvmev_trace.sh "" $(sp proposedst_g32kl)
+TRACE=ali3 TRACE_DIR=$D RESULTS=$R/ts/trace_ali3 run_ts $R/ts/trace_ali3 tools/nvmev_cycle.sh tools/nvmev_trace.sh "" $(sp proposedst_g32)
+idle; TRACE=spfresh TRACE_DIR=$D RESULTS=$R/ts/trace_spfresh run_ts $R/ts/trace_spfresh tools/nvmev_cycle.sh tools/nvmev_trace.sh "" $(sp proposedst_g32)
 echo "$(date) all done"
