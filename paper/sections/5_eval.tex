@@ -60,7 +60,7 @@ SPFresh trace without sampling until it writes 64\,GB, twice the device capacity
 which also reads 1.2\,TB. The raw I/O and the
 traces run with 32 outstanding requests, and we measure the second half of each run.
 The applications are YCSB
-workloads A, B, C, and E~\cite{ycsb} and TPC-C~\cite{tpcc} on PostgreSQL and ext4,
+workloads A, B, and C~\cite{ycsb} and TPC-C~\cite{tpcc} on PostgreSQL and ext4,
 each with 64 client threads. They run in a memory cgroup of 6.4\,GB, 20\% of the
 device, which limits the page cache.
 
@@ -92,24 +92,24 @@ Figure~\ref{fig:eval-read} shows the read path. DUET reads the mapping from NAND
 for spilled coarse IUs, so it needs 1.02 flash reads per host read on average and at
 most 1.06, on SPFresh. DFTL and LeaFTL miss in their map caches and need up to 1.90
 and 1.84 flash reads on SPFresh. As a result, the average read latency of DUET is
-0.96$\times$ that of Page on average, whereas that of DFTL and LeaFTL is 2.24$\times$ and
-1.60$\times$ that of Page. On YCSB-B, DUET reads 2.9$\times$ faster than LeaFTL.
+0.91$\times$ that of Page on average, whereas that of DFTL and LeaFTL is 2.15$\times$ and
+1.58$\times$ that of Page. On YCSB-B, DUET reads 2.9$\times$ faster than LeaFTL.
 FAST, CoMap, and CoarseIU need no mapping reads, but their reads
 wait behind merges and RMW. On the 50:50 synthetic raw I/O, the average read latency
 of FAST and CoMap is 2.9$\times$ and 4.0$\times$ that of Page. The p99 read latency of
-DUET is 1.08$\times$ that of Page on average, whereas that of DFTL and LeaFTL is
-1.88$\times$ and 2.18$\times$.
+DUET is 1.09$\times$ that of Page on average, whereas that of DFTL and LeaFTL is
+1.77$\times$ and 2.04$\times$.
 % SPFresh trace (dm_trace_sampled/spfresh.json): 100% 4K reads and writes, seq_frac 0.076, top 10% of 1 MB regions = 20% of writes, reads 20x writes.
 
 \subsection{Write Amplification and Write Latency}
 Figure~\ref{fig:eval-write} shows the write path. YCSB-C is read-only, so it is left
 out. DUET writes small writes out of place as fine pages, so its WA stays close to
-that of Page, with a geometric mean of 1.23$\times$ Page. FAST and CoMap merge whole
+that of Page, with a geometric mean of 1.28$\times$ Page. FAST and CoMap merge whole
 blocks, and their WA reaches 3.0$\times$ and 4.1$\times$ that of Page on the synthetic
 raw I/O. CoarseIU rewrites a 32\,KB unit for every smaller write, so its WA is
 9.3$\times$ that of Page on SPFresh, none of whose writes covers a whole 32\,KB unit.
-As a result, the average write latency of CoarseIU, FAST, and CoMap is 2.1--3.4$\times$
-that of Page, whereas that of DUET is 1.20$\times$. On TPC-C, the p99 write
+As a result, the average write latency of CoarseIU, FAST, and CoMap is 2.1--3.6$\times$
+that of Page, whereas that of DUET is 1.26$\times$. On TPC-C, the p99 write
 latency of DUET is 3.7$\times$ lower than that of FAST. DFTL and LeaFTL also write out of
 place at 4\,KB granularity and keep their write latency close to that of Page, but
 they pay for it on the read path.
@@ -117,17 +117,17 @@ they pay for it on the read path.
 % WA: CoarseIU 1.5x Page on synthetic raw I/O. DUET 1.9x Page on SPFresh.
 
 The WA of DUET is 2.4$\times$ that of Page on SPFresh, but it is lower than that of Page
-on Alibaba and YCSB-E. In these workloads, small writes tend to be hot. DUET writes the
+on Alibaba. In this workload, small writes tend to be hot. DUET writes the
 writes smaller than a coarse IU to fine blocks, apart from the coarse blocks, so it
 separates hot data from cold data as data placement schemes
 do~\cite{sepbit,midas,dogi}. Page writes all data to the same active block, so hot and
 cold pages are mixed in a block and its GC copies more valid pages.
 
 \subsection{Throughput}
-Figure~\ref{fig:eval-tput} shows the throughput normalized to Page. DUET reaches 94\%
+Figure~\ref{fig:eval-tput} shows the throughput normalized to Page. DUET reaches 91\%
 of the throughput of Page on average, whereas LeaFTL, CoarseIU, DFTL, FAST, and CoMap
-reach 73\%, 70\%, 65\%, 58\%, and 47\%. On Alibaba and YCSB-E, DUET is 16\% and 21\%
-faster than Page because its WA is 14\% and 9\% lower. DUET is the slowest relative to
+reach 71\%, 70\%, 63\%, 56\%, and 45\%. On Alibaba, DUET is 16\% faster than Page
+because its WA is 14\% lower. DUET is the slowest relative to
 Page on YCSB-A and SPFresh, at 69\% and 78\%, where its WA is 1.4$\times$ and
 2.4$\times$ that of Page and reads of spilled coarse IUs add mapping reads.
 

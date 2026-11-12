@@ -100,18 +100,18 @@ amplification by up to the coarse-IU size over the write size.
 Figure~\ref{fig:motiv} compares the three approaches that reduce the on-device
 DRAM with a page-level FTL that keeps its whole table in DRAM. Every FTL except the
 page-level FTL (\emph{Page}) gets the mapping DRAM of a uniform 32\,KB coarse IU,
-which is 1/8 of that of Page. Each bar is the geometric mean over the 10 workloads
+which is 1/8 of that of Page. Each bar is the geometric mean over the 9 workloads
 of Section~\ref{sec:eval} (synthetic raw I/O, real-world traces, and applications).
 
 \textbf{On-demand mapping slows reads.}
-With mapping misses, DFTL needs 1.45 flash reads per host read and LeaFTL 1.23
+With mapping misses, DFTL needs 1.47 flash reads per host read and LeaFTL 1.26
 (Figure~\ref{fig:motiv}a). Their average read latency is 2.2$\times$ and
 1.6$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
 miss adds a synchronous flash read before the data read.
 
 \textbf{Block-level hybrid mapping and uniform coarse IUs slow writes.}
-FAST's block-level merges raise WA by 2.6$\times$ (Figure~\ref{fig:motiv}c),
-so its average write latency is 2.3$\times$ that of the page-level
+FAST's block-level merges raise WA by 2.7$\times$ (Figure~\ref{fig:motiv}c),
+so its average write latency is 2.5$\times$ that of the page-level
 FTL (Figure~\ref{fig:motiv}d). The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
 its 32\,KB unit, so its WA grows by 2.2$\times$ and its write latency by 2.1$\times$.
 
@@ -130,7 +130,7 @@ in the same budget.
   \includegraphics[width=\columnwidth]{figs/fig_motiv.pdf}
   \vspace{-6mm}
   \caption{Existing FTLs with about 1/8 of the page-level mapping DRAM, geometric mean over
-  10 workloads, and 9 for WA and write latency (YCSB-C is read-only). Latency is normalized to Page. (a) Flash reads per host read. (b) Average read
+  9 workloads, and 8 for WA and write latency (YCSB-C is read-only). Latency is normalized to Page. (a) Flash reads per host read. (b) Average read
   latency. (c) Write amplification. (d) Average write latency.}
   \label{fig:motiv}
   \vspace{-2.5mm}

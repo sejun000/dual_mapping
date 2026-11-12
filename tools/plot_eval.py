@@ -38,7 +38,7 @@ HATCH = {'page4k': '', 'dftl': '////', 'leaftl': '\\\\\\\\', 'mu': 'xxx', 'comap
 WL = [('raw', f'a128_r{r}_s70', f'{r}:{100 - r}') for r in (50, 70, 90)] + \
      [('trace', 'ali3', 'Alibaba'), ('trace', 'spfresh', 'SPFresh'),
       ('app', 'ycsba_d_t64', 'YCSB-A'), ('app', 'ycsbb_d_t64', 'YCSB-B'), ('app', 'ycsbc_d_t64', 'YCSB-C'),
-      ('app', 'ycsbe_d_t64', 'YCSB-E'), ('app', 'tpcc_d_t64', 'TPC-C')]   # raw I/O first, 4K:128K = 70:30 only
+      ('app', 'tpcc_d_t64', 'TPC-C')]   # YCSB-E dropped (2026-11-12, user): host read volume varied 2.6x across runs   # raw I/O first, 4K:128K = 70:30 only
 GROUP = {'trace': 'Real-world traces', 'app': 'Applications', 'raw': 'Synthetic raw I/O (R:W)'}
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4, 'axes.linewidth': 0.6})
 

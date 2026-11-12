@@ -98,11 +98,11 @@ block size, so DUET never performs the block-level merges of existing hybrid map
 % Previous version also had: read latency up to 2.4x lower than on-demand (YCSB-B), p99 write 4.6x lower than FAST on TPC-C.
 We implement DUET and six other FTLs in NVMeVirt~\cite{nvmevirt}, a kernel-level
 NVMe SSD emulator, and evaluate them under 1/8 of the page-level mapping DRAM with
-synthetic raw I/O, real-world traces, and applications. On average, DUET reaches 94\%
+synthetic raw I/O, real-world traces, and applications. On average, DUET reaches 91\%
 of the throughput of a page-level FTL with unlimited DRAM, whereas on-demand mapping,
-block-level hybrid mapping, and a uniform coarse IU reach at most 73\%, 58\%, and 70\%,
+block-level hybrid mapping, and a uniform coarse IU reach at most 71\%, 56\%, and 70\%,
 respectively. Compared with on-demand mapping, DUET cuts the mapping reads per host
-read from 0.23--0.45 to 0.02, so its average read latency is 40--57\% lower. Because it
+read from 0.26--0.47 to 0.02, so its average read latency is 42--58\% lower. Because it
 merges one coarse IU at a time and writes small writes without RMW, its WA is
-52--64\% lower than that of block-level hybrid mapping and 45\% lower than that of the
+53--65\% lower than that of block-level hybrid mapping and 41\% lower than that of the
 uniform coarse IU.

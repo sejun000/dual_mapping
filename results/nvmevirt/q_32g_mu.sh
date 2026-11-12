@@ -14,6 +14,6 @@ for t in a128_r50_s70 a128_r70_s70 a128_r90_s70; do idle; echo "$(date) $t mu"
 for t in ali3 spfresh; do [ -e $D/$t.csv ] || continue; idle; echo "$(date) $t mu"
   TRACE=$t TRACE_DIR=$D RESULTS=$R/trace_$t tools/nvmev_cycle.sh tools/nvmev_trace.sh "" "$MU"; done
 idle; echo "$(date) apps mu"
-PREFILL_SEQ=1 RESULTS_ROOT=$R/apps WORKLOADS="ycsba_d_t64 ycsbb_d_t64 ycsbc_d_t64 ycsbe_d_t64 tpcc_d_t64" POLICIES="mu_g32" \
+PREFILL_SEQ=1 RESULTS_ROOT=$R/apps WORKLOADS="ycsba_d_t64 ycsbb_d_t64 ycsbc_d_t64 tpcc_d_t64" POLICIES="mu_g32" \
   tools/apps/run_all.sh >> $R/apps.run_all.log 2>&1
 echo "$(date) all done"
