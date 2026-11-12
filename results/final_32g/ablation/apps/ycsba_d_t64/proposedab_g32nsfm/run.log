@@ -1,0 +1,97 @@
+[17:17:14] === ycsba_d_t64_proposedab_g32nsfm_20261111T171714Z -> /home/sejun000/dual_mapping/results/final_32g/ablation/apps/ycsba_d_t64/proposedab_g32nsfm
+[17:17:15] insmod /home/sejun000/nvmevirt_proposedab/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='U=16,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=0,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0,fold_all=1'
+[17:17:15] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[17:17:16] memory cgroup dmapp.slice: MemoryMax=6555M MemoryHigh=5735M (20% of 34369765376 B)
+[17:17:16] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34369765376 B) before mkfs
+[17:17:31] [prefill] done in 15 s
+[17:17:31] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[17:17:32] ext4 capacity (used+avail) 31775420416 B, util 0%
+[17:17:32] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31775420416 B)
+[17:17:32] [ycsb] 16 instances x (records=625000 threads=4 workloada)
+[17:21:16] [ballast] writing 1061 MiB to reach ~76% (pending 0 MiB)
+[17:21:17] [ballast] df util now 75%
+[17:21:34] measurement start utilisation=75% (window 73-85)
+[17:21:34] [ycsb] run 600s, 16 x 4 threads
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-r612ead45b80043d5b7e666e04067e68d.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-r1d38e57b428943b1b3638230c2755f5b.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-r8dae6c715da44a16b1e561b993110c66.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-r3aaef56d775e403d8c10c9e21832ea4b.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-r47a31720ef904d3593ea110abd97269c.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-rdca9bfea2acf4c44acbcbe9808d6a280.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 352: /sys/fs/cgroup/dmapp.slice/run-rd16ec6c0c6154772bc6a220f8dec2a66.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/final_32g/ablation/apps/ycsba_d_t64/proposedab_g32nsfm
+workload=ycsba_d_t64
+policy=proposedab_g32nsfm
+status=DONE
+start_util_pct=75.9981
+end_util_pct=84.8881
+ext4_write_kbytes_delta=88974456
+blk_read_ios=4914017
+blk_write_ios=6152715
+blk_read_bytes=64523182080
+blk_write_bytes=91109842944
+blk_avg_write_req_kb=14.461
+dev_read_lat_ms_avg=0.967506
+dev_write_lat_ms_avg=10.0257
+write_qd_max=687
+blk_read_lat_us_mean=966.858
+blk_read_lat_us_p50=155.971
+blk_read_lat_us_p90=326.018
+blk_read_lat_us_p99=7382.46
+blk_read_lat_us_p99.9=193888
+blk_read_lat_us_p99.99=778752
+blk_write_lat_us_mean=10005.7
+blk_write_lat_us_p50=84.964
+blk_write_lat_us_p90=5931.22
+blk_write_lat_us_p99=286171
+blk_write_lat_us_p99.9=888557
+blk_write_lat_us_p99.99=1.47375e+06
+app_write_bytes=91009970992
+fs_waf=1.0011
+dev_host_write_pages=22244146
+dev_host_read_pages=15753658
+dev_nand_progs=231964376
+dev_waf=10.4281
+dev_waf_gc=9.27082
+dev_waf_rmw=0.00700369
+dev_waf_fold=0.324923
+dev_waf_map=0
+dev_waf_other=0
+dev_nand_reads=229385429
+dev_map_reads_per_host_page=0
+dev_map_reads_per_host_read=0
+dev_erases=7091
+dev_map_miss=0
+dev_mapping_mem_bytes_end=4220580
+total_waf=10.4396
+memcg_max=6873415680
+memcg_high=6013583360
+memcg_peak=6019670016
+memcg_events_high=51341
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=274513920
+throughput=9685.13
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=2.90591e+06
+ycsb_ops.READ.avg_us=734.727
+ycsb_ops.READ.p50_us=210.062
+ycsb_ops.READ.p90_us=403.188
+ycsb_ops.READ.p95_us=516.688
+ycsb_ops.READ.p99_us=3716.88
+ycsb_ops.READ.p99.9_us=115447
+ycsb_ops.READ.max_us=2.37363e+06
+ycsb_ops.UPDATE.ops=2.90691e+06
+ycsb_ops.UPDATE.avg_us=12463.9
+ycsb_ops.UPDATE.p50_us=534.125
+ycsb_ops.UPDATE.p90_us=15936.5
+ycsb_ops.UPDATE.p95_us=46591
+ycsb_ops.UPDATE.p99_us=281103
+ycsb_ops.UPDATE.p99.9_us=964543
+ycsb_ops.UPDATE.max_us=4.52198e+06
+app_write_lat_ms_avg=12.4639
+app_write_lat_ms_p99=281.103
+app_read_lat_ms_avg=0.734727
+app_read_lat_ms_p99=3.71687
+[17:32:52] === ycsba_d_t64_proposedab_g32nsfm_20261111T171714Z status DONE

@@ -61,7 +61,7 @@ lengthens write latency.
 % (2026-11-10) challenge. 1.8x = WA of Basic / Basic + coarse-or-fine + copy-or-merge on 50:50 (16.8 / 9.4),
 % results/paper_dac/ablation_data.csv (Fig. 8).
 % (2026-11-11) challenge rewritten with the user (was: manage 4 KB mappings and coarse-IU mappings together, how many
-% 4 KB blocks to keep, merge or keep). 1.8x to be rechecked with the 32 GB rerun ablation.
+% 4 KB blocks to keep, merge or keep). (2026-11-12) 1.7x = Basic (nsfm) vs DUET WA on RW 70:30 (17.0 vs 10.1), 32 GB ablation; recheck after YCSB-B / TPC-C.
 To keep the small table of the uniform coarse IU and still absorb small writes
 without RMW, our approach lets page-level mapping and coarse-IU mapping coexist. This
 raises several design challenges. First, the DRAM budget for page-level mapping is limited.
@@ -74,14 +74,14 @@ many more choices on both the host-write path and the reclamation path. On the
 host-write path, it must decide where to place the data mapped per coarse IU and
 per page in physical blocks. On the reclamation path, it must decide which kind of
 block to reclaim and whether to merge page-mapped data back into coarse IUs. In our
-experiments, these decisions change WA by up to 1.8$\times$.
+experiments, these decisions change WA by up to 1.7$\times$.
 
 We present \textbf{DUET} (\textbf{DU}al-granularity \textbf{E}conomical
 \textbf{T}ranslation), an FTL that keeps two mapping granularities, the coarse IU
 and the 4\,KB page, under a fixed mapping DRAM budget (Figure~\ref{fig:intro}d). Most data are mapped per coarse IU, and recent writes smaller than a
 coarse IU are mapped at 4\,KB granularity. They are written out of place as 4\,KB
-pages, and the corresponding pages of the coarse IU become invalid, so the host
-write path has no RMW. Most of the page-level mappings stay in on-device DRAM.
+pages that supersede the old data in the coarse IU, so the host write path has
+no RMW. Most of the page-level mappings stay in on-device DRAM.
 DUET thus needs far fewer mapping reads from NAND than on-demand mapping, which
 reduces its read latency. When the 4\,KB page mappings outgrow the DRAM budget,
 DUET does not merge them into coarse IUs right away. It stages them in NAND and

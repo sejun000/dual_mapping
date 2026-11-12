@@ -21,6 +21,9 @@ FF = B + '/final_fastfull'   # FAST with cache_bytes=1e9 (map of every log block
 CT = B + '/final_comap_tune'   # CoMap tuned: comap_logfrac_ppm=990000, comap_p0=990000 (q_comap_tune.sh, 2026-11-08)
 FAST_FULL = False            # False = FAST-B12 (final_rp / final_rp_a128), the figures before 2026-11-07
 OUT = B + '/paper_dac'
+# (2026-11-12) one 32 GB device for every workload (results/final_32g, q_32g*.sh); workloads not yet run are skipped
+G32 = B + '/final_32g'
+USE_G32 = True
 PAPER = '/home/sejun000/dual_mapping/paper/figs'
 POL = ['page4k', 'dftl', 'leaftl', 'comap', 'fast', 'iurmw', 'proposed']   # uFTL dropped (2026-11-06)
 NEW = {'proposed', 'dftl', 'leaftl', 'comap'}
@@ -65,7 +68,45 @@ def app(wl, p):
             'r_p99': g('blk_read_lat_us_p99') / 1e3, 'w_p99': g('blk_write_lat_us_p99') / 1e3}
 
 
+# (2026-11-12) DUET = cuckoo displacement before a spill + DRAM timing (proposed*_g32kl). Workloads whose bucket pairs
+# never filled (RW 50:50 / 70:30 / 90:10, Alibaba: 0 spills) keep the earlier DUET run (identical decisions). SPFresh and
+# YCSB-A: results/final_32g/kick_dram/kl (stats build, same decisions). Other apps: results/final_32g/duet_kl once done.
+import os as _os
+OLD_DUET = []
+def duet_dir(kind, key):
+    if key == 'spfresh': return f'{G32}/kick_dram/kl/trace_spfresh/proposedst', 'trace'
+    if key == 'ycsba_d_t64': return f'{G32}/kick_dram/apps/ycsba_d_t64/proposedst_g32kl', 'app'
+    if kind == 'app':
+        d = f'{G32}/duet_kl/apps/{key}/proposed_g32kl'
+        if _os.path.exists(d + '/summary.txt') and 'status=DONE' in open(d + '/summary.txt').read(): return d, 'app'
+        OLD_DUET.append(key)
+    return None, None
+
+
 def row(kind, key, p):
+    if USE_G32 and p == 'proposed':
+        d, k = duet_dir(kind, key)
+        if d and k == 'trace': return replay(d.rsplit('/', 1)[0], d.rsplit('/', 1)[1])
+        if d:
+            s = dict(l.strip().split('=', 1) for l in open(f'{d}/summary.txt') if '=' in l)
+            g = lambda k: float(s[k])
+            return {'tput': g('throughput'), 'fr': 1 + g('dev_map_reads_per_host_read'), 'waf': g('dev_waf'),
+                    'r_avg': g('blk_read_lat_us_mean') / 1e3, 'w_avg': g('blk_write_lat_us_mean') / 1e3,
+                    'r_p99': g('blk_read_lat_us_p99') / 1e3, 'w_p99': g('blk_write_lat_us_p99') / 1e3}
+    return row0(kind, key, p)
+
+
+def row0(kind, key, p):
+    if USE_G32:
+        if kind == 'app':
+            d = f'{G32}/apps/{key}/{p}_g32'
+            s = dict(l.strip().split('=', 1) for l in open(f'{d}/summary.txt') if '=' in l)
+            assert s['status'] == 'DONE', (key, p)
+            g = lambda k: float(s[k])
+            return {'tput': g('throughput'), 'fr': 1 + g('dev_map_reads_per_host_read'), 'waf': g('dev_waf'),
+                    'r_avg': g('blk_read_lat_us_mean') / 1e3, 'w_avg': g('blk_write_lat_us_mean') / 1e3,
+                    'r_p99': g('blk_read_lat_us_p99') / 1e3, 'w_p99': g('blk_write_lat_us_p99') / 1e3}
+        return replay(f'{G32}/{"trace_" if kind == "trace" else "replay_"}{key}', p)
     if kind == 'app':
         return app(key, p)
     ff = p == 'fast' and FAST_FULL
@@ -84,7 +125,15 @@ WRITE_M = ('waf', 'w_avg', 'w_p99')
 
 
 def collect():
-    return [(kind, lab, {p: row(kind, key, p) for p in POL}) for kind, key, lab in WL]
+    global WL
+    out, keep = [], []
+    for kind, key, lab in WL:
+        try:
+            out.append((kind, lab, {p: row(kind, key, p) for p in POL})); keep.append((kind, key, lab))
+        except (FileNotFoundError, AssertionError, KeyError) as e:
+            print('skip (not run yet):', lab, e)
+    WL = keep
+    return out
 
 
 def xpos():
@@ -199,6 +248,7 @@ def main():
         print(m, {LABEL[p]: round(gm([r[p][m] / r['page4k'][m] for _, l, r in data
                                       if not (m in WRITE_M and l in READ_ONLY)]), 3) for p in POL[1:]})
     print('wrote', OUT + '/fig_eval_{read,write,tput}.{pdf,png} and', PAPER)
+    if OLD_DUET: print('DUET still from the earlier (spill-only) run:', sorted(set(OLD_DUET)))
 
 
 if __name__ == '__main__':

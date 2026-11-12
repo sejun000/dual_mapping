@@ -1,0 +1,607 @@
+diff --git a/dm/ftl_proposed.c b/dm/ftl_proposed.c
+index aace26a..18dbe4a 100644
+--- a/dm/ftl_proposed.c
++++ b/dm/ftl_proposed.c
+@@ -42,6 +42,12 @@
+  * decide in exact integers and only fall back to the FPU near a tie / outside the exact range.
+  */
+ #include "ftlcore.h"
++/* fragment mask of one IU: one bit per page, U <= 128 (2026-11-09, coarse-IU sensitivity; was u32, U <= 32) */
++typedef unsigned __int128 pm_t;
++#define PROP_UMAX 128
++#define PM1(k) ((pm_t)1 << (k))
++static inline u32 pm_pop(pm_t x) { return (u32)dm_popcount64((u64)x) + (u32)dm_popcount64((u64)(x >> 64)); }
++static inline u32 pm_ctz(pm_t x) { u64 lo = (u64)x; return lo ? (u32)dm_ctz64(lo) : 64 + (u32)dm_ctz64((u64)(x >> 64)); }
+ #ifdef __KERNEL__
+ #include <asm/fpu/api.h>
+ #define PROP_FPU_BEGIN() kernel_fpu_begin()
+@@ -83,6 +89,16 @@ struct prop {
+ 	u32 *coarse_map; s32 *fine_idx;
+ 	u32 *fbitmap; u32 *fslot; u64 *flast; s32 *fpool_free; u32 npool, pool_cap, nfpool_free;
+ 	u64 ct_nb; u32 *ct_lpn, *ct_ppn; u32 ct_ent;
++	/* ct_kick (ftlsim Sim::ct_kick): BFS limit (0 = off), queue (bucket, parent node, parent way), visited set as a
++	 * small open-addressed hash of bucket ids stamped with the search epoch; counters (cumulative incl. warmup) */
++	u32 ct_kick; u64 *kq_b; s32 *kq_par; u8 *kq_k; u64 *kh_key; u32 *kh_ep, kh_mask, kep;
++	u64 kick_n, kick_ok, kick_fail, kick_moves;
++	/* (2026-11-11) DRAM bucket reads per displacement search (dequeued buckets + alt-bucket probes), log2 bins
++	 * [1],[2..3],[4..7],...; observation only */
++	u64 kick_rd, kick_rdh[16];
++	/* (2026-11-11) DRAM timing: dram_ns per bucket probed by a displacement search (charged on the host path);
++	 * dram_lock: the search locks the table, lookups and inserts wait for it */
++	u32 dram_ns; int dram_lock; u64 kick_probe;
+ 	/* physical */
+ 	u32 *p2l; u8 *btag; s32 *bvalid; u64 *bseq; u64 alloc_seq;
+ 	s32 *freelist; u32 nfree;
+@@ -115,6 +131,8 @@ struct prop {
+ 	 * last IU looked up by a host read (SRAM register), token bucket in 1/1000 FTP programs; counters */
+ 	int spill_rp, rp_bits, rp_clean; u32 rp_shift; u64 spill_rp_rate, rp_last; s64 rp_credit;
+ 	u64 rp_n, rp_pages, rp_wait, rp_rate, rp_wr, rp_rd, rp_cevict, rp_cdirty;
++	/* fragment-scan scratch (struct prop_fs, ~1.5 KB at U <= 128) as a stack indexed by nesting depth, off the kernel stack */
++	struct prop_fs *fsp; int fsd;
+ };
+ 
+ /* ------------------------------------------------------------------ FP helpers (integers in/out) */
+@@ -212,6 +230,60 @@ static void prop_ct_insert(struct prop *f, u64 lpn, u32 ppn)
+ 	if (k < 0) dm_die("proposed: cuckoo2 insert without room (lpn %llu)\n", (unsigned long long)lpn);
+ 	f->ct_lpn[t * 4 + k] = (u32)lpn; f->ct_ppn[t * 4 + k] = ppn;
+ }
++/* ftlsim ct_kick: visited-set insert; 1 if b was not yet visited in this search */
++static int prop_kh_add(struct prop *f, u64 b)
++{
++	u32 h = (u32)prop_ct_mix(b) & f->kh_mask;
++	for (; f->kh_ep[h] == f->kep; h = (h + 1) & f->kh_mask) if (f->kh_key[h] == b) return 0;
++	f->kh_ep[h] = f->kep; f->kh_key[h] = b;
++	return 1;
++}
++/* ftlsim ct_kick: lpn's bucket pair is full. BFS (MemC3) from b1, b2: for each way k of a dequeued bucket B, the
++ * entry's other bucket alt; a free way in alt ends the search, else alt is enqueued (parent (B, k)) if unvisited and
++ * fewer than ct_kick buckets were visited. Visited buckets are distinct, so the path is executed from its end (each
++ * entry, lpn and ppn, into the slot freed after it), freeing one way of b1 / b2. 1 = room made. */
++static void prop_kick_rec(struct prop *f, u32 rd, u32 probes)
++{
++	f->kick_probe += probes;
++	/* (2026-11-12) one DRAM round (dram_ns) per dequeued bucket: the 4 alt-bucket probes of one bucket are independent
++	 * and overlap across DRAM banks, consecutive rounds depend on each other (lower bound on the search time) */
++	if (f->dram_ns && f->fo.dram) f->fo.dram(f->fo.ctx, (u64)(rd - probes) * f->dram_ns, f->dram_lock ? 1 : 0);
++	int b = 0;
++	while ((rd >> (b + 1)) && b < 15) b++;
++	f->kick_rd += rd; f->kick_rdh[b]++;
++}
++static int prop_ct_kick(struct prop *f, u64 lpn)
++{
++	u32 nq = 0, h, nvis = 2, rd = 0, pr = 0; int k;
++	if (!f->ct_kick) return 0;
++	f->kick_n++;
++	if (++f->kep == 0) { memset(f->kh_ep, 0, sizeof(u32) * (f->kh_mask + 1)); f->kep = 1; }
++	f->kq_b[nq] = prop_ct_b1(f, lpn); f->kq_par[nq] = -1; f->kq_k[nq] = 0; prop_kh_add(f, f->kq_b[nq]); nq++;
++	f->kq_b[nq] = prop_ct_b2(f, lpn); f->kq_par[nq] = -1; f->kq_k[nq] = 0; prop_kh_add(f, f->kq_b[nq]); nq++;
++	for (h = 0; h < nq; h++) {
++		u64 B = f->kq_b[h];
++		rd++;   /* read bucket B */
++		for (k = 0; k < 4; k++) {
++			u32 e = f->ct_lpn[B * 4 + k]; u64 alt; int fr;
++			if (e == DM_NONE32) continue;
++			alt = prop_ct_b1(f, e) == B ? prop_ct_b2(f, e) : prop_ct_b1(f, e);
++			fr = prop_ct_free_in(f, alt);
++			rd++; pr++;   /* read bucket alt (B itself was read when it was probed / by the room check) */
++			if (fr >= 0) {   /* move (B, k) -> (alt, fr), then each parent's entry into the slot just vacated */
++				u64 tb = alt; int tk = fr, sk = k; s32 n = (s32)h;
++				while (n >= 0) {
++					u64 sb = f->kq_b[n];
++					f->ct_lpn[tb * 4 + tk] = f->ct_lpn[sb * 4 + sk]; f->ct_ppn[tb * 4 + tk] = f->ct_ppn[sb * 4 + sk];
++					f->ct_lpn[sb * 4 + sk] = DM_NONE32; f->ct_ppn[sb * 4 + sk] = DM_NONE32; f->kick_moves++;
++					tb = sb; tk = sk; sk = f->kq_k[n]; n = f->kq_par[n];
++				}
++				f->kick_ok++; prop_kick_rec(f, rd, pr); return 1;
++			}
++			if (nvis < f->ct_kick && prop_kh_add(f, alt)) { nvis++; f->kq_b[nq] = alt; f->kq_par[nq] = (s32)h; f->kq_k[nq] = (u8)k; nq++; }
++		}
++	}
++	f->kick_fail++; prop_kick_rec(f, rd, pr); return 0;
++}
+ static inline s64 prop_ct_must(const struct prop *f, u64 lpn)
+ {
+ 	s64 e = prop_ct_find(f, lpn);
+@@ -254,25 +326,28 @@ static inline void prop_cm_set(struct prop *f, u64 iu, u32 ppn)
+ static inline s32 prop_fi(const struct prop *f, u64 iu) { return f->ct_on ? (prop_flag(f, iu) ? (s32)iu : -1) : f->fine_idx[iu]; }
+ /* fragment mask of a fine-resident IU (fi >= 0); cuckoo2: U table lookups. With rec_block and birth != NULL also
+  * the latest birth of a host-frontier fine block holding one of the fragments (ftlsim host_birth, 0 = none). */
+-static u32 prop_fscan(const struct prop *f, s32 fi, u64 *birth)
++static pm_t prop_fscan(const struct prop *f, s32 fi, u64 *birth)
+ {
+-	u32 m = 0, k; u64 bm = 0;
++	pm_t m = 0; u32 k; u64 bm = 0;
+ 	int spl = f->ct_on && prop_spl(f, (u64)fi);
+ 	for (k = 0; k < f->U; k++) {
+ 		u32 ppn, b;
+ 		if (spl) { ppn = f->ftp[(u64)fi * f->U + k]; if (ppn == DM_NONE32) continue; }
+ 		else if (f->ct_on) { s64 e = prop_ct_find(f, (u64)fi * f->U + k); if (e < 0) continue; ppn = f->ct_ppn[e]; }
+ 		else { if (!(f->fbitmap[fi] & (1u << k))) continue; ppn = f->fslot[(u64)fi * f->U + k]; }
+-		m |= 1u << k;
++		m |= PM1(k);
+ 		if (birth) { b = ppn / f->P; if (f->bhost[b] && f->fbirth[b] > bm) bm = f->fbirth[b]; }
+ 	}
+ 	if (birth) *birth = bm;
+ 	return m;
+ }
+-static inline u32 prop_fmask(const struct prop *f, s32 fi) { return f->ct_on ? prop_fscan(f, fi, NULL) : f->fbitmap[fi]; }
++static inline pm_t prop_fmask(const struct prop *f, s32 fi) { return f->ct_on ? prop_fscan(f, fi, NULL) : f->fbitmap[fi]; }
+ /* one scan of a fine-resident IU kept for reuse within a fold (fragment reads, invalidation, entry removal);
+  * a spilled IU's pointers come from its FTP image (the caller has charged the FTP read), ent = -1 */
+-struct prop_fs { u32 mask; u32 ppn[32]; s64 ent[32]; };
++struct prop_fs { pm_t mask; u32 ppn[PROP_UMAX]; s64 ent[PROP_UMAX]; };
++#define PROP_FSD 64
++static inline struct prop_fs *prop_fs_push(struct prop *f) { if (f->fsd >= PROP_FSD) dm_die("proposed: prop_fs nesting > %d\n", PROP_FSD); return &f->fsp[f->fsd++]; }
++static inline void prop_fs_pop(struct prop *f) { f->fsd--; }
+ static void prop_fscan_full(const struct prop *f, s32 fi, struct prop_fs *fs)
+ {
+ 	u32 k; int spl = f->ct_on && prop_spl(f, (u64)fi);
+@@ -281,7 +356,7 @@ static void prop_fscan_full(const struct prop *f, s32 fi, struct prop_fs *fs)
+ 		if (spl) { u32 p = f->ftp[(u64)fi * f->U + k]; if (p == DM_NONE32) continue; fs->ent[k] = -1; fs->ppn[k] = p; }
+ 		else if (f->ct_on) { s64 e = prop_ct_find(f, (u64)fi * f->U + k); if (e < 0) continue; fs->ent[k] = e; fs->ppn[k] = f->ct_ppn[e]; }
+ 		else { if (!(f->fbitmap[fi] & (1u << k))) continue; fs->ent[k] = -1; fs->ppn[k] = f->fslot[(u64)fi * f->U + k]; }
+-		fs->mask |= 1u << k;
++		fs->mask |= PM1(k);
+ 	}
+ }
+ /* cuckoo2: does every page of the IU live in the table (d == U)? Stops at the first absent page. */
+@@ -449,16 +524,16 @@ static void prop_fine_release(struct prop *f, u64 iu, const struct prop_fs *fs)
+ 	f->fepoch++;
+ 	if (f->rp_clean) prop_rp_dirty(f, iu);
+ 	if (f->ct_on && prop_spl(f, iu)) {   /* ftlsim fine_release of a spilled IU: its FTP copy just becomes stale */
+-		u32 bm = fs->mask;
+-		while (bm) { u32 k = (u32)dm_ctz64(bm); bm &= bm - 1; f->ftp[iu * f->U + k] = DM_NONE32; }
++		pm_t bm = fs->mask;
++		while (bm) { u32 k = pm_ctz(bm); bm &= bm - 1; f->ftp[iu * f->U + k] = DM_NONE32; }
+ 		f->coarse_map[iu] &= ~(PROP_FLAG | PROP_SPL);
+-		f->grp_spilled[iu / f->ipf]--; f->spages -= dm_popcount(fs->mask);
++		f->grp_spilled[iu / f->ipf]--; f->spages -= pm_pop(fs->mask);
+ 		return;
+ 	}
+ 	if (f->ct_on) {   /* ftlsim: ct_remove every fragment of the IU (entries from the scan), clear the flag */
+-		u32 bm = fs->mask;
++		pm_t bm = fs->mask;
+ 		while (bm) {
+-			u32 k = (u32)dm_ctz64(bm); s64 e = fs->ent[k]; bm &= bm - 1;
++			u32 k = pm_ctz(bm); s64 e = fs->ent[k]; bm &= bm - 1;
+ 			f->ct_lpn[e] = DM_NONE32; f->ct_ppn[e] = DM_NONE32;
+ 		}
+ 		f->coarse_map[iu] &= ~PROP_FLAG;
+@@ -612,26 +687,27 @@ static u32 prop_coarse_alloc_extent(struct prop *f, int gc, int cls)
+ /* fs: the IU's fragment scan if the caller has a current one (NULL = scan here) */
+ static void prop_invalidate_iu(struct prop *f, u64 iu, const struct prop_fs *fs)
+ {
+-	s32 fi = prop_fi(f, iu); u32 d = 0, old; struct prop_fs own;
++	s32 fi = prop_fi(f, iu); u32 d = 0, old; struct prop_fs *own = NULL;
+ 	if (fi >= 0) {
+-		u32 bm;
++		pm_t bm;
+ 		if (!fs) {
+ 			if (prop_spl(f, iu)) prop_ftp_read(f, iu / f->ipf, 2);   /* the fragment pointers to invalidate */
+-			prop_fscan_full(f, fi, &own); fs = &own;
++			own = prop_fs_push(f); prop_fscan_full(f, fi, own); fs = own;
+ 		}
+-		bm = fs->mask; d = dm_popcount(bm); f->fpages -= d;
++		bm = fs->mask; d = pm_pop(bm); f->fpages -= d;
+ 		while (bm) {
+-			u32 off = (u32)dm_ctz64(bm); bm &= bm - 1;
++			u32 off = pm_ctz(bm); bm &= bm - 1;
+ 			f->bvalid[prop_blk(f, fs->ppn[off])]--;
+ 		}
+ 		prop_fine_release(f, iu, fs);
++		if (own) prop_fs_pop(f);
+ 	}
+ 	old = prop_cm(f, iu);   /* d == U: a not-yet-dropped dead chunk, U - d = 0 */
+ 	if (old != DM_NONE32) f->bvalid[prop_blk(f, old)] -= (s32)(f->U - d);
+ }
+ 
+ /* hostmask: offsets programmed as DM_P_HOST, the rest as src2 (eager: RMW filler); else all use src */
+-static void prop_install_extent(struct prop *f, u64 iu, u32 ppn, int src, u32 hostmask, const struct prop_fs *fs)
++static void prop_install_extent(struct prop *f, u64 iu, u32 ppn, int src, pm_t hostmask, const struct prop_fs *fs)
+ {
+ 	u32 k; int dsrc;
+ 	for (k = 0; k < f->U; k++) f->p2l[ppn + k] = (u32)(iu * f->U + k);
+@@ -639,7 +715,7 @@ static void prop_install_extent(struct prop *f, u64 iu, u32 ppn, int src, u32 ho
+ 	dsrc = src == PS_HOST ? DM_P_HOST : src == PS_CLEAN || src == PS_REFOLD ? DM_P_GC : DM_P_FOLD;
+ 	for (k = 0; k < f->U; k++) {
+ 		int s = dsrc;
+-		if (src == PS_HOST && hostmask && !(hostmask & (1u << k))) s = DM_P_RMW;
++		if (src == PS_HOST && hostmask && !(hostmask & PM1(k))) s = DM_P_RMW;
+ 		prop_prog(f, ppn + k, s);
+ 	}
+ 	prop_invalidate_iu(f, iu, fs);   /* the flash ops above do not change FTL state: a caller's scan is still current */
+@@ -723,10 +799,10 @@ static void prop_fine_write(struct prop *f, u64 lpn)
+ 	}
+ }
+ 
+-static u32 prop_req_mask(const struct prop *f, u64 start, u32 n)
++static pm_t prop_req_mask(const struct prop *f, u64 start, u32 n)
+ {
+-	u32 mask = 0, i;
+-	for (i = 0; i < n; i++) mask |= 1u << ((start + i) % f->U);
++	pm_t mask = 0; u32 i;
++	for (i = 0; i < n; i++) mask |= PM1((u32)((start + i) % f->U));
+ 	return mask;
+ }
+ 
+@@ -753,14 +829,14 @@ static int prop_eager_test(struct prop *f, u32 n, u32 u)
+  * only when the two bounds disagree. */
+ static int prop_eager_worth(struct prop *f, u64 iu, u64 start, u32 n)
+ {
+-	u32 mask = prop_req_mask(f, start, n); s32 fi = prop_fi(f, iu);
+-	if (fi < 0) return prop_eager_test(f, n, dm_popcount(mask));
+-	if (!prop_eager_test(f, n, dm_popcount(mask))) return 0;
++	pm_t mask = prop_req_mask(f, start, n); s32 fi = prop_fi(f, iu);
++	if (fi < 0) return prop_eager_test(f, n, pm_pop(mask));
++	if (!prop_eager_test(f, n, pm_pop(mask))) return 0;
+ 	if (prop_eager_test(f, n, f->U)) return 1;
+-	return prop_eager_test(f, n, dm_popcount(mask | prop_fmask(f, fi)));
++	return prop_eager_test(f, n, pm_pop(mask | prop_fmask(f, fi)));
+ }
+ 
+-static void prop_coarse_write(struct prop *f, u64 iu, int src, u32 hostmask)
++static void prop_coarse_write(struct prop *f, u64 iu, int src, pm_t hostmask)
+ {
+ 	int cls = 0; u32 ppn;
+ 	if (prop_cc_eff(f) > 0 && src != PS_HOST) cls = (src == PS_CLEAN) ? f->cgc_cls + 1 : 1;
+@@ -770,13 +846,13 @@ static void prop_coarse_write(struct prop *f, u64 iu, int src, u32 hostmask)
+ 
+ static void prop_eager_write(struct prop *f, u64 iu, u64 start, u32 n)
+ {
+-	u32 req = prop_req_mask(f, start, n), mask = req, old = prop_cm(f, iu), k;
++	pm_t req = prop_req_mask(f, start, n), mask = req; u32 old = prop_cm(f, iu), k;
+ 	s32 fi = prop_fi(f, iu);
+ 	if (fi >= 0) {
+-		u32 bm = prop_fmask(f, fi); mask |= bm;
+-		for (k = 0; k < f->U; k++) if (bm & (1u << k)) prop_rd(f, prop_slot(f, fi, k), DM_R_RMW);  /* fragments folded in */
++		pm_t bm = prop_fmask(f, fi); mask |= bm;
++		for (k = 0; k < f->U; k++) if (bm & PM1(k)) prop_rd(f, prop_slot(f, fi, k), DM_R_RMW);  /* fragments folded in */
+ 	}
+-	if (old != DM_NONE32) for (k = 0; k < f->U; k++) if (!(mask & (1u << k))) prop_rd(f, old + k, DM_R_RMW);  /* rest from old chunk */
++	if (old != DM_NONE32) for (k = 0; k < f->U; k++) if (!(mask & PM1(k))) prop_rd(f, old + k, DM_R_RMW);  /* rest from old chunk */
+ 	f->n_eager++;
+ 	prop_coarse_write(f, iu, PS_HOST, req);   /* n host pages + (U-n) filler counted as RMW */
+ }
+@@ -785,25 +861,26 @@ static void prop_eager_write(struct prop *f, u64 iu, u64 start, u32 n)
+ static void prop_fold(struct prop *f, u64 iu, int refold)
+ {
+ 	u32 ppn = prop_coarse_alloc_extent(f, 1, 0);   /* may run nested coarse GC -> evaluate state AFTER */
+-	s32 fi = prop_fi(f, iu); struct prop_fs fs;
+-	u32 bm, d, old = prop_cm(f, iu), k;
++	s32 fi = prop_fi(f, iu); struct prop_fs *fs = prop_fs_push(f);
++	pm_t bm; u32 d, old = prop_cm(f, iu), k;
+ 	int src, rs = refold ? DM_R_GC : DM_R_FOLD;
+-	fs.mask = 0;
++	fs->mask = 0;
+ 	if (fi >= 0) {
+ 		if (prop_spl(f, iu)) {   /* the fragment pointers to fold in: one FTP read (ftlsim: in invalidate_iu) */
+ 			if (refold) f->sp_refold++; else f->sp_fold++;
+ 			prop_ftp_read(f, iu / f->ipf, 2);
+ 		}
+-		prop_fscan_full(f, fi, &fs);
++		prop_fscan_full(f, fi, fs);
+ 	}
+-	bm = fs.mask; d = dm_popcount(bm);
+-	for (k = 0; k < f->U; k++) if (bm & (1u << k)) prop_rd(f, fs.ppn[k], rs);
++	bm = fs->mask; d = pm_pop(bm);
++	for (k = 0; k < f->U; k++) if (bm & PM1(k)) prop_rd(f, fs->ppn[k], rs);
+ 	if (old != DM_NONE32 && d == f->U) old = DM_NONE32;   /* cuckoo2 lazy drop: the chunk is dead (ftlsim: NONE) */
+-	if (old != DM_NONE32) { for (k = 0; k < f->U; k++) if (!(bm & (1u << k))) prop_rd(f, old + k, rs); src = refold ? PS_REFOLD : PS_FOLD; }
++	if (old != DM_NONE32) { for (k = 0; k < f->U; k++) if (!(bm & PM1(k))) prop_rd(f, old + k, rs); src = refold ? PS_REFOLD : PS_FOLD; }
+ 	else if (d == f->U) src = refold ? PS_REFOLD : PS_FOLD;
+ 	else src = PS_ZEROFILL;
+ 	if (refold) { f->n_refold++; f->frag_freed += d; } else { f->n_fold++; f->frag_folded += d; }
+-	prop_install_extent(f, iu, ppn, src, 0, fi >= 0 ? &fs : NULL);
++	prop_install_extent(f, iu, ppn, src, 0, fi >= 0 ? fs : NULL);
++	prop_fs_pop(f);
+ }
+ 
+ /* ------------------------------------------------------------------ reclaim */
+@@ -965,7 +1042,7 @@ static u64 prop_ct_best(const struct prop *f, u64 lpn, u64 cur_iu, int pc)   /*
+ 		for (q = 0, dup = 0; q < nseen; q++) dup |= seen[q] == iu;
+ 		if (dup) continue;
+ 		seen[nseen++] = iu;
+-		{ u64 hb = 0; d = dm_popcount(prop_fscan(f, f2, f->rec_block ? &hb : NULL)); rc = f->rec_block ? hb : f->flast[f2]; }
++		{ u64 hb = 0; d = pm_pop(prop_fscan(f, f2, f->rec_block ? &hb : NULL)); rc = f->rec_block ? hb : f->flast[f2]; }
+ 		{ int cl = pc ? prop_cln(f, iu) : 0;
+ 		  if (cl > bcl || (cl == bcl && (d > bd || (d == bd && rc < bl)))) { bcl = cl; bd = d; bl = rc; best = iu; } }
+ 	}
+@@ -976,14 +1053,15 @@ static u64 prop_ct_best(const struct prop *f, u64 lpn, u64 cur_iu, int pc)   /*
+  * FTP image, spilled bit set); no FTP program here, the caller programs the FTP once */
+ static void prop_spill_one(struct prop *f, u64 iu)
+ {
+-	struct prop_fs fs; u32 bm, d;
+-	prop_fscan_full(f, (s32)iu, &fs);
+-	bm = fs.mask; d = dm_popcount(bm);
++	struct prop_fs *fs = prop_fs_push(f); pm_t bm; u32 d;
++	prop_fscan_full(f, (s32)iu, fs);
++	bm = fs->mask; d = pm_pop(bm);
+ 	while (bm) {
+-		u32 k = (u32)dm_ctz64(bm); s64 e = fs.ent[k]; bm &= bm - 1;
++		u32 k = pm_ctz(bm); s64 e = fs->ent[k]; bm &= bm - 1;
+ 		f->ct_lpn[e] = DM_NONE32; f->ct_ppn[e] = DM_NONE32;
+-		f->ftp[iu * f->U + k] = fs.ppn[k];
++		f->ftp[iu * f->U + k] = fs->ppn[k];
+ 	}
++	prop_fs_pop(f);
+ 	f->coarse_map[iu] |= PROP_SPL; f->grp_spilled[iu / f->ipf]++; f->spages += d;
+ 	if (f->rp_clean) f->coarse_map[iu] &= ~PROP_CLN;   /* only with spill_rp_clean: bit 29 is chunk index otherwise */
+ 	if (f->rp_bits) {   /* spill_rp >= 2: the read counter restarts; a read run in progress no longer counts as one */
+@@ -1014,19 +1092,19 @@ static void prop_spill(struct prop *f, u64 iu, u64 cur_iu)
+  * (making room by spilling others: no flash data writes, so no GC runs in here); the FTP copy becomes stale */
+ static void prop_unspill(struct prop *f, u64 iu, int rd)   /* rd: read-promotion (spill_rp) */
+ {
+-	u64 g = iu / f->ipf; u32 bm = 0, ppn[32], k, d;
++	u64 g = iu / f->ipf; pm_t bm = 0; u32 ppn[PROP_UMAX], k, d;
+ 	prop_ftp_read(f, g, 1);
+-	for (k = 0; k < f->U; k++) { u32 p = f->ftp[iu * f->U + k]; if (p != DM_NONE32) { bm |= 1u << k; ppn[k] = p; } }
+-	d = dm_popcount(bm);
++	for (k = 0; k < f->U; k++) { u32 p = f->ftp[iu * f->U + k]; if (p != DM_NONE32) { bm |= PM1(k); ppn[k] = p; } }
++	d = pm_pop(bm);
+ 	f->coarse_map[iu] &= ~PROP_SPL; f->grp_spilled[g]--; f->spages -= d;
+ 	if (rd) { f->rp_n++; f->rp_pages += d; } else { f->sp_unspill++; f->sp_unspill_pages += d; }
+ 	if (rd && f->rp_clean) f->coarse_map[iu] |= PROP_CLN;   /* clean promotion: the FTP image stays valid */
+ 	f->fepoch++;
+ 	while (bm) {
+ 		u64 l; int tries;
+-		k = (u32)dm_ctz64(bm); bm &= bm - 1; l = iu * f->U + k;
++		k = pm_ctz(bm); bm &= bm - 1; l = iu * f->U + k;
+ 		if (!(rd && f->rp_clean)) f->ftp[l] = DM_NONE32;
+-		for (tries = 0; !prop_ct_room(f, l); tries++) {
++		for (tries = 0; !prop_ct_room(f, l) && !prop_ct_kick(f, l); tries++) {
+ 			u64 v = prop_ct_best(f, l, iu, f->rp_clean);
+ 			if (v == ~0ull || tries > 16) dm_die("proposed: spill: cannot make room to un-spill IU %llu\n", (unsigned long long)iu);
+ 			prop_spill(f, v, iu);
+@@ -1067,13 +1145,14 @@ static void prop_ct_ensure(struct prop *f, u64 lpn)
+ 	if (!f->ct_on) return;
+ 	fi = prop_fi(f, cur_iu);
+ 	if (prop_spl(f, cur_iu)) prop_unspill(f, cur_iu, 0);   /* spilled bit: FTP read, pointers back into the table */
++	if (f->dram_lock && f->fo.dram) f->fo.dram(f->fo.ctx, 0, 2);
+ 	if (fi >= 0 && prop_ct_find(f, lpn) >= 0) return;   /* overwrite of a resident page: no new entry */
+ 	for (tries = 0; ; ++tries) {
+ 		u64 best;
+ 		/* pool_cap (1 always, 4 uniform mode only): at the fine pool's copy-GC liveness bound
+ 		 * (quota - open fine frontiers - 1) x P a new page evicts like a full bucket pair, at most once */
+ 		s32 capb = f->fq - ((f->uni && f->uni_onefront) ? 1 : 2) - 1;
+-		int room = prop_ct_room(f, lpn);
++		int room = prop_ct_room(f, lpn) || prop_ct_kick(f, lpn);   /* ct_kick: displacement path first */
+ 		int over = room && tries == 0 && ((f->pcap & 1) || ((f->pcap & 4) && f->uni)) && capb > 0 &&
+ 			   f->fpages >= (u64)capb * f->P;
+ 		if (room && !over) break;
+@@ -1094,7 +1173,8 @@ static void prop_parse(struct prop *f, const char *p, u64 *fq_blocks)
+ {
+ 	static const char *keys[] = { "U", "fine_quota_blocks", "fine_quota_ppm", "fine_extra", "cgc_vict_cb", "coarse_class",
+ 				      "fine_policy_cost_cold", "gc_select_cost", "fine_full", "gc_frontier", "adapt", "uni_onefront",
+-				      "rec_block", "fine_index_cuckoo2", "map_budget_ppm", "onefront_fix", "pool_cap", "spill", "spill_ipf", "spill_rp", "spill_rp_rate", "spill_rp_clean", NULL };
++				      "rec_block", "fine_index_cuckoo2", "map_budget_ppm", "onefront_fix", "pool_cap", "spill", "spill_ipf", "spill_rp", "spill_rp_rate", "spill_rp_clean",
++				      "ct_kick", "dram_ns", "dram_lock", NULL };
+ 	while (p && *p) {
+ 		const char *k, *ke; u64 v = 0; int i;
+ 		while (*p && prop_sep(*p)) p++;
+@@ -1108,7 +1188,7 @@ static void prop_parse(struct prop *f, const char *p, u64 *fq_blocks)
+ 		if (*p == 'K') { v <<= 10; p++; } else if (*p == 'M') { v <<= 20; p++; } else if (*p == 'G') { v <<= 30; p++; }
+ 		if (*p && !prop_sep(*p)) dm_die("proposed: bad value for %.*s\n", (int)(ke - k), k);
+ 		for (i = 0; keys[i]; i++) if ((size_t)(ke - k) == strlen(keys[i]) && !strncmp(k, keys[i], ke - k)) break;
+-		if (!keys[i]) dm_die("proposed: unsupported option '%.*s' (supported: fine_quota_blocks fine_quota_ppm fine_extra cgc_vict_cb coarse_class fine_policy_cost_cold gc_select_cost fine_full adapt uni_onefront rec_block fine_index_cuckoo2 map_budget_ppm onefront_fix pool_cap spill spill_ipf spill_rp spill_rp_rate spill_rp_clean)\n", (int)(ke - k), k);
++		if (!keys[i]) dm_die("proposed: unsupported option '%.*s' (supported: fine_quota_blocks fine_quota_ppm fine_extra cgc_vict_cb coarse_class fine_policy_cost_cold gc_select_cost fine_full adapt uni_onefront rec_block fine_index_cuckoo2 map_budget_ppm onefront_fix pool_cap spill spill_ipf spill_rp spill_rp_rate spill_rp_clean ct_kick dram_ns dram_lock)\n", (int)(ke - k), k);
+ 		switch (i) {
+ 		case 0: break;                                  /* IU size: taken from dm_geom.U */
+ 		case 1: *fq_blocks = v; break;
+@@ -1139,6 +1219,11 @@ static void prop_parse(struct prop *f, const char *p, u64 *fq_blocks)
+ 		case 20: if (v > 1000000000ull) dm_die("proposed: spill_rp_rate=%llu too large\n", (unsigned long long)v);
+ 			f->spill_rp_rate = v; break;
+ 		case 21: f->rp_clean = v != 0; break;
++		case 22: if (v > 65536) dm_die("proposed: ct_kick=%llu too large (<= 65536)\n", (unsigned long long)v);
++			f->ct_kick = (u32)v; break;
++		case 23: if (v > 100000) dm_die("proposed: dram_ns=%llu too large\n", (unsigned long long)v);
++			f->dram_ns = (u32)v; break;
++		case 24: f->dram_lock = v != 0; break;
+ 		}
+ 	}
+ }
+@@ -1150,11 +1235,12 @@ static void *prop_create(const struct dm_geom *g, const struct dm_flash_ops *fo,
+ 	if (!f) return NULL;
+ 	f->g = *g; f->fo = *fo; f->st = st;
+ 	f->L = g->L; f->P = g->P; f->U = g->U; f->NB = g->NB; f->T = g->T;
+-	if (f->U < 1 || f->U > 32 || f->P % f->U || f->L % f->U) dm_die("proposed: bad geometry P=%u U=%u L=%llu\n", f->P, f->U, (unsigned long long)f->L);
++	if (f->U < 1 || f->U > PROP_UMAX || f->P % f->U || f->L % f->U) dm_die("proposed: bad geometry P=%u U=%u L=%llu\n", f->P, f->U, (unsigned long long)f->L);
+ 	f->NIU = f->L / f->U;
+ 	/* ftlsim defaults: fine_quota=0.022, fine_extra=1, cgc_vict=greedy, coarse_class=0, fine_policy=cost, gc_select=coarse */
+ 	f->fine_quota_ppm = 22000; f->fine_extra = 1;
+ 	prop_parse(f, params, &fqb);
++	if (f->U > 32 && !f->ct_on) dm_die("proposed: U=%u > 32 needs fine_index_cuckoo2=1 (pool bitmaps are u32)\n", f->U);
+ 	if (fqb) f->fq = (s32)fqb;
+ 	else {
+ 		/* ftlsim: fq = max(1, (int)(NB0 * fine_quota)); NB = NB0 (+ fq if fine_extra). Recover NB0 from NB. */
+@@ -1176,6 +1262,7 @@ static void *prop_create(const struct dm_geom *g, const struct dm_flash_ops *fo,
+ 	}
+ 	f->cmask = PROP_CNONE;
+ 	if (f->spill && !f->ct_on) dm_die("proposed: spill needs fine_index_cuckoo2=1\n");
++	if (f->ct_kick && !f->ct_on) dm_die("proposed: ct_kick needs fine_index_cuckoo2=1\n");
+ 	if ((f->spill_rp || f->spill_rp_rate) && !f->spill) dm_die("proposed: spill_rp needs spill\n");
+ 	if (f->rp_clean && !f->spill_rp) dm_die("proposed: spill_rp_clean needs spill_rp\n");
+ 	if (f->ct_on) {
+@@ -1233,6 +1320,13 @@ static void *prop_create(const struct dm_geom *g, const struct dm_flash_ops *fo,
+ 		if (!f->rec_block) f->flast = dm_zalloc(sizeof(u64) * f->NIU);
+ 		if (!f->ct_lpn || !f->ct_ppn || (!f->rec_block && !f->flast)) dm_die("proposed: alloc failed\n");
+ 		for (i = 0; i < ne; i++) f->ct_lpn[i] = f->ct_ppn[i] = DM_NONE32;
++		if (f->ct_kick) {   /* BFS queue (<= ct_kick nodes) + visited hash (>= 2x ct_kick slots) */
++			u32 hs = 4; while (hs < 2 * f->ct_kick + 4) hs <<= 1;
++			f->kh_mask = hs - 1;
++			f->kq_b = dm_zalloc(sizeof(u64) * (f->ct_kick + 2)); f->kq_par = dm_zalloc(sizeof(s32) * (f->ct_kick + 2));
++			f->kq_k = dm_zalloc(f->ct_kick + 2); f->kh_key = dm_zalloc(sizeof(u64) * hs); f->kh_ep = dm_zalloc(sizeof(u32) * hs);
++			if (!f->kq_b || !f->kq_par || !f->kq_k || !f->kh_key || !f->kh_ep) dm_die("proposed: ct_kick alloc failed\n");
++		}
+ 		if (f->spill) {
+ 			/* FTP images (flash content, 4 B per logical page), per-FTP spilled count, batch marks, dirty-set order */
+ 			f->ftp = dm_zalloc(sizeof(u32) * f->L);
+@@ -1254,7 +1348,8 @@ static void *prop_create(const struct dm_geom *g, const struct dm_flash_ops *fo,
+ 		if (!f->fine_idx || !f->fbitmap || !f->fslot || !f->flast || !f->fpool_free) dm_die("proposed: alloc failed\n");
+ 		for (i = 0; i < f->NIU; i++) f->fine_idx[i] = -1;
+ 	}
+-	if (!f->coarse_map || !f->p2l || !f->btag || !f->bvalid || !f->bseq || !f->freelist || !f->bccls ||
++	f->fsp = dm_zalloc(sizeof(struct prop_fs) * PROP_FSD); f->fsd = 0;
++	if (!f->fsp || !f->coarse_map || !f->p2l || !f->btag || !f->bvalid || !f->bseq || !f->freelist || !f->bccls ||
+ 	    !f->fbirth || !f->bhost) dm_die("proposed: alloc failed\n");
+ 	for (i = 0; i < f->NIU; i++) f->coarse_map[i] = f->ct_on ? f->cmask : DM_NONE32;
+ 	for (i = 0; i < np; i++) f->p2l[i] = DM_NONE32;
+@@ -1268,6 +1363,7 @@ static void *prop_create(const struct dm_geom *g, const struct dm_flash_ops *fo,
+ 	       (unsigned long long)f->L, (unsigned long long)f->NIU, f->NB, f->P, f->U, f->T, f->fq, f->fine_extra,
+ 	       f->cgc_cb ? "cb" : "greedy", f->coarse_class, f->cost_cold ? "cost_cold" : "cost", f->gc_cost ? "cost" : "coarse", f->fine_full,
+ 	       f->adapt, f->fq_uni, f->uni_onefront, f->rec_block, f->ct_on ? "cuckoo2" : "hash", f->onefront_fix, f->pcap, f->spill);
++	if (f->ct_kick) dm_log("proposed: cuckoo2 ct_kick=%u (BFS bucket limit before an eviction)\n", f->ct_kick);
+ 	return f;
+ }
+ 
+@@ -1283,15 +1379,24 @@ static void prop_destroy(void *c)
+ 		       (unsigned long long)f->sp_rd[0], (unsigned long long)f->sp_rd[1], (unsigned long long)f->sp_rd[2], (unsigned long long)f->sp_rd[3],
+ 		       (unsigned long long)f->sp_rd[4], (unsigned long long)f->sp_wr[0], (unsigned long long)f->sp_wr[1], (unsigned long long)f->spages,
+ 		       (unsigned long long)f->rd_spilled, (unsigned long long)f->rd_ftp);
++	if (f->ct_kick) {   /* (2026-11-11) cuckoo displacement cost: DRAM bucket reads per search, log2 bins [1],[2-3],[4-7],... */
++		u32 q;
++		dm_log("proposed: ct_kick end: limit %u searches %llu found %llu failed %llu moves %llu bucket_reads %llu evict %llu fine_host_new %llu probes %llu dram_ns %u dram_lock %d\n",
++		       f->ct_kick, (unsigned long long)f->kick_n, (unsigned long long)f->kick_ok, (unsigned long long)f->kick_fail,
++		       (unsigned long long)f->kick_moves, (unsigned long long)f->kick_rd, (unsigned long long)f->n_evict, (unsigned long long)f->fine_host_new, (unsigned long long)f->kick_probe, f->dram_ns, f->dram_lock);
++		for (q = 0; q < 16; q++) if (f->kick_rdh[q]) dm_log("proposed: ct_kick hist reads %u-%u: %llu\n", 1u << q, (2u << q) - 1, (unsigned long long)f->kick_rdh[q]);
++	}
+ 	if (f->spill_rp)
+ 		dm_log("proposed: spill_rp=%d end: promotions %llu (pages %llu) counted %llu rate_skips %llu ftp_progs %llu ftp_reads %llu credit %lld clean %d evictions %llu dirtied %llu\n",
+ 		       f->spill_rp, (unsigned long long)f->rp_n, (unsigned long long)f->rp_pages, (unsigned long long)f->rp_wait,
+ 		       (unsigned long long)f->rp_rate, (unsigned long long)f->rp_wr, (unsigned long long)f->rp_rd, (long long)f->rp_credit,
+ 		       f->rp_clean, (unsigned long long)f->rp_cevict, (unsigned long long)f->rp_cdirty);
++	dm_free(f->fsp);
+ 	dm_free(f->coarse_map); dm_free(f->fine_idx); dm_free(f->p2l); dm_free(f->btag); dm_free(f->bvalid); dm_free(f->bseq);
+ 	dm_free(f->freelist); dm_free(f->bccls); dm_free(f->fbirth); dm_free(f->bhost); dm_free(f->ct_lpn); dm_free(f->ct_ppn);
+ 	dm_free(f->fbitmap); dm_free(f->fslot); dm_free(f->flast); dm_free(f->fpool_free);
+ 	dm_free(f->ftp); dm_free(f->grp_spilled); dm_free(f->rd_ep); dm_free(f->dirty_ep); dm_free(f->hs.key); dm_free(f->hs.nxt); dm_free(f->hs.bkt);
++	dm_free(f->kq_b); dm_free(f->kq_par); dm_free(f->kq_k); dm_free(f->kh_key); dm_free(f->kh_ep);
+ 	dm_free(f);
+ }
+ 
+@@ -1350,7 +1455,9 @@ static void prop_read(void *c, u64 lpn, u64 n)
+ 			}
+ 			if (q != DM_NONE32) { prop_rd(f, q, DM_R_HOST); continue; }
+ 		} else if (f->ct_on) {   /* flag clear: 1 coarse-entry access; flag set: + one table lookup (<= 2 buckets) */
+-			s64 e = fi >= 0 ? prop_ct_find(f, p) : -1;
++			s64 e;
++			if (fi >= 0 && f->dram_lock && f->fo.dram) f->fo.dram(f->fo.ctx, 0, 2);
++			e = fi >= 0 ? prop_ct_find(f, p) : -1;
+ 			if (e >= 0) { prop_rd(f, f->ct_ppn[e], DM_R_HOST); continue; }
+ 		} else if (fi >= 0 && (f->fbitmap[fi] & (1u << off))) { prop_rd(f, f->fslot[(u64)fi * f->U + off], DM_R_HOST); continue; }
+ 		cm = prop_cm(f, iu);
+@@ -1453,15 +1560,21 @@ static void prop_report(void *c, char *buf, int len)
+ 		 (unsigned long long)f->n_wasted, (unsigned long long)f->n_pad, (unsigned long long)ius, (unsigned long long)pages,
+ 		 f->fine_blocks, f->coarse_blocks, f->nfree);
+ 	{	/* adapt / cuckoo2 counters (cumulative incl. warmup) */
+-		u64 used = 0, e; int o = (int)strlen(buf);
++		u64 used = 0, e; int o = (int)strlen(buf); char kb[640] = "";
++		if (f->ct_kick) {
++			int q, w = snprintf(kb, sizeof(kb), ", \"ct_kick\": {\"limit\": %u, \"searches\": %llu, \"found\": %llu, \"failed\": %llu, \"moves\": %llu, \"bucket_reads\": %llu, \"bucket_reads_log2_hist\": [",
++				 f->ct_kick, (unsigned long long)f->kick_n, (unsigned long long)f->kick_ok, (unsigned long long)f->kick_fail, (unsigned long long)f->kick_moves, (unsigned long long)f->kick_rd);
++			for (q = 0; q < 16 && w < (int)sizeof(kb) - 24; q++) w += snprintf(kb + w, sizeof(kb) - w, "%s%llu", q ? ", " : "", (unsigned long long)f->kick_rdh[q]);
++			if (w < (int)sizeof(kb) - 3) snprintf(kb + w, sizeof(kb) - w, "]}");
++		}
+ 		if (f->ct_on) for (e = 0; e < f->ct_nb * 4; e++) used += f->ct_lpn[e] != DM_NONE32;
+ 		if (o > 0 && o < len) buf[--o] = 0;   /* drop the closing brace */
+ 		snprintf(buf + o, len - o, ", \"fine_host_new\": %llu, \"fine_host_ow\": %llu, "
+ 			 "\"adapt\": {\"switches\": %llu, \"uni_host\": %llu, \"quota_base\": %d, \"quota_uni\": %d, \"uni_at_end\": %d, \"fp_ticks\": %llu}, "
+-			 "\"cuckoo2\": {\"buckets\": %llu, \"entries\": %llu, \"used_end\": %llu, \"evict_folds\": %llu}, \"cgf_spill\": %llu, \"reserve_draw\": %llu, \"pool_evict_folds\": %llu, \"onefront_reuse\": %llu}",
++			 "\"cuckoo2\": {\"buckets\": %llu, \"entries\": %llu, \"used_end\": %llu, \"evict_folds\": %llu%s}, \"cgf_spill\": %llu, \"reserve_draw\": %llu, \"pool_evict_folds\": %llu, \"onefront_reuse\": %llu}",
+ 			 (unsigned long long)f->fine_host_new, (unsigned long long)f->fine_host_ow,
+ 			 (unsigned long long)f->n_switch, (unsigned long long)f->uni_host, f->fq_base, f->fq_uni, f->uni, (unsigned long long)f->n_adapt_fp,
+-			 (unsigned long long)f->ct_nb, (unsigned long long)(f->ct_nb * 4), (unsigned long long)used, (unsigned long long)f->n_evict,
++			 (unsigned long long)f->ct_nb, (unsigned long long)(f->ct_nb * 4), (unsigned long long)used, (unsigned long long)f->n_evict, kb,
+ 			 (unsigned long long)f->n_spill, (unsigned long long)f->n_reserve_draw, (unsigned long long)f->n_pool_evict, (unsigned long long)f->n_onefront_reuse);
+ 	}
+ 	if (f->spill) {   /* ftlsim "spill" block (cumulative incl. warmup) */
+diff --git a/dm/ftlcore.h b/dm/ftlcore.h
+index 134e68b..a55998b 100644
+--- a/dm/ftlcore.h
++++ b/dm/ftlcore.h
+@@ -29,6 +29,9 @@ struct dm_flash_ops {
+ 	void (*prog)(void *ctx, u64 ppn, int src);
+ 	void (*read)(void *ctx, u64 ppn, int src);
+ 	void (*erase)(void *ctx, u32 blk);
++	/* (2026-11-11) host-path DRAM time (timing only). mode 0: ns of DRAM work before the next flash op; mode 1: same, and
++	 * the fine-map table stays locked until it ends; mode 2: wait until the table is unlocked. NULL = no DRAM timing. */
++	void (*dram)(void *ctx, u64 ns, int mode);
+ };
+ 
+ struct dm_stats {
+diff --git a/dm_ftl.c b/dm_ftl.c
+index 933d63f..597bbcc 100644
+--- a/dm_ftl.c
++++ b/dm_ftl.c
+@@ -74,6 +74,9 @@ struct dm_ns {
+ 	u32 rd_bytes;
+ 	u32 map_rr;
+ 	u32 map_pend;   /* map pages buffered toward the next oneshot program */
++	/* (2026-11-12) FTL cores (dram mode 1): a displacement search occupies one of DM_FCORES firmware cores for its DRAM
++	 * time; a host request starts only when a core is free (all cores busy with searches -> it waits) */
++	int fcore_on; u64 fcore[4];
+ 	u64 host_done;  /* latest completion time of any host-path NAND op issued so far (Flush waits for this) */
+ 	struct dm_bgop *bg; u32 bg_head, bg_n;
+ 	struct dm_pend *pend; u32 pend_n;   /* write-buffer space of requests whose pages sit in the core's sort batch */
+@@ -220,6 +223,31 @@ static void dm_cb_read(void *ctx, u64 ppn, int src)
+ 	d->rd_pending = 1; d->rd_src = src; d->rd_ppa = p; d->rd_bytes = d->spp->pgsz;
+ }
+ 
++/* (2026-11-11) DRAM time on the host path: the work ends before the next flash op of this request can start */
++static void dm_cb_dram(void *ctx, u64 ns, int mode)
++{
++	struct dm_ns *d = ctx;
++	if (!d->in_host) return;
++	if (mode == 2) return;   /* table-lock waits: not modeled (per-bucket locks block only the 2-3 moved buckets) */
++	dm_read_flush(d);
++	if (mode == 1) {   /* the search runs on the earliest-free FTL core */
++		int i, c = 0;
++		for (i = 1; i < 4; i++) if (d->fcore[i] < d->fcore[c]) c = i;
++		if (d->fcore[c] > d->stime) d->stime = d->fcore[c];
++		d->fcore[c] = d->stime + ns; d->fcore_on = 1;
++	}
++	d->stime += ns;
++	if (d->stime > d->latest) d->latest = d->stime;
++}
++
++/* (2026-11-12) a host request needs a free FTL core to start: the earliest time any of the 4 cores is free */
++static u64 dm_fcore_avail(struct dm_ns *d)
++{
++	u64 m = d->fcore[0]; int i;
++	for (i = 1; i < 4; i++) if (d->fcore[i] < m) m = d->fcore[i];
++	return m;
++}
++
+ static void dm_cb_erase(void *ctx, u32 blk)
+ {
+ 	struct dm_ns *d = ctx;
+@@ -271,9 +299,12 @@ void conv_init_namespace(struct nvmev_ns *ns, uint32_t id, uint64_t size, void *
+ 	d->g.T = 2;
+ 	np = (u64)d->g.NB * d->g.P;
+ 	d->g.L = np * 1000000ull / (1000000ull + DM_OP_PPM);
+-	d->g.L -= d->g.L % d->g.U;
++	/* (2026-11-09, coarse-IU sensitivity) U > DM_IU_PAGES: round L up instead of down, so the namespace still holds the
++	 * U=16 logical space (the raw I/O traces span exactly the U=16 L); costs < U pages of OP. U <= 16 unchanged. */
++	if (d->g.U > DM_IU_PAGES && d->g.L % d->g.U) d->g.L += d->g.U - d->g.L % d->g.U;
++	else d->g.L -= d->g.L % d->g.U;
+ 
+-	fo.ctx = d; fo.prog = dm_cb_prog; fo.read = dm_cb_read; fo.erase = dm_cb_erase;
++	fo.ctx = d; fo.prog = dm_cb_prog; fo.read = dm_cb_read; fo.erase = dm_cb_erase; fo.dram = dm_cb_dram;
+ 	d->core = dm_policy.create(&d->g, &fo, &d->st, dm_params);
+ 	NVMEV_ASSERT(d->core);
+ 	dm_wbuf_init(&d->wb, d->g.U, DM_WBUF_BYTES / 4096, dm_emit, d, &d->st.host_submitted);
+@@ -340,6 +371,7 @@ static bool dm_write(struct nvmev_ns *ns, struct nvmev_request *req, struct nvme
+ 		dm_bg_fill(d, req->nsecs_start);
+ 		dm_bg_pace(d, end_lpn - start_lpn + 1, xfer_done);
+ 	}
++	if (d->fcore_on && dm_fcore_avail(d) > xfer_done) xfer_done = dm_fcore_avail(d);
+ 	d->in_host = 1; d->stime = xfer_done; d->latest = xfer_done;
+ 	dm_wbuf_write(&d->wb, start_lpn, end_lpn - start_lpn + 1);
+ 	dm_read_flush(d);
+@@ -379,6 +411,7 @@ static bool dm_read(struct nvmev_ns *ns, struct nvmev_request *req, struct nvmev
+ 		dm_bg_fill(d, req->nsecs_start);
+ 	d->in_host = 1;
+ 	d->stime = req->nsecs_start + (LBA_TO_BYTE(nr_lba) <= KB(4) ? spp->fw_4kb_rd_lat : spp->fw_rd_lat);
++	if (d->fcore_on && dm_fcore_avail(d) > req->nsecs_start) d->stime += dm_fcore_avail(d) - req->nsecs_start;
+ 	d->latest = d->stime;
+ 	for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
+ 		d->st.host_read_pages++;

@@ -13,11 +13,13 @@ from matplotlib.patches import Patch
 
 B = '/home/sejun000/dual_mapping/results'
 OUT, PAPER = B + '/paper_dac', '/home/sejun000/dual_mapping/paper/figs'
-VAR = ['nsfm', 'nsm', 'ns', 'full']
-LABEL = {'nsfm': 'Basic', 'nsm': '+ Coarse-or-fine', 'ns': '+ Copy-or-merge', 'full': '+ Spill/load (DUET)'}
-COLOR = {'nsfm': '#EEECFB', 'nsm': '#CBC6F3', 'ns': '#9A91E6', 'full': '#3F2FD0'}
-HATCH = {'nsfm': '..', 'nsm': '\\\\', 'ns': '//', 'full': ''}
-WL = [('app', 'ycsba_d_t64', 'YCSB-A'), ('trace', 'trace_ali3', 'Alibaba'), ('trace', 'replay_a128_r50_s70', 'R:W 50:50')]
+VAR = ['nsfm', 'nsm', 'ns', 'ck', 'full']   # (2026-11-12) + cuckoo displacement (ck), then + spill/load = DUET
+LABEL = {'nsfm': 'Basic', 'nsm': '+ Coarse-or-fine', 'ns': '+ Copy-or-merge', 'ck': '+ Cuckoo', 'full': '+ Spill/load (DUET)'}
+COLOR = {'nsfm': '#EEECFB', 'nsm': '#D3CEF5', 'ns': '#ADA5EC', 'ck': '#8378E0', 'full': '#3F2FD0'}
+HATCH = {'nsfm': '..', 'nsm': '\\\\', 'ns': '//', 'ck': 'xx', 'full': ''}
+WL = [('app', 'ycsba_d_t64', 'YCSB-A'), ('trace', 'trace_ali3', 'Alibaba'), ('trace', 'replay_a128_r70_s70', '70:30'),
+      ('trace', 'trace_spfresh', 'SPFresh')]   # (2026-11-12) 32 GB device, results/final_32g
+G = B + '/final_32g'
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4, 'axes.linewidth': 0.6})
 
 
@@ -45,7 +47,34 @@ def trace(d):
             'r_p99': j['read_lat_us']['p99'] / 1e3, 'w_p99': j['write_lat_us']['p99'] / 1e3}
 
 
+# ck = nsk with DRAM timing (50 ns per visited bucket, 4 FTL cores), full = DUET with the same cuckoo step before a spill.
+# YCSB-A / SPFresh: results/final_32g/kick_dram (proposedab nskl, proposedst kl). RW 70:30 / Alibaba never fill a bucket
+# pair, so ck = nsk (no DRAM timing needed) and full = the main DUET run (0 spills, cuckoo never runs).
+KD = {'ycsba_d_t64': True, 'trace_spfresh': True}
 def row(kind, key, v):
+    if kind == 'app' and v in ('ck', 'full'):
+        d = f'{G}/kick_dram/apps/{key}/' + ('proposedab_g32nskl' if v == 'ck' else 'proposedst_g32kl')
+        r = app(d); r['fp'] = float('nan'); return r
+    if kind != 'app' and v in ('ck', 'full'):
+        if key in KD:
+            d = f'{G}/kick_dram/' + ('nskl' if v == 'ck' else 'kl') + f'/{key}/' + ('proposedab' if v == 'ck' else 'proposedst')
+        else:
+            d = f'{G}/ablation/nsk/{key}/proposedab' if v == 'ck' else f'{G}/{key}/proposed'
+        r = trace(d); r['fp'] = float('nan'); return r
+    if kind == 'app':
+        d = f'{G}/apps/{key}/proposed_g32' if v == 'full' else f'{G}/ablation/apps/{key}/proposedab_g32{v}'
+        r = app(d)
+        try: r['fp'] = fine_pages(f'{d}/dm_start.txt', f'{d}/dm_end.txt')
+        except Exception: r['fp'] = float('nan')   # DUET main runs are not the stats build
+    else:
+        d = f'{G}/{key}/proposed' if v == 'full' else f'{G}/ablation/{v}/{key}/proposedab'
+        r = trace(d)
+        try: r['fp'] = fine_pages(f'{d}/stats_warm_end.txt', f'{d}/stats_end.txt')
+        except Exception: r['fp'] = float('nan')
+    return r
+
+
+def row_old(kind, key, v):
     if kind == 'app':
         d = f'{B}/final_vbm/apps/{key}/proposed_vb' if v == 'full' else f'{B}/final_ablation/apps/{key}/proposedab_{v}'
         s = f'{B}/final_stats/apps/{key}/proposedst_vb' if v == 'full' else d
@@ -66,9 +95,9 @@ def main():
                 w.writerow([lab, v] + [round(r[v][m], 4) for m in ('tput', 'waf', 'r_avg', 'r_p99', 'w_p99', 'fp')])
 
     panels = [('tput', 'Throughput\n(norm. to Basic)', True, (0, 1.9), [0, 0.5, 1, 1.5], '{:.2f}'),
-              ('waf', 'WA', False, (0, 18.5), [0, 5, 10, 15], '{:.1f}'),
-              ('r_p99', 'p99 read\n(ms)', False, (1, 200), [1, 10, 100], '{:.1f}'),
-              ('w_p99', 'p99 write\n(ms)', False, (10, 1000), [10, 100, 1000], '{:.1f}')]
+              ('waf', 'WA', False, None, None, '{:.1f}'),
+              ('r_p99', 'p99 read\n(ms)', False, None, None, '{:.1f}'),
+              ('w_p99', 'p99 write\n(ms)', False, None, None, '{:.1f}')]
     fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.4))   # was 1.95 (2026-11-10)
     nb = len(VAR); bw = 0.84 / nb; xs = list(range(len(data)))
     for ax, (m, yl, norm, ylim, yt, fmt) in zip(axs.flat, panels):
@@ -80,18 +109,20 @@ def main():
             ax.axhline(1.0, color='#444441', lw=0.6, ls='--', zorder=0)
         if m in ('r_p99', 'w_p99'):
             ax.set_yscale('log')
-        ax.set_ylim(*ylim); ax.set_yticks(yt)
+        if ylim: ax.set_ylim(*ylim)
+        if yt: ax.set_yticks(yt)
         if m in ('r_p99', 'w_p99'):
-            ax.set_yticklabels([f'{t:g}' for t in yt]); ax.minorticks_off()
-        ax.set_xticks(xs); ax.set_xticklabels([l for l, _ in data], fontsize=5.8)
+            from matplotlib.ticker import FuncFormatter
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda t, _: f'{t:g}')); ax.minorticks_off()
+        ax.set_xticks(xs); ax.set_xticklabels([l for l, _ in data], fontsize=5.2)
         ax.set_xlim(-0.55, len(xs) - 0.45)
         ax.set_ylabel(yl, fontsize=5.6, labelpad=1.5, linespacing=0.9)
         ax.tick_params(axis='y', labelsize=5.6, pad=1); ax.tick_params(axis='x', pad=1, length=0)
         ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
     fig.align_ylabels(axs[:, 0]); fig.align_ylabels(axs[:, 1])
-    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.875)   # was 0.86 (2026-11-10)
+    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.80)   # was 0.86 (2026-11-10)
     h = [Patch(fc=COLOR[v], hatch=HATCH[v], ec='black', lw=0.35, label=LABEL[v]) for v in VAR]
-    fig.legend(handles=h, ncol=4, fontsize=5.6, loc='upper center', bbox_to_anchor=(0.5, 1.005), frameon=False,
+    fig.legend(handles=h, ncol=3, fontsize=5.6, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,
                handlelength=1.5, handleheight=0.9, columnspacing=0.8, handletextpad=0.4)
     for ext in ('pdf', 'png'):
         fig.savefig(f'{OUT}/fig_ablation.{ext}', dpi=250, bbox_inches='tight', pad_inches=0.02)

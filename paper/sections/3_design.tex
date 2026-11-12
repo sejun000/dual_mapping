@@ -51,15 +51,18 @@ of the DRAM budget that the coarse map leaves.
 % d <= 4 for 66-98% of IUs. Per-IU array 16 x 4 B = 64 B per IU vs 8 B x d in the table.
 % Implementation (92 GB, 1/8 budget): coarse map 5.6 MB, table 5.5 MB = fine pages of ~3% of logical pages.
 
-The table is similar to cuckoo hashing~\cite{cuckoo} in that each entry has two
-candidate buckets. Unlike cuckoo hashing, DUET never moves an existing entry to
-its other bucket to make room, so an insert does not trigger a chain of moves.
-When both candidate buckets are full, DUET instead writes the fine-map entries
-of a victim coarse IU to a \emph{fine translation page} (FTP) in NAND and frees them
-from the table (\emph{spill}, Section~\ref{sec:spill}). A table lookup therefore checks at most the eight
-entries of the two candidate buckets, and an insert writes into a free entry of
-one of them. A spilled entry has a fixed location in NAND, so one map-page
-read returns it.
+When both candidate buckets are full, DUET makes room as in cuckoo
+hashing~\cite{cuckoo}, by moving existing entries to their other candidate
+buckets. It searches for a free entry breadth first and moves the entries along
+the shortest path to it~\cite{bfscuckoo}. When the search finds no free entry,
+DUET writes the fine-map entries of a victim coarse IU to a \emph{fine translation
+page} (FTP) in NAND and frees them from the table (\emph{spill},
+Section~\ref{sec:spill}). A moved entry stays in one of its two candidate buckets,
+so a table lookup still checks at most the eight entries of the two candidate
+buckets. A spilled entry has a fixed location in NAND, so one map-page read returns it.
+% (2026-11-12) ct_kick=500: BFS over at most 500 buckets (prop_ct_kick), then the path is executed from its end.
+% [bfscuckoo] Li et al. EuroSys'14 Sec. 4.3.2: "we use breadth-first search (BFS) instead" of the random DFS of basic
+% cuckoo hashing; path length log_B(M/2) - M/(2B) + 1 (= 5 for B = 4, M = 2000).
 
 \textbf{Flag bits.} Each coarse entry also has three flag bits. The
 \emph{has-fine-pages} (F) bit tells whether the coarse IU has fine pages, the
@@ -210,17 +213,9 @@ hold at the fine-block cap.
 % Numbers: apps device P=30976, fine cap 18 blocks = 557,568 pages, cuckoo2 table 334,736 entries (spill=2, GTD charged).
 % FAST (results/final_rp apps dmesg): NB=373 NLB=348 T=2 -> nlog=23, cache_bytes=B12 -> rwcap=14 (SW + 14 RW = 15 log blocks).
 
-Another challenge is hash collisions within the fine map. An insert can find
-both of its candidate buckets full even when other buckets still have free slots.
-Hashing schemes that place a colliding entry in another
-bucket~\cite{cuckoo,onemove,hopscotch,robinhood} make a lookup probe more buckets or an
-insert move existing entries, which takes more DRAM accesses. An insert that moves
-entries along a chain of buckets must also lock them, which blocks concurrent
-lookups, because a lookup could otherwise miss an entry in flight. On the other hand,
-merging the coarse IU whose entries are pushed out of the full buckets into the coarse map
-causes extra NAND writes.
+% (2026-11-12, user) hash-collision paragraph removed: DUET now moves entries as in cuckoo hashing (Fine map).
 
-DUET instead keeps the fine-map entries of some coarse IUs in FTPs in NAND, so that
+DUET therefore keeps the fine-map entries of some coarse IUs in FTPs in NAND, so that
 DUET can map more fine pages in the fine blocks without more DRAM.
 The fine-map entries of a coarse IU move to its FTP when the table fills
 (\emph{spill}) and back to the table when the coarse IU is accessed again
@@ -235,7 +230,7 @@ are 4.3\% of the logical capacity in our evaluation setup.
 fixed 4\,B slot in an FTP,
 which holds the entries of 1024 consecutive LPNs. As in DFTL, the GTD locates each
 FTP with one 4\,B entry. When an insert finds both
-candidate buckets full, DUET picks a victim among the coarse IUs that have an entry in
+candidate buckets full and no move frees an entry, DUET picks a victim among the coarse IUs that have an entry in
 the two buckets. It writes all entries of the victim to its FTP, sets its S bit, and
 frees its table entries. The other coarse IUs of the same FTP are spilled with the
 same program.
@@ -253,7 +248,7 @@ most fine pages, so one FTP program frees the most table slots.
 % Code: prop_ct_best(pc = spill_rp_clean) prefers clean IUs among the bucket pair, then most fragments, then older.
 
 \textbf{GC.} When GC moves fine pages of spilled coarse IUs, it reads and programs
-each FTP at most once per victim block. A merge of a spilled coarse IU reads its
+each FTP at most once per victim block to record the new locations of these fine pages. A merge of a spilled coarse IU reads its
 entries from the FTP and then clears its F and S bits.
 % Dropped detail (2026-11-06): one recently used FTP is kept in controller SRAM. A coarse IU becomes dirty when one of its
 % fine pages changes (write, merge, GC copy).
