@@ -9,7 +9,7 @@ import csv, json, os, re, shutil
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
+from matplotlib.patches import Patch, Polygon
 
 B = '/home/sejun000/dual_mapping/results'
 OUT, PAPER = B + '/paper_dac', '/home/sejun000/dual_mapping/paper/figs'
@@ -95,16 +95,27 @@ def main():
                 w.writerow([lab, v] + [round(r[v][m], 4) for m in ('tput', 'waf', 'r_avg', 'r_p99', 'w_p99', 'fp')])
 
     panels = [('tput', 'Norm.\nthroughput', True, (0, 1.9), [0, 0.5, 1, 1.5], '{:.2f}'),
-              ('waf', 'WA', False, None, None, '{:.1f}'),
+              ('waf', 'WA', False, (0, 15), [0, 5, 10, 15], '{:.1f}'),   # (2026-11-13) capped at 15 (was 12), taller bars broken
               ('r_p99', 'p99 read\n(ms)', False, None, None, '{:.1f}'),
               ('w_p99', 'p99 write\n(ms)', False, None, None, '{:.1f}')]
     fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.28))   # was 1.95, 1.4 (2026-11-13)
-    nb = len(VAR); bw = 0.84 / nb; xs = list(range(len(data)))
+    nb = len(VAR); bw = 0.84 / nb; xs = list(range(len(data))); BRK = []
     for ax, (m, yl, norm, ylim, yt, fmt) in zip(axs.flat, panels):
         for i, v in enumerate(VAR):
             px = [x + (i - (nb - 1) / 2) * bw for x in xs]
             ys = [r[v][m] / (r['nsfm'][m] if norm else 1) for _, r in data]
-            ax.bar(px, ys, bw, color=COLOR[v], hatch=HATCH[v], edgecolor='black', linewidth=0.35)
+            cap = ylim[1] if (ylim and m == 'waf') else None
+            ax.bar(px, [min(y, cap) if cap else y for y in ys], bw, color=COLOR[v], hatch=HATCH[v], edgecolor='black',
+                   linewidth=0.35)
+            if cap:
+                for x, y in zip(px, ys):
+                    if y <= cap: continue
+                    yb = cap * 0.86                                    # break band near the top of the clipped bar
+                    ax.add_patch(Polygon([(x - bw / 2, yb - 0.35), (x + bw / 2, yb + 0.05), (x + bw / 2, yb + 0.55),
+                                          (x - bw / 2, yb + 0.15)], closed=True, fc='white', ec='none', zorder=3))
+                    for d in (0.0, 0.4):
+                        ax.plot([x - bw / 2, x + bw / 2], [yb - 0.35 + d, yb + 0.05 + d], color='black', lw=0.35, zorder=4)
+                    BRK.append((ax, x, y))
         if norm:
             ax.axhline(1.0, color='#444441', lw=0.6, ls='--', zorder=0)
         if m in ('r_p99', 'w_p99'):
@@ -120,7 +131,15 @@ def main():
         ax.tick_params(axis='y', labelsize=5.6, pad=1); ax.tick_params(axis='x', pad=1, length=0)
         ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
     fig.align_ylabels(axs[:, 0]); fig.align_ylabels(axs[:, 1])
-    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.78)   # was 0.86, 0.80 (2026-11-13: same legend height)
+    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.75)   # was 0.86, 0.80, 0.78 (2026-11-13: room for the broken-bar values)
+    # values of the broken bars, above the panel; a pair of adjacent broken bars is split left / right
+    BRK.sort(key=lambda t: t[1])
+    for k, (ax, x, y) in enumerate(BRK):
+        near_prev = k > 0 and abs(x - BRK[k - 1][1]) < 0.3
+        near_next = k + 1 < len(BRK) and abs(BRK[k + 1][1] - x) < 0.3
+        ha = 'right' if near_next else ('left' if near_prev else 'center')
+        dx = 0.06 if near_next else (-0.06 if near_prev else 0)
+        ax.text(x + dx, ax.get_ylim()[1] * 1.01, f'{y:.1f}', ha=ha, va='bottom', fontsize=4.4, clip_on=False)
     h = [Patch(fc=COLOR[v], hatch=HATCH[v], ec='black', lw=0.35, label=LABEL[v]) for v in VAR]
     fig.legend(handles=h, ncol=3, fontsize=5.5, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,
                handlelength=1.5, handleheight=0.9, columnspacing=0.8, handletextpad=0.4)
