@@ -8,7 +8,7 @@ idle() { while busy; do sleep 60; done; }
 R=/home/sejun000/dual_mapping/results/final_32g; D=/mnt/nvme_mounted/dm_trace_32g
 . tools/apps/common.sh >/dev/null 2>&1
 sp() { for p in "$@"; do echo "${p%%_*}:$(policy_params $p)"; done; }
-replay() { local t=$1 td=$2 o=$3; shift 3; idle; echo "$(date) $t -> $o : $*"
+replay() { local t=$1 td=$2 o=$3; shift 3; ls $o/*/result.json >/dev/null 2>&1 && { echo "$(date) skip $o (done)"; return; }; idle; echo "$(date) $t -> $o : $*"
   TRACE=$t TRACE_DIR=$td RESULTS=$o tools/nvmev_cycle.sh tools/nvmev_trace.sh "" $(sp "$@"); }
 for u in 64 128; do
   replay a128_r70_s70 $D $R/usens_ns/u$u/replay_a128_r70_s70 proposed_g32u${u}ns

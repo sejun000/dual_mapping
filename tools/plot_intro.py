@@ -18,6 +18,7 @@ PAPER = '/home/sejun000/dual_mapping/paper/figs/fig_intro.pdf'
 K = 'black'
 C_BAD, C_OK, C_AR = '#B3261E', '#1D6E3A', '#222222'
 F_MAP, F_CO, F_PG, F_FREE = '#F5C6D9', '#CFCBF0', '#C9E3F5', 'white'
+F_INV = '#A6A6A6'   # (2026-11-13, user) invalid pages: darker gray fill instead of hatching
 FS = 6.5
 SF = FS - 0.7                # label size
 plt.rcParams.update({'font.size': FS, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4})
@@ -52,13 +53,12 @@ def entries(ax, x, n, label):
 
 
 class Blk:
-    """len(fills) pages (8 by default) at (x, y), each pw wide; fills[i] = face color; pages in `hatch` are invalid;
+    """len(fills) pages (8 by default) at (x, y), each pw wide; fills[i] = face color; pages in `hatch` are invalid (gray);
     iu_split draws a chunk boundary every 4 pages."""
     def __init__(self, ax, x, y, fills, hatch=(), iu_split=False, pw=PW, ph=PH):
         self.ax, self.x, self.y, self.pw, self.ph, self.n = ax, x, y, pw, ph, len(fills)
         for i, fc in enumerate(fills):
-            ax.add_patch(Rectangle((x + i * pw, y), pw, ph, fc=fc, ec=K, lw=0.35,
-                                   hatch='//////' if i in hatch else None))
+            ax.add_patch(Rectangle((x + i * pw, y), pw, ph, fc=F_INV if i in hatch else fc, ec=K, lw=0.35))
         ax.add_patch(Rectangle((x, y), pw * self.n, ph, fc='none', ec=K, lw=1.0))
         if iu_split:
             for j in range(4, self.n, 4):

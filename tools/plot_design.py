@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyArrowPatch
-from plot_intro import (Blk, point, arrow, lab, hbar, K, C_BAD, C_AR, F_MAP, F_CO, F_PG, F_FREE, FS, SF, PW, PH)
+from plot_intro import (Blk, point, arrow, lab, hbar, K, C_BAD, C_AR, F_MAP, F_CO, F_PG, F_FREE, F_INV, FS, SF, PW, PH)
 
 OUT = '/home/sejun000/dual_mapping/results/paper_dac/fig_design'
 PAPER = '/home/sejun000/dual_mapping/paper/figs/fig_design.pdf'
@@ -23,8 +23,8 @@ XMAX, YMAX = 20.0, 11.2   # was 11.75 (2026-11-13: compact)
 DX0, DX1, DY0, DY1 = 0.5, 19.7, 4.75, 10.45    # DRAM budget box
 NX0, NX1, NY0, NY1 = 0.5, 19.7, 0.05, 4.45    # NAND box
 EW, EH = 0.52, 0.6                            # map-entry cell
-EY = 8.45                                      # entry row (bottom y)
-LY = 10.05                                     # structure labels
+EY = 8.67                                      # entry row (bottom y); (2026-11-13, user) raised 0.3 toward the DRAM box top, was 8.45
+LY = 10.27                                     # structure labels; was 10.05
 NR = 2.9                                      # NAND block row (bottom y)
 ZL = dict(color='#888888', lw=0.4, ls=(0, (2, 1.5)))   # zoom lines
 
@@ -78,10 +78,10 @@ def main():
     f = fields(ax, zx, zy, zh, [(2.85, 'chunk index', F_MAP), (0.55, 'F', F_MAP), (0.55, 'S', F_MAP), (0.55, 'C', F_MAP)])
     zoom(ax, (cx0 + ci * EW, EY), (cx0 + (ci + 1) * EW, EY), (zx, zy + zh), (zx + ZW, zy + zh))
     hbar(ax, zx, zx + ZW, zy + zh)                               # entry size
-    lab(ax, zx + ZW / 2, zy + zh + 0.45, '4B', ha='center', fontsize=SF - 0.7)
+    lab(ax, zx + ZW / 2, zy + zh + 0.35, '4B', ha='center', fontsize=SF - 0.7)
 
     # ---- fine map: 9 buckets x 4 entries, candidate buckets h1 / h2 framed, zoomed entry below
-    fx0, BW, SH, NB, FY = 7.9, 0.58, 0.36, 9, 7.65
+    fx0, BW, SH, NB, FY = 7.9, 0.58, 0.36, 9, 7.87   # FY was 7.65
     h1, h2, used = 1, 6, [3, 4, 2, 4, 1, 3, 4, 2, 3]
     global VICTIM
     VICTIM = [(1, 0), (4, 0), (6, 3)]                              # victim coarse IU: entries in h1, h2 and elsewhere
@@ -101,7 +101,7 @@ def main():
     ax.add_patch(Rectangle((sx + 0.04, FY + 2 * SH + 0.03), BW - 0.08, SH - 0.06, fc='none', ec=K, lw=1.3))
     zoom(ax, (sx, sy), (sx + BW, sy), (zx2, zy + zh), (zx2 + 3.2, zy + zh))
     hbar(ax, zx2, zx2 + 3.2, zy + zh)
-    lab(ax, zx2 + 1.6, zy + zh + 0.45, '8B', ha='center', fontsize=SF - 0.7)
+    lab(ax, zx2 + 1.6, zy + zh + 0.35, '8B', ha='center', fontsize=SF - 0.7)   # (2026-11-13, user) closer to LPN/PPN, away from h1/h2
 
     # ---- GTD: one 4 B entry per FTP (entry 0 = FTP of coarse IU i), on the zoom row
     gx0 = 15.1
@@ -121,8 +121,9 @@ def main():
     BP, BH = 0.31, 0.7                                              # page width / height: 16-page blocks
     A = Blk(ax, 0.8, NR, [F_CO] * 16, hatch=(1, 4, 8, 9, 10, 11), iu_split=True, pw=BP, ph=BH)   # chunk 0 and 1 (coarse IU i) partly, 2 fully invalid
     lab(ax, A.x + A.w / 2, NR - 0.4, 'coarse block', ha='center')
-    ax.add_patch(Rectangle((17.6, 0.35), BP, BH, fc='#E0E0E0', ec=K, lw=0.35, hatch='//////'))   # legend
-    lab(ax, 17.6 + BP + 0.2, 0.35 + BH / 2, 'invalid', fontsize=SF - 0.7)
+    LGX, LGY = 17.4, 10.95                                          # (2026-11-13, user) legend at the top right
+    ax.add_patch(Rectangle((LGX, LGY - BH / 2), BP, BH, fc=F_INV, ec=K, lw=0.35))
+    lab(ax, LGX + BP + 0.2, LGY, 'invalid', fontsize=SF - 0.7)
     for j, t in enumerate(('F=0: $k$-th page of chunk', 'F=1, S=0, found in fine map: fine page',
                            'F=1, S=0, not found: $k$-th page of chunk', 'F=1, S=1: FTP slot via GTD')):
         y = 1.95 - 0.5 * j                                           # read cases, numbered on the arrows
@@ -136,11 +137,16 @@ def main():
     ax.add_patch(Rectangle((A.x + 6 * BP, NR), BP, BH, fc='none', ec=K, lw=1.2))   # + offset k -> page k
     ax.text(A.x + 6.5 * BP, NR + BH / 2, '$k$', ha='center', va='center', fontsize=SF - 1.2)
     num(ax, 3.05, 5.75, '1'); num(ax, 3.6, 5.75, '3')
+    hbar(ax, A.x, A.x + BP, NR + BH)                                # (2026-11-13, user) one 4 KB page
+    lab(ax, A.x + BP / 2, NR + BH + 0.45, '4KB', ha='center', fontsize=SF - 0.7)
     lab(ax, A.x + 8 * BP + 0.2, NR + BH + 0.3, r'chunk index $\times\ U+k$', fontsize=SF - 0.7)
     point(ax, (fz[1], zy), Fb, 2)                                   # table hit: PPN -> fine page
     tx, ty = Fb.x + 2.5 * BP, NR + BH + 0.29                      # (2) next to the PPN -> fine page arrow
     num(ax, fz[1] - (fz[1] - tx) * (zy - 5.8) / (zy - ty) - 0.3, 5.8, '2')
     point(ax, (gx0 + 0.5 * EW, zy), T, 1)                           # GTD entry -> FTP
+    for B, j in ((Fb, 6), (T, 5)):                                 # (2026-11-13, user) one 4 KB page each
+        hbar(ax, B.x + j * BP, B.x + (j + 1) * BP, NR + BH)
+        lab(ax, B.x + (j + 0.5) * BP, NR + BH + 0.45, '4KB', ha='center', fontsize=SF - 0.7)
     # spill: both candidate buckets full -> all table entries of a victim coarse IU (red, spread over buckets)
     # go to its row of the FTP
     for b, w in VICTIM:
@@ -150,7 +156,7 @@ def main():
     ax.add_patch(FancyArrowPatch((fx0 + (vb + 1) * BW, FY + (vw + 0.5) * SH), T.top(3), arrowstyle='-|>',
                                  mutation_scale=4.5, color=C_BAD, lw=0.6, ls=(0, (2, 1.2)),
                                  connectionstyle='arc3,rad=-0.3', shrinkA=0, shrinkB=0.3))
-    lab(ax, 13.5, 8.6, '$h_1$, $h_2$ full: spill\nvictim coarse IU', C_BAD, fontsize=SF - 0.6, fontweight='bold',
+    lab(ax, 13.5, 8.82, '$h_1$, $h_2$ full: spill\nvictim coarse IU', C_BAD, fontsize=SF - 0.6, fontweight='bold',
         linespacing=0.95)
 
     # ---- FTP zoomed: 1024/U coarse IUs x U pointers (one 4 KiB page), slot LPN mod 1024
@@ -165,6 +171,8 @@ def main():
     ax.add_patch(Rectangle((qx + 0.03, qy + (R - 4) * qh + 0.03), C * qw - 0.06, qh - 0.06, fc='none', ec=C_BAD,
                            lw=1.0))                                  # row of the victim coarse IU
     zoom(ax, (T.x + BP, NR), (T.x + 2 * BP, NR), (qx, qy + R * qh), (qx + C * qw, qy + R * qh))
+    hbar(ax, qx + 3 * qw + 0.03, qx + 4 * qw - 0.03, qy + R * qh)   # (2026-11-13, user) one FTP slot = 4 B
+    lab(ax, qx + 3.5 * qw, qy + R * qh + 0.45, '4B', ha='center', fontsize=SF - 0.7)
     lab(ax, qx + C * qw + 0.35, qy + R * qh - 0.25, 'coarse IUs\n' + r'$\times\ U$ entries (4 KB)',
         fontsize=SF - 0.7, linespacing=0.95)
 

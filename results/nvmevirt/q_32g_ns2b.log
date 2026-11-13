@@ -1,0 +1,27 @@
+Fri Nov 13 07:47:25 AM UTC 2026 a128_r70_s70 -> /home/sejun000/dual_mapping/results/final_32g/usens_ns/u64/replay_a128_r70_s70 : proposed_g32u64ns
+=== proposed params='U=64,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0'
+[ 3066.876136] NVMeVirt: dm_ftl policy=proposed params="U=64,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0": NB=274 lines x P=32768 pages, logical 8391104 pages (32777 MiB), physical 35072 MiB
+device /dev/nvme3n1 (CSL_Virt_MN_01), 34369961984 B (32777 MiB); trace a128_r70_s70: /mnt/nvme_mounted/dm_trace_32g/a128_r70_s70.csv, capacity 34359738368 B; QD32; max 5h
+[ 3066.876136] NVMeVirt: dm_ftl policy=proposed params="U=64,fine_extra=0,fine_quota_ppm=40200,fine_full=1,fine_policy_cost_cold=1,gc_select_cost=1,cgc_vict_cb=1,coarse_class=0,adapt=2,uni_onefront=0,rec_block=1,fine_index_cuckoo2=1,map_budget_ppm=125747,onefront_fix=1,pool_cap=4,spill=0,spill_rp=0,spill_rp_clean=0": NB=274 lines x P=32768 pages, logical 8391104 pages (32777 MiB), physical 35072 MiB
+trace: {'sample': 'synthetic', 'kept_regions': 0, 'capacity_gib': 32.0, 'write_gib': 64.0, 'read_gib': 149.18, 'writes': 1626273, 'reads': 3792178, 'turnovers': 2.0}
+trace_replay: device /dev/nvme3n1 model CSL_Virt_MN_01
+trace_replay: 5418451 ops (1626273 writes 64.0 GiB, 3792178 reads 149.2 GiB) loaded in 0.2s; device 32.01 GiB; write turnovers 2.00; warm-up ends after op 2707531
+trace_replay: precondition 32.01 GiB in 14.7s (2233 MiB/s)
+trace_replay:  10.0% of ops, phase 1, 60s
+trace_replay:  18.6% of ops, phase 1, 120s
+trace_replay:  27.3% of ops, phase 1, 180s
+trace_replay:  35.9% of ops, phase 1, 240s
+trace_replay:  44.6% of ops, phase 1, 300s
+trace_replay: warm-up done after 2707532 ops in 337.1s
+trace_replay:  53.3% of ops, phase 2, 360s
+trace_replay:  61.9% of ops, phase 2, 420s
+trace_replay:  70.6% of ops, phase 2, 480s
+trace_replay:  79.2% of ops, phase 2, 540s
+trace_replay:  87.8% of ops, phase 2, 600s
+trace_replay:  96.4% of ops, phase 2, 660s
+trace_replay: done in 699.8s (measured 348.0s: 7790 IOPS, reads 1897791 p99 29819us, writes 813128 p99 31654us)
+proposed  IOPS=    7790 (R     5453 W    2336; R  219.7 W   94.2 MiB/s) WAF=15.570 mapR/pg=0.000 | read_us p50=916 p99=29819 p99.9=52036 p99.99=75760 max=143458 | write_us p50=829 p99=31654 p99.9=55444 p99.99=81002 max=143338 | 0.19h
+[ 2209.175833] NVMeVirt: [dm final] policy=proposed L=8391056 NB=274 P=32768 submitted=33670506 host=30663653 prog=102941230 (host 30663653 gc 71986080 rmw 41 fold 291456 map 0 other 0) WAFx1000=3057 reads(host 10473726 gc 71986080 rmw 41 fold 291456 map 0) host_read_pages=10474173 erases=2874 map_miss=0 mem=4220592 fine_blocks=8 fpages=30176 spages=0 smp_n=3146 smp_fb=25207 smp_fp=116561940 smp_sp=0 max_fb=9 max_fp=50816 max_sp=0
+[ 2846.608159] NVMeVirt: [dm final] policy=proposed L=8391056 NB=274 P=32768 submitted=25168300 host=25167808 prog=242483376 (host 25167808 gc 205565680 rmw 0 fold 11749888 map 0 other 0) WAFx1000=9634 reads(host 39104839 gc 205565680 rmw 0 fold 11749888 map 0) host_read_pages=39106302 erases=7154 map_miss=0 mem=4220592 fine_blocks=1 fpages=20394 spages=0 smp_n=7426 smp_fb=10598 smp_fp=120939614 smp_sp=0 max_fb=2 max_fp=50250 max_sp=0
+[ 3065.142858] NVMeVirt: [dm final] policy=proposed L=8391056 NB=274 P=32768 submitted=33670506 host=30663844 prog=86667007 (host 30663844 gc 54267808 rmw 3547 fold 1731808 map 0 other 0) WAFx1000=2573 reads(host 10473726 gc 54267808 rmw 3547 fold 1731808 map 0) host_read_pages=10474173 erases=2385 map_miss=0 mem=4220592 fine_blocks=2 fpages=8063 spages=0 smp_n=2657 smp_fb=2989 smp_fp=13890549 smp_sp=0 max_fb=6 max_fp=46305 max_sp=0
+[ 3767.264160] NVMeVirt: [dm final] policy=proposed L=8391104 NB=274 P=32768 submitted=25168348 host=25168022 prog=265321854 (host 25168022 gc 229942568 rmw 80704 fold 10130560 map 0 other 0) WAFx1000=10541 reads(host 39105226 gc 229942568 rmw 80704 fold 10130560 map 0) host_read_pages=39106294 erases=7831 map_miss=0 mem=4220604

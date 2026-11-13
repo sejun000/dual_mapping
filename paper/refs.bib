@@ -354,6 +354,19 @@
 
 % Verified from the USENIX PDF (2026-11-13): P2L (LPN) and timestamp persisted with each page; power-off recovery
 % rebuilds the latest L2P table by scanning house-keeping metadata in write time order.
+% Verified from the PDF (oslab.kaist.ac.kr, 2026-11-13): Sec. 3.4 metadata logging, page-sized in-memory log buffer of
+% <LPN, PPN> tuples flushed when full and protected by a supercapacitor; Sec. 3.5 checkpointing flushes the PMT; recovery
+% REDOes logs after the last checkpoint. DOI 10.1109/TC.2015.2462819.
+@article{mew,
+  author  = {Dongwook Kim and Youjip Won and Jaehyuk Cha and Sungroh Yoon and Jongmoo Choi and Sooyong Kang},
+  title   = {Exploiting Compression-Induced Internal Fragmentation for Power-Off Recovery in {SSD}},
+  journal = {IEEE Transactions on Computers},
+  volume  = {65},
+  number  = {6},
+  pages   = {1720--1733},
+  year    = {2016}
+}
+
 @inproceedings{remapssd,
   author    = {You Zhou and Qiulin Wu and Fei Wu and Hong Jiang and Jian Zhou and Changsheng Xie},
   title     = {{Remap-SSD}: Safely and Efficiently Exploiting {SSD} Address Remapping to Eliminate Duplicate Writes},

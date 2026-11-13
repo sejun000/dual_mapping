@@ -34,7 +34,7 @@ of $U$ physically consecutive, $U$-page-aligned pages in a \emph{coarse block}.
 Like a page-level table, the coarse map is an array indexed by $i$, and each 4\,B
 entry holds a chunk index. It thus takes $1/U$ of the DRAM of a page-level table.
 A DRAM budget of a fraction $b$ of a page-level table requires $U > 1/b$, and the
-fine map gets the remaining $b-1/U$. For a budget of 1/8, $U$ must be 16 or larger.
+fine map gets the remaining $b-1/U$. For a budget of 1/8 of the size of a page-level table, $U$ must be 16 or larger.
 
 \textbf{Fine map.} A write smaller than a coarse IU is written out of place as 4\,KB
 \emph{fine pages} into separate \emph{fine blocks}. The fine map is a two-choice
@@ -267,12 +267,20 @@ entries from the FTP and then clears its F and S bits.
 \subsection{Crash Recovery}
 High-capacity SSDs are mainly deployed as enterprise and data center SSDs, whose
 power-loss capacitors write buffered data and logs to NAND on a power
-failure~\cite{solidigm-p5336-spec,ocp-dcssd}. DUET follows the crash recovery of
-conventional SSDs, which log the LPN of every written page in NAND and rebuild the
-mappings by scanning these logs in write order~\cite{remapssd}. At power-on, the LPNs
-of a coarse IU that fill a whole $U$-page chunk are recovered into the coarse map, and
-the other LPNs into the fine map. Each FTP also records its index in its
-out-of-band (OOB) area, so the same scan rebuilds the GTD.
+failure~\cite{solidigm-p5336-spec,ocp-dcssd}. DUET recovers its maps by metadata
+logging~\cite{mew}. It collects the LPN and PPN of each written page in a page-sized
+log buffer in DRAM, which the capacitors protect, and writes the buffer to NAND when
+it fills. It also periodically checkpoints the coarse map, the fine-map table, and the
+GTD to NAND. At power-on, DUET loads the last checkpoint and replays the later logs in
+write order. The LPNs of a coarse IU that fill a whole $U$-page chunk are recovered
+into the coarse map, and the other LPNs into the fine map. DUET also logs the index and
+PPN of each FTP it writes, so the same replay rebuilds the GTD.
+% (2026-11-13, user) was: OOB scan of LPN + timestamp in timestamp order [remapssd], FTP index in its OOB rebuilds the GTD.
+% MEW (Kim et al., IEEE TC 2016), verified in the PDF: page-sized in-memory log buffer of <LPN, PPN> entries written when
+% full (Sec. 3.4), log buffer protected by a supercapacitor, checkpointing flushes the page mapping table (Sec. 3.5), and
+% recovery REDOes the logs written after the last checkpoint. Sec. 3.4 also says the logging alone works for SSDs
+% without compression. MEW says vendors' details are unknown ("we believe modern SSDs adopt a logging approach"), so the
+% text does not claim that commercial SSDs do this.
 % (2026-11-13) GTD not kept by the capacitors: 4 B per FTP is 128 MiB at 128 TB (2^35 / 1024 x 4 B).
 % (2026-11-13, user) not "flush every table": follow existing map logging. Remap-SSD (FAST'21, read): "the FTL
 % transparently persists the reverse P2L mapping (i.e., the LPN) and write timestamp as house-keeping metadata"; "The main

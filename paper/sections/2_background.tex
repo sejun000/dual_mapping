@@ -126,7 +126,9 @@ miss adds a synchronous flash read before the data read.
 \textbf{Block-level hybrid mapping and uniform coarse IUs slow writes.}
 FAST's block-level merges raise WA by 2.7$\times$ (Figure~\ref{fig:motiv}c),
 so its average write latency is 2.5$\times$ that of the page-level
-FTL (Figure~\ref{fig:motiv}d). The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
+FTL (Figure~\ref{fig:motiv}d). Under random I/O, its p99 write latency is 3--4$\times$ that of the
+page-level FTL.
+% (2026-11-12) 32 GB eval_data.csv FAST/Page p99 write: 50:50 3.90, 70:30 3.94, 90:10 2.98 (moved from the intro 2026-11-13). The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
 its 32\,KB unit, so its WA grows by 2.2$\times$ and its write latency by 2.1$\times$.
 
 DUET uses the same DRAM budget. It lowers read latency by
