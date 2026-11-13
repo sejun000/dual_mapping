@@ -83,8 +83,10 @@ write latency and lowers write throughput. The size of a NAND block keeps
 growing with 3D NAND generations~\cite{pen}. A larger log block holds updates to
 more logical blocks, so reclaiming it involves more merges, and each merge copies
 more pages. CoMap~\cite{comap} selects page or block mapping for each
-write request with reinforcement learning, but the data that it maps per block
-are still reorganized at NAND-block granularity.
+write request with reinforcement learning and caches the page-level mappings on
+demand, so it can suffer both mapping misses and block-level merges.
+% (2026-11-13) mapping cache: the paper's cache allocator splits DRAM between a read data cache and a mapping cache
+% (NOTES_comap.md, paper Section III). Page-mapped part implemented as DFTL (approved interpretation).
 
 \textbf{Uniform coarse-IU mapping.}
 High-capacity SSDs in production simply map all data with a

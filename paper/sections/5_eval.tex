@@ -41,8 +41,10 @@ exposes 32\,GB to the host. Its OP space is 7\% of that capacity. All workloads 
 FTLs use this device. We cap the mapping DRAM of
 every FTL except the page-level mapping FTL at the DRAM of a uniform 32\,KB coarse IU,
 an IU size used in production high-capacity SSDs~\cite{micron-iu,solidigm-csal},
-which is 4\,MB. The page-level mapping FTL uses 32\,MB. DUET uses 64\,KB coarse IUs, so its coarse map takes half
-of the budget and the fine map the other half.
+which is 4\,MB. The page-level mapping FTL uses 32\,MB. DUET uses 64\,KB coarse IUs. Its budget holds a 2.0\,MB coarse map, a 2.0\,MB
+fine-map table with 261,256 entries, a 32\,KB GTD, and 0.1\,MB of valid bitmaps for
+the chunks and the fine blocks.
+% (2026-11-13) valid bits: 1 bit per 64 KB chunk NB*P/16/8 = 70,144 B + 1 bit per page of the 11 fine blocks 45,056 B.
 
 \textbf{Workloads.} We run three types of workloads, synthetic raw I/O, real-world
 traces, and applications. The synthetic raw I/O issues requests to the block device
@@ -63,17 +65,26 @@ workloads A, B, and C~\cite{ycsb} and TPC-C~\cite{tpcc} on PostgreSQL and ext4,
 each with 64 client threads. They run in a memory cgroup of 6.4\,GB, 20\% of the
 device, which limits the page cache.
 
+% (2026-11-13) DRAM splits: tools/budget_vb.py 35073M 274 (T = 4,335,816 B) and the dmesg lines of results/final_32g/apps/ycsba_d_t64/*_g32:
+% DFTL GTD 32 KB + bit/page 1.07 MB + CMT 3.03 MB; LeaFTL GTD 128 KB + 1.07 MB + 2.94 MB; FAST all 4.13 MB (nlog=16, rwcap=10);
+% CoMap bit/page of non-data blocks 64 KB + block map 1 KB + bitmap 1 MB + GTD 32 KB + 8 log blocks 2.86 MB + CMT 16,797 entries 0.18 MB;
+% CoarseIU 4.00 MB + bit per 32 KB IU 0.13 MB; DUET coarse 2,097,764 B + GTD 32,780 + table 2,090,048 (261,256 x 8 B) + bits 0.11 MB.
 \textbf{Baselines.} We compare DUET with six other FTLs, which cover the three classes
 of Section~\ref{sec:bg}. \textbf{Page} maps
 every 4\,KB page and keeps the whole table in DRAM, without a DRAM limit.
 \textbf{DFTL}~\cite{dftl} caches mapping entries in an LRU map cache and writes back the
-dirty entries of a translation page together. \textbf{LeaFTL}~\cite{leaftl} learns linear
+dirty entries of a translation page together. Its budget holds a 32\,KB GTD, a
+1.1\,MB valid-page bitmap for GC, and a 3.0\,MB map cache. \textbf{LeaFTL}~\cite{leaftl} learns linear
 segments, each of which predicts the physical pages of consecutive LPNs, caches them
-in DRAM, and sorts writes by LPN to form longer segments. \textbf{FAST}~\cite{fast} maps data blocks per NAND block and appends updates to one
+in DRAM, and sorts writes by LPN to form longer segments. Its budget holds a 128\,KB
+GTD, a 1.1\,MB valid-page bitmap, and 2.9\,MB of segments. \textbf{FAST}~\cite{fast} maps data blocks per NAND block and appends updates to one
 sequential and several random log blocks, and we limit the number of log blocks so
-that their page-level maps fit the DRAM budget. \textbf{CoMap}~\cite{comap} chooses page-level or
-block-level mapping for each write request with a Q-learning agent. \textbf{CoarseIU}
-maps all data with a uniform 32\,KB coarse IU and keeps the whole table in DRAM.
+that their page-level maps fit the DRAM budget, which allows 16 log blocks. \textbf{CoMap}~\cite{comap} chooses page-level or
+block-level mapping for each write request with a Q-learning agent. Its budget holds a
+1\,MB bitmap of page-mapped pages, a 32\,KB GTD, 2.9\,MB of page-level maps for eight
+log blocks, and a 0.2\,MB map cache. \textbf{CoarseIU}
+maps all data with a uniform 32\,KB coarse IU and keeps the whole 4.0\,MB table and a
+0.1\,MB valid bitmap in DRAM.
 Small writes to the same coarse IU are merged in the 1\,MB write buffer, and a
 partial coarse IU is written with RMW only when it leaves the buffer. Its
 DRAM sets the budget that every other bounded FTL receives.
@@ -129,10 +140,10 @@ they pay for it on the read path.
 % WA: CoarseIU 1.5x Page on synthetic raw I/O. DUET 1.9x Page on SPFresh.
 
 On Alibaba, the WA of DUET is 14\% lower than that of Page. In this workload, small writes tend to be hot. DUET writes the
-writes smaller than a coarse IU to fine blocks, apart from the coarse blocks, so it
+writes smaller than a coarse IU to fine blocks, apart from coarse blocks, so it
 separates hot data from cold data as data placement schemes
-do~\cite{sepbit,midas,dogi}. Page writes all data to the same active block, so hot and
-cold pages are mixed in a block and its GC copies more valid pages.
+do~\cite{sepbit,midas,dogi}. Page writes all data to one active block, so hot and
+cold pages mix in a block and its GC copies more valid pages.
 
 \subsection{Throughput}
 Figure~\ref{fig:eval-tput} shows the throughput normalized to Page. DUET reaches 91\%
@@ -182,9 +193,9 @@ YCSB-B, Alibaba, and 70:30. Basic fills the fine blocks up to the fine-block cap
 merges the fine pages of a victim into their coarse IUs. Coarse-or-fine victim selection shrinks the fine area,
 which helps Alibaba and 70:30 but raises WA on YCSB-A and YCSB-B. There, a merge
 copies the fine pages with the rest of their coarse IU, and new fine pages soon
-invalidate part of it. The copy-or-merge decision improves this.
-Together, the two decisions lower WA by up to 1.7$\times$ and raise the throughput
-up to 1.61$\times$ that of Basic.
+invalidate part of it. Copy-or-merge
+improves this. Together, the two decisions lower WA by up to 1.7$\times$ and raise the throughput
+by up to 1.61$\times$ over Basic.
 
 \emph{Cuckoo} makes room in full candidate buckets by moving entries along a path
 to a free entry~\cite{cuckoo,bfscuckoo} and merges only when no path exists. It thus

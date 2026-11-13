@@ -94,11 +94,11 @@ def main():
             for v in VAR:
                 w.writerow([lab, v] + [round(r[v][m], 4) for m in ('tput', 'waf', 'r_avg', 'r_p99', 'w_p99', 'fp')])
 
-    panels = [('tput', 'Throughput\n(norm. to Basic)', True, (0, 1.9), [0, 0.5, 1, 1.5], '{:.2f}'),
+    panels = [('tput', 'Norm.\nthroughput', True, (0, 1.9), [0, 0.5, 1, 1.5], '{:.2f}'),
               ('waf', 'WA', False, None, None, '{:.1f}'),
               ('r_p99', 'p99 read\n(ms)', False, None, None, '{:.1f}'),
               ('w_p99', 'p99 write\n(ms)', False, None, None, '{:.1f}')]
-    fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.4))   # was 1.95 (2026-11-10)
+    fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.28))   # was 1.95, 1.4 (2026-11-13)
     nb = len(VAR); bw = 0.84 / nb; xs = list(range(len(data)))
     for ax, (m, yl, norm, ylim, yt, fmt) in zip(axs.flat, panels):
         for i, v in enumerate(VAR):
@@ -120,7 +120,7 @@ def main():
         ax.tick_params(axis='y', labelsize=5.6, pad=1); ax.tick_params(axis='x', pad=1, length=0)
         ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
     fig.align_ylabels(axs[:, 0]); fig.align_ylabels(axs[:, 1])
-    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.80)   # was 0.86 (2026-11-10)
+    fig.tight_layout(pad=0.15, h_pad=0.4, w_pad=0.6); fig.subplots_adjust(top=0.78)   # was 0.86, 0.80 (2026-11-13: same legend height)
     h = [Patch(fc=COLOR[v], hatch=HATCH[v], ec='black', lw=0.35, label=LABEL[v]) for v in VAR]
     fig.legend(handles=h, ncol=3, fontsize=5.5, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,
                handlelength=1.5, handleheight=0.9, columnspacing=0.8, handletextpad=0.4)

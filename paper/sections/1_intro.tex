@@ -6,10 +6,10 @@
 \section{Introduction}
 \label{sec:intro}
 
-The flash translation layer (FTL) is the SSD firmware layer that maps every
+The flash translation layer (FTL) is the SSD firmware that maps every
 logical page to its physical location. Because NAND flash cannot be overwritten
 without erasing a whole block, physical pages are programmed sequentially within
-a block and every update is written out of place, so the FTL maintains a mapping
+a block and every update is written out of place, so the FTL keeps a mapping
 table that translates each logical page to its current physical page. Conventional
 SSDs map at 4\,KB granularity and keep this table in on-device DRAM.
 

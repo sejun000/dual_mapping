@@ -145,7 +145,8 @@ case, no coarse IU is entirely in fine pages, and every coarse IU has part of it
 data in its chunk and the rest in fine blocks. The coarse blocks must therefore be
 able to hold the whole logical capacity. Considering this case, DUET sets the \emph{fine-block cap} to the OP
 space minus the blocks reserved for GC, the active blocks, and the blocks that
-hold FTPs.
+hold FTPs. Below this cap, the fine blocks grow as partial writes add
+fine pages and shrink when the victim selection below reclaims fine blocks.
 % Cap = NB - ceil(L/P) - T - 3 - 1 (ftl_proposed.c fq_uni rule; fine_quota_ppm 40200 -> 11 of 274 at 32 GB, 18 of 373 at 44 GB)
 % = OP blocks - 2 GC-reserve blocks - 4 active blocks. FTPs are counted as map programs only (DM_NOPPN), they take no
 % blocks of NB, like the map pages of DFTL/LeaFTL. All FTPs together are < 1 block (8195 x 4 KB = 32 MB at 32 GB);
@@ -191,20 +192,13 @@ frees its $d$ fine pages. The cost-benefit value, that is, the number of pages
 freed in the fine blocks per page written, is thus $(P-v)/v$ for copying
 (\fgc{1}) and $d/U$ for a merge (\fgc{2}). DUET copies the fine pages when
 $(P-v)/v \ge d/U$, and otherwise merges the coarse IU. DUET makes this decision for
-every coarse IU that has valid fine pages in the victim fine block.
+every coarse IU that has valid fine pages in the victim fine block. Copying keeps the
+fine-map entries and a merge frees them, so the fine map grows or shrinks with the
+workload (Section~\ref{sec:eval}).
 % Implementation also keeps hot fine pages (cost_cold, rec_block=1): no merge if a fine page of the IU sits in a host
 % fine block newer than the victim. Not described in the paper.
 
-\textbf{Fine-area size.} The number of fine blocks and the number of fine-map entries
-change at runtime with these two decisions. When coarse-or-fine victim selection
-often picks a coarse block, the fine pages of partial writes from the host
-accumulate in the fine blocks, and the number
-of fine blocks grows up to the fine-block cap. When it often picks a fine block, the number
-of fine blocks shrinks. The copy-or-merge decision then sets the number of fine-map
-entries. Copying keeps the fine pages and their fine-map entries, so the fine map
-grows as new small writes arrive, whereas a merge moves the fine pages into a chunk
-and frees their fine-map entries, so the fine map shrinks. The size of the fine map
-thus adapts to the workload (Section~\ref{sec:eval}).
+% (2026-11-13, user) Fine-area size paragraph folded into the ends of Fine-block cap and Copy-or-merge decision.
 
 \subsection{Fine-Map Spill and Load}
 \label{sec:spill}
@@ -276,9 +270,9 @@ High-capacity SSDs are mainly deployed as enterprise and data center SSDs, whose
 power-loss capacitors write buffered data and logs to NAND on a power
 failure~\cite{solidigm-p5336-spec,ocp-dcssd}. DUET follows the crash recovery of
 conventional SSDs, which log the LPN of every written page in NAND and rebuild the
-mappings by scanning these logs in write order~\cite{remapssd}. At power-on, a
-coarse IU that fills a chunk of a coarse block is recovered into the coarse map, and
-the other pages into the fine map. Each FTP also records its index in its
+mappings by scanning these logs in write order~\cite{remapssd}. At power-on, the LPNs
+of a coarse IU that fill a whole $U$-page chunk are recovered into the coarse map, and
+the other LPNs into the fine map. Each FTP also records its index in its
 out-of-band (OOB) area, so the same scan rebuilds the GTD.
 % (2026-11-13) GTD not kept by the capacitors: 4 B per FTP is 128 MiB at 128 TB (2^35 / 1024 x 4 B).
 % (2026-11-13, user) not "flush every table": follow existing map logging. Remap-SSD (FAST'21, read): "the FTL
