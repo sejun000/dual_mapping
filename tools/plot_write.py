@@ -18,11 +18,11 @@ OUT = '/home/sejun000/dual_mapping/results/paper_dac/fig_write'
 PAPER = '/home/sejun000/dual_mapping/paper/figs/fig_write.pdf'
 plt.rcParams.update({'font.size': FS, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4})
 
-XMAX, YMAX = 19.2, 11.65   # was 20.0 with CX 4.5 (2026-11-10: less left margin)
-HY = 10.7                        # y of the two column headers (legend row above it)
+XMAX, YMAX = 19.2, 11.05   # was 11.65 (2026-11-13: compact)   # was 20.0 with CX 4.5 (2026-11-10: less left margin)
+HY = 10.3                        # y of the two column headers (legend row above it)
 BP, PH = 0.34, 0.7               # page width / height: 16-page blocks (5.44 wide), a chunk = 4 pages
 CX, FX = 3.7, 13.5               # coarse / fine column
-RA, RB, RC, RD = 8.5, 6.8, 4.2, 1.55  # rows: active host, active GC, GC victims, blocks read by merges
+RA, RB, RC, RD = 8.35, 6.65, 4.2, 1.55  # rows: active host, active GC, GC victims, blocks read by merges
 C_CG, C_FG = '#5B3FA0', '#1F5FA8'     # badge colors: coarse GC, fine GC
 
 
@@ -45,8 +45,9 @@ def cx(b, c):                    # x center of chunk c of block b
 
 
 def main():
-    fig, ax = plt.subplots(figsize=(3.4, 3.4 * YMAX / XMAX))
-    ax.set_xlim(0, XMAX); ax.set_ylim(0, YMAX); ax.axis('off')
+    Y0 = RD - 1.15                   # (2026-11-13) bottom: just below the 'fine block' / 'coarse block' labels
+    fig, ax = plt.subplots(figsize=(3.4, 3.4 * (YMAX - Y0) / XMAX))
+    ax.set_xlim(0, XMAX); ax.set_ylim(Y0, YMAX); ax.axis('off')
     sm = dict(fontsize=SF - 0.3)     # was SF - 0.7 (2026-11-10)
     tiny = dict(fontsize=SF - 0.7)   # was SF - 1.1 (2026-11-10)
 
@@ -56,7 +57,7 @@ def main():
     fh = blk(ax, FX, RA, [F_PG] * 5 + [F_FREE] * 11)
     fg = blk(ax, FX, RB, [F_PG] * 8 + [F_FREE] * 8)          # the 8 fine pages copied by fine GC (1)
     for b in (ch, fh):                                   # one box per pair of active blocks (host + GC)
-        ax.add_patch(Rectangle((b.x - 0.25, RB - 0.3), b.w + 0.5, RA + PH + 1.0 - (RB - 0.3), fc='#F7F7F5', ec=K,
+        ax.add_patch(Rectangle((b.x - 0.25, RB - 0.3), b.w + 0.5, RA + PH + 0.9 - (RB - 0.3), fc='#F7F7F5', ec=K,
                                lw=0.6, zorder=0))
     for b, s in ((ch, 'host'), (gc, 'internal'), (fh, 'host'), (fg, 'internal')):
         lab(ax, b.x, b.y + PH + 0.62, s, **sm)

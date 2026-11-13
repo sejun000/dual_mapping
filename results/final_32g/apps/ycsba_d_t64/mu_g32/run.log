@@ -1,0 +1,62 @@
+[16:27:12] === ycsba_d_t64_mu_g32_20261112T162712Z -> /home/sejun000/dual_mapping/results/final_32g/apps/ycsba_d_t64/mu_g32
+[16:27:12] insmod /home/sejun000/nvmevirt_mu/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=3180470'
+[16:27:13] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[16:27:13] memory cgroup dmapp.slice: MemoryMax=6555M MemoryHigh=5735M (20% of 34369765376 B)
+[16:27:13] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34369765376 B) before mkfs
+[16:27:28] [prefill] done in 15 s
+[16:27:28] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[16:27:29] ext4 capacity (used+avail) 31775420416 B, util 0%
+[16:27:29] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31775420416 B)
+[16:27:29] [ycsb] 16 instances x (records=625000 threads=4 workloada)
+mkdir: cannot create directory ‘/mnt/dmapp/ballast’: Input/output error
+[17:39:29] [ballast] writing 4409 MiB to reach ~76% (pending 0 MiB)
+dd: failed to open '/mnt/dmapp/ballast/ballast_0': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_1': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_2': Input/output error
+[17:39:29] [ballast] df short by 4409 MiB; topping up (round 1)
+dd: failed to open '/mnt/dmapp/ballast/ballast_3': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_4': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_5': Input/output error
+[17:39:29] [ballast] df short by 4409 MiB; topping up (round 2)
+dd: failed to open '/mnt/dmapp/ballast/ballast_6': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_7': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_8': Input/output error
+[17:39:29] [ballast] df short by 4409 MiB; topping up (round 3)
+dd: failed to open '/mnt/dmapp/ballast/ballast_9': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_10': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_11': Input/output error
+[17:39:29] [ballast] df util now 61%
+psql: error: connection to server at "127.0.0.1", port 5433 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5434 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5435 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5436 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5437 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5438 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5439 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5440 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5441 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5442 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5443 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5444 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5445 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5446 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5447 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5448 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+[17:39:29] [FATAL] post-ballast
+[17:39:31] === ycsba_d_t64_mu_g32_20261112T162712Z status FAILED:post-ballast

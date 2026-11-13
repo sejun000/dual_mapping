@@ -1,0 +1,58 @@
+[17:39:31] === ycsbb_d_t64_mu_g32_20261112T173931Z -> /home/sejun000/dual_mapping/results/final_32g/apps/ycsbb_d_t64/mu_g32
+[17:39:31] insmod /home/sejun000/nvmevirt_mu/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=3180470'
+[17:39:32] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[17:39:32] memory cgroup dmapp.slice: MemoryMax=6555M MemoryHigh=5735M (20% of 34369765376 B)
+[17:39:32] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34369765376 B) before mkfs
+[17:39:48] [prefill] done in 16 s
+[17:39:48] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[17:39:48] ext4 capacity (used+avail) 31775420416 B, util 0%
+[17:39:48] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31775420416 B)
+[17:39:48] [ycsb] 16 instances x (records=625000 threads=4 workloadb)
+mkdir: cannot create directory ‘/mnt/dmapp/ballast’: Input/output error
+[18:09:52] [ballast] writing 2827 MiB to reach ~76% (pending 0 MiB)
+dd: failed to open '/mnt/dmapp/ballast/ballast_0': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_1': Input/output error
+[18:09:52] [ballast] df short by 2827 MiB; topping up (round 1)
+dd: failed to open '/mnt/dmapp/ballast/ballast_2': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_3': Input/output error
+[18:09:52] [ballast] df short by 2827 MiB; topping up (round 2)
+dd: failed to open '/mnt/dmapp/ballast/ballast_4': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_5': Input/output error
+[18:09:52] [ballast] df short by 2827 MiB; topping up (round 3)
+dd: failed to open '/mnt/dmapp/ballast/ballast_6': Input/output error
+dd: failed to open '/mnt/dmapp/ballast/ballast_7': Input/output error
+[18:09:52] [ballast] df util now 66%
+psql: error: connection to server at "127.0.0.1", port 5433 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5434 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5435 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5436 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5437 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5438 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5439 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5440 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5441 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5442 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5443 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5444 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5445 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5446 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5447 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+psql: error: connection to server at "127.0.0.1", port 5448 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+[18:09:52] [FATAL] post-ballast
+[18:09:54] === ycsbb_d_t64_mu_g32_20261112T173931Z status FAILED:post-ballast

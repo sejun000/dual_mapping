@@ -91,19 +91,19 @@ def main():
 
 def main_gmean():
     s = gmean_all()
-    fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.7))
+    fig, axs = plt.subplots(2, 2, figsize=(3.4, 1.35))   # was 1.7, 1.5 (2026-11-13)
     od, hy = ['page4k', 'dftl', 'leaftl', 'proposed'], ['page4k', 'fast', 'iurmw', 'proposed']
-    panel(axs[0][0], od, [s[p]['fr'] for p in od], ylabel='Flash reads', title='(a) Flash reads per read')
-    axs[0][0].set_ylim(0, 1.75)
-    panel(axs[0][1], od, [s[p]['r_avg'] for p in od], ylabel='Read latency', title='(b) Normalized avg. read latency')
-    axs[0][1].set_ylim(0, 2.9)
+    panel(axs[0][0], od, [s[p]['fr'] for p in od], ylabel='Reads', title='(a) Flash reads per read')
+    axs[0][0].set_ylim(0, 1.9)
+    panel(axs[0][1], od, [s[p]['r_avg'] for p in od], ylabel='Latency', title='(b) Normalized avg. read latency')
+    axs[0][1].set_ylim(0, 3.15)
     panel(axs[1][0], hy, [s[p]['waf'] for p in hy], ylabel='WA', title='(c) Write amplification', fmt='{:.1f}')
     axs[1][0].set_ylim(0, 1.25 * max(s[p]['waf'] for p in hy))
-    panel(axs[1][1], hy, [s[p]['w_avg'] for p in hy], ylabel='Write latency', title='(d) Normalized avg. write latency')
-    axs[1][1].set_ylim(0, 3.2)
+    panel(axs[1][1], hy, [s[p]['w_avg'] for p in hy], ylabel='Latency', title='(d) Normalized avg. write latency')
+    axs[1][1].set_ylim(0, 3.3)
     for ax in axs.flat:
         ax.tick_params(axis='y', labelsize=5.6, pad=1); ax.tick_params(axis='x', pad=1)
-    fig.tight_layout(pad=0.2, h_pad=0.9, w_pad=0.4)
+    fig.tight_layout(pad=0.2, h_pad=0.6, w_pad=0.4)   # h_pad was 0.9
     for ext in ('pdf', 'png'):
         fig.savefig(f'{OUT}/fig_motiv.{ext}', dpi=250, bbox_inches='tight', pad_inches=0.02)
     shutil.copy(f'{OUT}/fig_motiv.pdf', '/home/sejun000/dual_mapping/paper/figs/fig_motiv.pdf')

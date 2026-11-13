@@ -52,7 +52,7 @@ serialized on the read path. Evicting a dirty entry also writes its FTP
 back, which adds write amplification. LeaFTL~\cite{leaftl} sorts buffered
 writes by logical page number so that consecutive logical pages are placed on
 consecutive physical pages, and compresses the map cache into learned linear
-\emph{segments}, each of which predicts the locations of such a run. The same DRAM thus
+\emph{segments}, each of which predicts the locations of such a run. The same DRAM size thus
 covers more pages. Under small random writes, however, each segment covers only a
 few pages, and a mispredicted location imposes an extra flash read. $\mu$-FTL~\cite{mftl}
 maps data at multiple granularities with variable-size extents, but it keeps the
@@ -71,8 +71,12 @@ are erased. A merge imposes a higher overhead than the GC of a page-level FTL.
 Page-level GC picks the block with the fewest valid pages, so it copies few
 pages per reclaimed block. A merge instead rewrites the whole data block even
 when only a few of its pages were updated. One log block can also hold updates
-to many logical blocks. Reclaiming it merges every one of them, and each merge
-copies the valid pages of a whole logical block to a new block.
+to many logical blocks~\cite{fast}. To reclaim such a log block, the FTL merges every
+logical block that has an update in it, and each merge copies the valid pages of a
+whole logical block to a new block.
+% (2026-11-13) FAST (TECS 2007), read from the local PDF: "the sectors in a victim might originate from several different
+% logical blocks and, therefore, the number of merge operations per a victim block is equal to the number of logical
+% blocks corresponding to the sectors in the victim." 
 
 The merge copies compete with host writes for NAND bandwidth, which raises
 write latency and lowers write throughput. The size of a NAND block keeps
@@ -94,7 +98,15 @@ The cost moves to writes smaller than a coarse IU. When a write smaller than a
 coarse IU arrives, the FTL must read the rest of the unit, merge the new data, and
 program the whole unit again (read-modify-write, RMW).
 The extra reads lengthen the write path, and the rewritten pages raise write
-amplification by up to the coarse-IU size over the write size.
+amplification by up to the coarse-IU size over the write size. A write buffer in the
+SSD merges small writes to the same coarse IU. If these writes do not fill the coarse
+IU before they are evicted from the buffer, however, the FTL still reads the missing
+pages and rewrites the whole unit.
+% (2026-11-13, user) bplru citation removed: BPLRU pads NAND-block-sized buffer groups, not coarse IUs.
+% (2026-11-12) BPLRU (FAST'08, Samsung), read from the USENIX PDF: a RAM write buffer inside the SSD groups buffered
+% sectors by block in LRU order and flushes the least recent block; "the victim block has only two sectors (12 and 15),
+% and BPLRU reads sectors 13 and 14 for page padding." Same as CoarseIU in our emulator (dm/dm_wbuf.c, 1 MiB IU-coalescing
+% LRU buffer shared by all FTLs). CSAL (solidigm-csal) dropped here: it buffers on a separate cache SSD (user).
 
 \subsection{Motivation}
 Figure~\ref{fig:motiv} compares the three approaches that reduce the on-device
@@ -105,8 +117,8 @@ of Section~\ref{sec:eval} (synthetic raw I/O, real-world traces, and application
 
 \textbf{On-demand mapping slows reads.}
 With mapping misses, DFTL needs 1.47 flash reads per host read and LeaFTL 1.26
-(Figure~\ref{fig:motiv}a). Their average read latency is 2.2$\times$ and
-1.6$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
+(Figure~\ref{fig:motiv}a). Their average read latency is 2.5$\times$ and
+1.7$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
 miss adds a synchronous flash read before the data read.
 
 \textbf{Block-level hybrid mapping and uniform coarse IUs slow writes.}
@@ -120,8 +132,8 @@ issuing fewer flash reads per host read, and it lowers write latency by merging
 efficiently, which lowers WA.
 
 \textbf{Goal.}
-An FTL that fits a limited DRAM budget should therefore (i) minimize mapping
-reads from flash, so that a host read costs a single flash read, (ii) eliminate block-level merges, and (iii) absorb small writes without RMW.
+An FTL that fits a limited DRAM budget should (i) minimize mapping
+reads, so that a host read almost always costs one flash read, (ii) eliminate block-level merges, and (iii) absorb small writes without RMW.
 DUET meets all three by keeping the coarse IU and adding a fine-grained level
 in the same budget.
 
@@ -129,8 +141,7 @@ in the same budget.
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_motiv.pdf}
   \vspace{-6mm}
-  \caption{Existing FTLs with about 1/8 of the page-level mapping DRAM, geometric mean over
-  9 workloads, and 8 for WA and write latency (YCSB-C is read-only). Latency is normalized to Page. (a) Flash reads per host read. (b) Average read
+  \caption{Existing FTLs under the mapping DRAM of a 32\,KB uniform coarse IU, geometric mean over 9 workloads. Latency is normalized to Page. (a) Flash reads per host read. (b) Average read
   latency. (c) Write amplification. (d) Average write latency.}
   \label{fig:motiv}
   \vspace{-2.5mm}

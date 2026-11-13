@@ -38,7 +38,13 @@ many pages.
 \textbf{Fine map.} A write smaller than a coarse IU is written out of place as 4\,KB
 \emph{fine pages} into separate \emph{fine blocks}. The fine map is a two-choice
 bucketized hash table~\cite{balanced}. Each 8\,B entry holds an LPN and the physical
-page number (PPN) of its fine page. Each LPN has two candidate buckets of four
+page number (PPN) of its fine page.
+% (2026-11-13) 128 TB (2^35 LPNs, 7% OP): PPN 36 bits. Fine table at a 1/8 budget ~2^30 entries = 2^28 buckets of 4, so
+% with an invertible LPN hash the entry keeps 35 - 28 = 7 LPN bits + 1 bit for which candidate bucket = 8 bits; 8 + 36 = 44
+% bits <= 64. Chunks of 64 KB: 2^31 x 1.07 = 2.3e9 -> 32-bit index; with the flag bits (in the 32-bit entry, PROP_FLAG
+% 0x80000000 + spill bit in ftl_proposed.c) a coarse entry needs 5 B, as does a page-level entry (36-bit PPN). FTP slots: 5 B (NAND). Our 32 GB device
+% stores full 23-bit LPNs and 24-bit PPNs (fits without the tag trick).
+Each LPN has two candidate buckets of four
 entries each, and a new entry goes to the less loaded bucket. Reading a 32\,B bucket
 costs one random DRAM access~\cite{samsung-ddr4,rixner}.
 Placing each entry in the less loaded of two candidate buckets spreads the entries
@@ -63,6 +69,13 @@ read returns it.
 % (2026-11-12) A cuckoo-displacement variant (BFS, Li et al. EuroSys'14, ct_kick=500) was tried and dropped: YCSB-B
 % p99 read 2.61 ms vs 1.00 ms (results/final_32g/duet_kl, kick_dram).
 
+\textbf{Entry size for large-capacity SSDs.} Even at 128\,TB, an entry in
+the fine map fits in 8\,B. As in quotienting~\cite{quotient},
+its bucket index already encodes most of the LPN, so the entry stores only the
+remaining LPN bits, a candidate-bucket bit, and the PPN. A coarse entry grows to
+5\,B to hold a 32-bit chunk index and its flag bits, but a page-level table then
+also needs 5\,B entries, so the coarse map still takes $1/U$ of its DRAM.
+
 \textbf{Flag bits.} Each coarse entry also has three flag bits. The
 \emph{has-fine-pages} (F) bit tells whether the coarse IU has fine pages, the
 \emph{spilled} (S) bit tells whether their fine-map entries are in NAND, and the
@@ -85,7 +98,7 @@ of a spilled coarse IU adds one map-page read from NAND.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_write.pdf}
-  \vspace{-8.5mm}
+  \vspace{-5.8mm}
   \caption{DUET write and reclamation paths. Coarse GC (purple) and fine GC (blue) either (1) copy valid data or (2) merge it into new chunks.}
   \label{fig:write}
   \vspace{-2.5mm}
@@ -212,15 +225,13 @@ hold at the fine-block cap.
 % Numbers: apps device P=30976, fine cap 18 blocks = 557,568 pages, cuckoo2 table 334,736 entries (spill=2, GTD charged).
 % FAST (results/final_rp apps dmesg): NB=373 NLB=348 T=2 -> nlog=23, cache_bytes=B12 -> rwcap=14 (SW + 14 RW = 15 log blocks).
 
-Another challenge is hash collisions within the fine map. An insert can find
-both of its candidate buckets full even when other buckets still have free slots.
-Hashing schemes that place a colliding entry in another
-bucket~\cite{cuckoo,onemove,hopscotch,robinhood} make a lookup probe more buckets or an
-insert move existing entries, which takes more DRAM accesses. An insert that moves
-entries along a chain of buckets must also lock them, which blocks concurrent
-lookups, because a lookup could otherwise miss an entry in flight. On the other hand,
-merging the coarse IU whose entries are pushed out of the full buckets into the coarse map
-causes extra NAND writes.
+Another challenge is hash collisions. An insert can find both candidate buckets
+full while other buckets still have free slots. Hashing schemes that place a
+colliding entry in another bucket~\cite{cuckoo,onemove,hopscotch,robinhood} make a
+lookup probe more buckets or an insert move existing entries. This takes more DRAM
+accesses.
+% (2026-11-13, user) bucket locking left out: not modeled (dram_lock=1 models 4 FTL cores only, no table lock wait).
+Merging the coarse IU of a colliding entry causes extra NAND writes.
 
 DUET instead keeps the fine-map entries of some coarse IUs in FTPs in NAND, so that
 DUET can map more fine pages in the fine blocks without more DRAM.
@@ -259,6 +270,26 @@ each FTP at most once per victim block to record the new locations of these fine
 entries from the FTP and then clears its F and S bits.
 % Dropped detail (2026-11-06): one recently used FTP is kept in controller SRAM. A coarse IU becomes dirty when one of its
 % fine pages changes (write, merge, GC copy).
+
+\subsection{Crash Recovery}
+High-capacity SSDs are mainly deployed as enterprise and data center SSDs, whose
+power-loss capacitors write buffered data and logs to NAND on a power
+failure~\cite{solidigm-p5336-spec,ocp-dcssd}. DUET follows the crash recovery of
+conventional SSDs, which log the LPN of every written page in NAND and rebuild the
+mappings by scanning these logs in write order~\cite{remapssd}. At power-on, a
+coarse IU that fills a chunk of a coarse block is recovered into the coarse map, and
+the other pages into the fine map. Each FTP also records its index in its
+out-of-band (OOB) area, so the same scan rebuilds the GTD.
+% (2026-11-13) GTD not kept by the capacitors: 4 B per FTP is 128 MiB at 128 TB (2^35 / 1024 x 4 B).
+% (2026-11-13, user) not "flush every table": follow existing map logging. Remap-SSD (FAST'21, read): "the FTL
+% transparently persists the reverse P2L mapping (i.e., the LPN) and write timestamp as house-keeping metadata"; "The main
+% process of power-off recovery is rebuilding the latest L2P mapping table based on house-keeping metadata of data pages";
+% "This process starts with scanning the house-keeping metadata in write time order." SpartanSSD (ISLPED'21: capacitors
+% persist only a mapping-table journal) fits better but its full text was not available to read.
+% (2026-11-13, user) brief, assumes power-loss capacitors; stated objectively (no implementation claimed).
+% D5-P5336 Product Specification Rev 006 (read): feature list "Enhanced power-loss data protection"; Section 2.10 "Power Loss
+% Capacitor Test"; Section 2.11: on surprise hot removal "the drive will ensure the integrity of already committed data on the
+% media and commit acknowledged writes to the media."
 
 % Overhead subsection removed (2026-11-07): DRAM parts are in Sections A and D, the three DRAM accesses in the read path.
 % Left for the eval setup: mapping reads and programs (spilled coarse IUs only) are counted in all WA and latency results.

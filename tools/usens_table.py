@@ -5,16 +5,16 @@ import sys, os, csv, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import plot_eval as pe
 US = [16, 32, 64, 128]
-WL = [('raw', 'a128_r50_s70', '50:50'), ('trace', 'ali3', 'Alibaba'), ('trace', 'spfresh', 'SPFresh'),
-      ('app', 'ycsba_d_t64', 'YCSB-A'), ('app', 'tpcc_d_t64', 'TPC-C')]
+WL = [('raw', 'a128_r70_s70', '70:30'), ('trace', 'spfresh', 'SPFresh'),
+      ('app', 'ycsba_d_t64', 'YCSB-A'), ('app', 'ycsbb_d_t64', 'YCSB-B'), ('app', 'tpcc_d_t64', 'TPC-C')]   # 32 GB (2026-11-12)
 M = ['tput', 'fr', 'waf', 'r_avg', 'w_avg', 'r_p99', 'w_p99']
 
 def duet(kind, key, u):
     if u == 16:
         return pe.row(kind, key, 'proposed')
-    R = f'{pe.B}/final_usens/u{u}'
+    R = f'{pe.G32}/usens/u{u}'
     if kind == 'app':
-        d = f'{R}/apps/{key}/proposed_vbu{u}'
+        d = f'{pe.G32}/usens/apps/{key}/proposed_g32u{u}'
         s = dict(l.strip().split('=', 1) for l in open(f'{d}/summary.txt') if '=' in l)
         assert s['status'] == 'DONE', d
         g = lambda k: float(s[k])

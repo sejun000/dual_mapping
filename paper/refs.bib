@@ -253,6 +253,8 @@
   year         = {2023}
 }
 
+% (2026-11-12) verified on the page: unaligned host IO -> firmware read-modify-write; CSAL stages writes smaller than the
+% QLC indirection unit on a faster cache (Optane, SLC, or TLC SSD) and moves aggregated data to QLC in IU-friendly sizes.
 @misc{solidigm-csal,
   author       = {{Solidigm and Wiwynn}},
   title        = {Platform Optimization for Performance and Endurance},
@@ -287,6 +289,8 @@
 % Official: "The Solidigm D5-P5336 utilizes a 16KB indirection unit, with the exception of 122.88TB E1.L and U.2 units
 % which utilize a 32KB indirection unit." Product Specification, Rev 006, December 2024. The product brief
 % (solidigm.com, Solidigm-D5P5336-ProductBrief.pdf) footnote also names the "32KB IU 122.88TB SKU".
+% (2026-11-13) also cited for power-loss capacitors: "Enhanced power-loss data protection" (feature list), Section 2.10
+% "Power Loss Capacitor Test", Section 2.11 commits acknowledged writes to the media on surprise removal.
 @misc{solidigm-p5336-spec,
   author       = {{Solidigm}},
   title        = {Solidigm {D5-P5336} Product Specification},
@@ -312,4 +316,48 @@
   title     = {Algorithmic Improvements for Fast Concurrent Cuckoo Hashing},
   booktitle = {Proceedings of the European Conference on Computer Systems (EuroSys)},
   year      = {2014}
+}
+
+% Verified from the USENIX PDF (2026-11-12): RAM write buffer inside SSDs, block-level LRU, page padding on flush.
+@inproceedings{bplru,
+  author    = {Hyojun Kim and Seongjun Ahn},
+  title     = {{BPLRU}: A Buffer Management Scheme for Improving Random Writes in Flash Storage},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  pages     = {239--252},
+  year      = {2008}
+}
+
+% Verified from the PVLDB PDF (2026-11-13): "...stored in an open hash table T with m = 2^q buckets using a technique called
+% quotienting, suggested by Knuth [Section 6.4, exercise 13]" ... "The remainder, f_r, of a fingerprint f is stored in the
+% bucket specified by its quotient, f_q." DUET applies it to an invertible hash of the LPN, so the lookup is exact.
+@article{quotient,
+  author  = {Michael A. Bender and Martin Farach-Colton and Rob Johnson and Russell Kraner and Bradley C. Kuszmaul and
+             Dzejla Medjedovic and Pablo Montes and Pradeep Shetty and Richard P. Spillane and Erez Zadok},
+  title   = {Don't Thrash: How to Cache Your Hash on Flash},
+  journal = {Proceedings of the VLDB Endowment},
+  volume  = {5},
+  number  = {11},
+  pages   = {1627--1637},
+  year    = {2012}
+}
+
+% Verified from the OCP PDF (2026-11-13), Section 7.8 Power Loss Protection: "PLP-1 The device shall support full
+% power-loss protection for all acknowledged data and metadata." PLP-6: health check of the "capacitor holdup energy
+% margin". TTR-12: "Metadata rebuild due to any reason (e.g., unexpected power loss) shall not exceed 120 seconds".
+@misc{ocp-dcssd,
+  author       = {{Open Compute Project}},
+  title        = {Datacenter {NVMe} {SSD} Specification},
+  howpublished = {Version 2.7},
+  month        = jan,
+  year         = {2026}
+}
+
+% Verified from the USENIX PDF (2026-11-13): P2L (LPN) and timestamp persisted with each page; power-off recovery
+% rebuilds the latest L2P table by scanning house-keeping metadata in write time order.
+@inproceedings{remapssd,
+  author    = {You Zhou and Qiulin Wu and Fei Wu and Hong Jiang and Jian Zhou and Changsheng Xie},
+  title     = {{Remap-SSD}: Safely and Efficiently Exploiting {SSD} Address Remapping to Eliminate Duplicate Writes},
+  booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
+  pages     = {187--202},
+  year      = {2021}
 }

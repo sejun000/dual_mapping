@@ -30,7 +30,7 @@ for ax, m, yl, ttl in ((axs[0], 'tput', 'Throughput', '(a) Throughput'), (axs[1]
     ax.set_ylabel(yl + ' / Page', fontsize=6.0, labelpad=1.5); ax.set_xlabel(ttl, fontsize=6.4, labelpad=1.5)
     ax.tick_params(axis='y', labelsize=5.4, pad=1); ax.tick_params(axis='x', pad=1, length=0)
     ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
-axs[0].set_ylim(0, 1.4); axs[0].set_yticks([0, 0.5, 1]); axs[1].set_ylim(0, 2.1); axs[1].set_yticks([0, 1, 2])
+axs[0].set_ylim(0, 1.4); axs[0].set_yticks([0, 0.5, 1]); axs[1].set_ylim(0, 2.8); axs[1].set_yticks([0, 1, 2])
 fig.tight_layout(pad=0.2, w_pad=0.8); fig.subplots_adjust(top=0.82)   # was 0.84, then 0.80 (2026-11-10)
 h = [Patch(fc=COL[u], ec='black', lw=0.35, label=LAB[u]) for u in US]
 fig.legend(handles=h, ncol=4, fontsize=5.8, loc='upper center', bbox_to_anchor=(0.5, 1.02), frameon=False,

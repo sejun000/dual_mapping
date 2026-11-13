@@ -104,8 +104,12 @@ def row0(kind, key, p):
             s = dict(l.strip().split('=', 1) for l in open(f'{d}/summary.txt') if '=' in l)
             assert s['status'] == 'DONE', (key, p)
             g = lambda k: float(s[k])
+            # (2026-11-13) averages from /sys/block stat deltas over the measured window (dev_*_lat_ms_avg), not the
+            # bpftrace sum: blklat.bt keys issue times by sector, so a stale entry pairs with a much later I/O to that
+            # sector and adds bogus 10-100+ s samples (Page TPC-C: 48 reads >= 10 s, blk mean 980 us vs 246 us; rerun
+            # 698 vs 236). Normal runs agree within 1%. Percentiles (millions of samples) are unaffected.
             return {'tput': g('throughput'), 'fr': 1 + g('dev_map_reads_per_host_read'), 'waf': g('dev_waf'),
-                    'r_avg': g('blk_read_lat_us_mean') / 1e3, 'w_avg': g('blk_write_lat_us_mean') / 1e3,
+                    'r_avg': g('dev_read_lat_ms_avg'), 'w_avg': g('dev_write_lat_ms_avg'),
                     'r_p99': g('blk_read_lat_us_p99') / 1e3, 'w_p99': g('blk_write_lat_us_p99') / 1e3}
         return replay(f'{G32}/{"trace_" if kind == "trace" else "replay_"}{key}', p)
     if kind == 'app':
@@ -236,13 +240,13 @@ def main():
     rows_fig([('fr', 'Reads/read', dict(clip=2.2, ylim=(0, 2.45), fmt='{:.2f}', yticks=[0, 1, 2])),
               ('r_avg', 'Avg. read\n(ms)', dict(logy=True, ylim=(0.05, 50), yticks=[0.1, 1, 10])),
               ('r_p99', 'p99 read\n(ms)', dict(logy=True, ylim=(0.1, 500), yticks=[1, 10, 100]))],
-             'fig_eval_read', 2.04)
+             'fig_eval_read', 1.72)   # was 2.04, 1.85 (2026-11-13)
     rows_fig([('waf', 'WA', dict(logy=True, ylim=(1, 100))),
               ('w_avg', 'Avg. write\n(ms)', dict(logy=True, ylim=(0.05, 50), yticks=[0.1, 1, 10])),
               ('w_p99', 'p99 write\n(ms)', dict(logy=True, ylim=(0.2, 1000), yticks=[1, 10, 100, 1000]))],
-             'fig_eval_write', 2.04)
+             'fig_eval_write', 1.72)   # was 2.04, 1.85 (2026-11-13)
     rows_fig([('tput', 'Throughput', dict(norm=True, clip=1.3, ylim=(0, 1.42), fmt='{:.2f}',
-                                                    yticks=[0, 0.5, 1]))], 'fig_eval_tput', 0.96)
+                                                    yticks=[0, 0.5, 1]))], 'fig_eval_tput', 0.82)   # was 0.96, 0.88 (2026-11-13)
 
     gm = lambda v: math.exp(sum(map(math.log, v)) / len(v))
     for m in ('tput', 'r_avg', 'w_avg', 'r_p99', 'w_p99', 'waf', 'fr'):

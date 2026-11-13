@@ -22,13 +22,13 @@ FS = 6.5
 SF = FS - 0.7                # label size
 plt.rcParams.update({'font.size': FS, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4})
 
-YMIN, YMAX = 0.05, 6.88
+YMIN, YMAX = 0.05, 6.38   # was 6.88 (2026-11-13: compact)
 PW, PH = 0.3, 0.55           # page width / height in a block (block = 8 pages = 2.4 wide)
-DX0, DX1, DY0, DY1 = 0.5, 9.7, 5.02, 6.8      # DRAM budget box
-NX0, NX1, NY0, NY1 = 0.5, 9.7, 0.9, 4.18     # NAND box
+DX0, DX1, DY0, DY1 = 0.5, 9.7, 4.75, 6.22     # DRAM budget box
+NX0, NX1, NY0, NY1 = 0.5, 9.7, 0.9, 4.08    # NAND box
 EW, EH = 0.38, 0.5           # DRAM map-entry cell
-EY = 5.28                    # map-entry row (bottom y)
-ROW = [3.15, 1.75]            # NAND block rows (bottom y); top-left slot = map pages
+EY = 5.0                    # map-entry row (bottom y)
+ROW = [3.05, 1.75]            # NAND block rows (bottom y); top-left slot = map pages
 COLX = [0.8, 3.55, 6.3]      # NAND block columns (left x)
 HH = 0.26                    # H-bracket height
 
@@ -117,13 +117,13 @@ def panel_page(ax):
     x0 = 0.45
     for r in range(4):                                   # full table, larger than the budget box
         for i in range(25):
-            ax.add_patch(Rectangle((x0 + i * EW, 4.6 + r * 0.54), EW, 0.46, fc=F_MAP, ec=K, lw=0.3))
+            ax.add_patch(Rectangle((x0 + i * EW, 4.33 + r * 0.5), EW, 0.43, fc=F_MAP, ec=K, lw=0.3))
     ax.add_patch(Rectangle((DX0, DY0), DX1 - DX0, DY1 - DY0, fc='none', ec=K, lw=1.0, ls=(0, (3, 2))))
-    ax.text(5.1, 5.9, 'page-level map\nexceeds DRAM capacity', ha='center', va='center', fontsize=SF,
+    ax.text(5.1, 5.5, 'page-level map\nexceeds DRAM capacity', ha='center', va='center', fontsize=SF,
             fontweight='bold', linespacing=1.0, bbox=dict(fc='white', ec=K, lw=0.4, pad=1.0))   # the dashed box
     b = [Blk(ax, COLX[c], ROW[r], [F_PG] * 8) for r in range(2) for c in range(3)]
     for e, (j, i) in zip((3, 11, 19), ((0, 2), (1, 5), (2, 3))):
-        point(ax, (x0 + (e + 0.5) * EW, 4.6), b[j], i)
+        point(ax, (x0 + (e + 0.5) * EW, 4.33), b[j], i)
 
 
 def panel_ondemand(ax):
@@ -139,10 +139,10 @@ def panel_ondemand(ax):
     point(ax, ce(2), d1, 3)                              # hit: entry -> one page
     point(ax, ce(8), d2, 4)
     arrow(ax, ce(14), tp.top(3), C_BAD, lw=0.9)          # miss: (1) map page, then (2) data page
-    badge(ax, 6.7, 4.6, '1')
-    lab(ax, 5.05, 4.6, 'miss', C_BAD, fontweight='bold')
+    badge(ax, 6.7, 4.42, '1')
+    lab(ax, 5.05, 4.42, 'miss', C_BAD, fontweight='bold')
     arrow(ax, (tp.x, tp.y + PH / 2), d3.top(5), C_BAD, lw=0.9, rad=0.25)
-    badge(ax, 5.45, 3.05, '2')
+    badge(ax, 5.45, 2.95, '2')
 
 
 def panel_hybrid(ax):
@@ -189,14 +189,14 @@ def panel_duet(ax):
     # a few page-level mappings are staged in map pages and promoted back on access
     ax.add_patch(FancyArrowPatch(pe(5), S.top(4), arrowstyle='<|-|>', mutation_scale=4.5, color=C_AR, lw=0.6,
                                  ls=(0, (2, 1.2)), shrinkA=0, shrinkB=0.3))
-    lab(ax, 7.75, 4.58, 'spill /\nload back', linespacing=0.85, fontsize=SF - 1.2)
+    lab(ax, 7.75, 4.42, 'spill/load', fontsize=SF - 1.2)   # one line: fits the narrower DRAM-NAND gap (2026-11-13)
     # merge one IU: its 2 valid pages + its 2 page-level pages -> a new IU
     arrow(ax, I.bottom(0), M.top(0), C_OK, lw=0.9)
     arrow(ax, P.bottom(1), M.top(2), C_OK, lw=0.9, rad=-0.1)
 
 
 def main():
-    fig, axs = plt.subplots(2, 2, figsize=(3.4, 2.36))
+    fig, axs = plt.subplots(2, 2, figsize=(3.4, 2.19))   # was 2.36 (2026-11-13)
     for ax, f in zip(axs.flat, (panel_page, panel_ondemand, panel_hybrid, panel_duet)):
         f(ax)
     fig.subplots_adjust(left=0.0, right=1.0, top=1.0, bottom=0.0, wspace=0.02, hspace=0.035)

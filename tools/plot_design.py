@@ -19,12 +19,12 @@ OUT = '/home/sejun000/dual_mapping/results/paper_dac/fig_design'
 PAPER = '/home/sejun000/dual_mapping/paper/figs/fig_design.pdf'
 plt.rcParams.update({'font.size': FS, 'font.family': 'DejaVu Sans', 'hatch.linewidth': 0.4})
 
-XMAX, YMAX = 20.0, 11.75
-DX0, DX1, DY0, DY1 = 0.5, 19.7, 4.75, 10.75    # DRAM budget box
+XMAX, YMAX = 20.0, 11.2   # was 11.75 (2026-11-13: compact)
+DX0, DX1, DY0, DY1 = 0.5, 19.7, 4.75, 10.45    # DRAM budget box
 NX0, NX1, NY0, NY1 = 0.5, 19.7, 0.05, 4.45    # NAND box
 EW, EH = 0.52, 0.6                            # map-entry cell
-EY = 8.6                                      # entry row (bottom y)
-LY = 10.3                                     # structure labels
+EY = 8.45                                      # entry row (bottom y)
+LY = 10.05                                     # structure labels
 NR = 2.9                                      # NAND block row (bottom y)
 ZL = dict(color='#888888', lw=0.4, ls=(0, (2, 1.5)))   # zoom lines
 
@@ -69,9 +69,9 @@ def main():
     cells(ax, cx0, EY, EW, EH, 8)
     ax.add_patch(Rectangle((cx0 + ci * EW, EY), EW, EH, fc='none', ec=K, lw=1.2))
     ix = cx0 + (ci + 0.5) * EW
-    lab(ax, 0.9, 11.45, r'host LBA $\rightarrow$ LPN:  $i=\lfloor \mathrm{LPN}/U \rfloor$,  $k=\mathrm{LPN}\ \mathrm{mod}\ U$   ($U$: pages per coarse IU)',
+    lab(ax, 0.9, 10.95, r'host LBA $\rightarrow$ LPN:  $i=\lfloor \mathrm{LPN}/U \rfloor$,  $k=\mathrm{LPN}\ \mathrm{mod}\ U$   ($U$: pages per coarse IU)',
         fontsize=SF - 0.4)
-    arrow(ax, (ix, 11.15), (ix, EY + EH + 0.05))
+    arrow(ax, (ix, 10.7), (ix, EY + EH + 0.05))
     lab(ax, ix + 0.3, LY - 0.25, 'coarse map', fontweight='bold')
     lab(ax, ix + 0.3, LY - 0.75, 'entry $i$', fontsize=SF - 0.6)
     zx, zy, zh, ZW = 0.9, 6.3, 0.55, 4.5                                  # zoom row: chunk index, LPN / PPN, GTD
@@ -81,7 +81,7 @@ def main():
     lab(ax, zx + ZW / 2, zy + zh + 0.45, '4B', ha='center', fontsize=SF - 0.7)
 
     # ---- fine map: 9 buckets x 4 entries, candidate buckets h1 / h2 framed, zoomed entry below
-    fx0, BW, SH, NB, FY = 7.9, 0.58, 0.36, 9, 7.8
+    fx0, BW, SH, NB, FY = 7.9, 0.58, 0.36, 9, 7.65
     h1, h2, used = 1, 6, [3, 4, 2, 4, 1, 3, 4, 2, 3]
     global VICTIM
     VICTIM = [(1, 0), (4, 0), (6, 3)]                              # victim coarse IU: entries in h1, h2 and elsewhere
@@ -150,7 +150,7 @@ def main():
     ax.add_patch(FancyArrowPatch((fx0 + (vb + 1) * BW, FY + (vw + 0.5) * SH), T.top(3), arrowstyle='-|>',
                                  mutation_scale=4.5, color=C_BAD, lw=0.6, ls=(0, (2, 1.2)),
                                  connectionstyle='arc3,rad=-0.3', shrinkA=0, shrinkB=0.3))
-    lab(ax, 13.5, 8.75, '$h_1$, $h_2$ full: spill\nvictim coarse IU', C_BAD, fontsize=SF - 0.6, fontweight='bold',
+    lab(ax, 13.5, 8.6, '$h_1$, $h_2$ full: spill\nvictim coarse IU', C_BAD, fontsize=SF - 0.6, fontweight='bold',
         linespacing=0.95)
 
     # ---- FTP zoomed: 1024/U coarse IUs x U pointers (one 4 KiB page), slot LPN mod 1024
