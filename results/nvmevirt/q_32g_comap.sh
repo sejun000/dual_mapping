@@ -10,9 +10,9 @@ R=/home/sejun000/dual_mapping/results/final_32g/comap_tune; D=/mnt/nvme_mounted/
 . tools/apps/common.sh >/dev/null 2>&1
 for cfg in comap_g32p1k comap_g32pg; do
   P="comap:$(policy_params $cfg)"
-  for t in a128_r50_s70 a128_r70_s70 a128_r90_s70; do idle; echo "$(date) $cfg $t"
+  for t in a128_r50_s70 a128_r70_s70 a128_r90_s70; do [ -s $R/$cfg/replay_$t/comap/result.json ] && continue; idle; echo "$(date) $cfg $t"
     TRACE=$t TRACE_DIR=$D RESULTS=$R/$cfg/replay_$t tools/nvmev_cycle.sh tools/nvmev_trace.sh "" "$P"; done
-  for t in ali3 spfresh; do idle; echo "$(date) $cfg $t"
+  for t in ali3 spfresh; do [ -s $R/$cfg/trace_$t/comap/result.json ] && continue; idle; echo "$(date) $cfg $t"
     TRACE=$t TRACE_DIR=$D RESULTS=$R/$cfg/trace_$t tools/nvmev_cycle.sh tools/nvmev_trace.sh "" "$P"; done
 done
 idle; echo "$(date) apps"

@@ -75,7 +75,7 @@ def main():
     lab(ax, ix + 0.3, LY - 0.25, 'coarse map', fontweight='bold')
     lab(ax, ix + 0.3, LY - 0.75, 'entry $i$', fontsize=SF - 0.6)
     zx, zy, zh, ZW = 0.9, 6.3, 0.55, 4.5                                  # zoom row: chunk index, LPN / PPN, GTD
-    f = fields(ax, zx, zy, zh, [(2.85, 'chunk index', F_MAP), (0.55, 'F', F_MAP), (0.55, 'S', F_MAP), (0.55, 'C', F_MAP)])
+    f = fields(ax, zx, zy, zh, [(2.85, 'chunk index', F_MAP), (0.55, 'F', F_MAP), (0.55, 'E', F_MAP), (0.55, 'C', F_MAP)])
     zoom(ax, (cx0 + ci * EW, EY), (cx0 + (ci + 1) * EW, EY), (zx, zy + zh), (zx + ZW, zy + zh))
     hbar(ax, zx, zx + ZW, zy + zh)                               # entry size
     lab(ax, zx + ZW / 2, zy + zh + 0.35, '4B', ha='center', fontsize=SF - 0.7)
@@ -124,8 +124,8 @@ def main():
     LGX, LGY = 17.4, 10.95                                          # (2026-11-13, user) legend at the top right
     ax.add_patch(Rectangle((LGX, LGY - BH / 2), BP, BH, fc=F_INV, ec=K, lw=0.35))
     lab(ax, LGX + BP + 0.2, LGY, 'invalid', fontsize=SF - 0.7)
-    for j, t in enumerate(('F=0: $k$-th page of chunk', 'F=1, S=0, found in fine map: fine page',
-                           'F=1, S=0, not found: $k$-th page of chunk', 'F=1, S=1: FTP slot via GTD')):
+    for j, t in enumerate(('F=0: $k$-th page of chunk', 'F=1, E=0, found in fine map: fine page',
+                           'F=1, E=0, not found: $k$-th page of chunk', 'F=1, E=1: FTP slot via GTD')):
         y = 1.95 - 0.5 * j                                           # read cases, numbered on the arrows
         num(ax, 1.05, y, str(j + 1), SF - 0.9)
         ax.text(1.45, y, t, va='center_baseline', fontsize=SF - 0.3)
@@ -156,7 +156,7 @@ def main():
     ax.add_patch(FancyArrowPatch((fx0 + (vb + 1) * BW, FY + (vw + 0.5) * SH), T.top(3), arrowstyle='-|>',
                                  mutation_scale=4.5, color=C_BAD, lw=0.6, ls=(0, (2, 1.2)),
                                  connectionstyle='arc3,rad=-0.3', shrinkA=0, shrinkB=0.3))
-    lab(ax, 13.5, 8.82, '$h_1$, $h_2$ full: spill\nvictim coarse IU', C_BAD, fontsize=SF - 0.6, fontweight='bold',
+    lab(ax, 13.5, 8.82, '$h_1$, $h_2$ full: evict\nvictim coarse IU', C_BAD, fontsize=SF - 0.6, fontweight='bold',
         linespacing=0.95)
 
     # ---- FTP zoomed: 1024/U coarse IUs x U pointers (one 4 KiB page), slot LPN mod 1024

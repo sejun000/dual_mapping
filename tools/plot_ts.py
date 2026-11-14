@@ -53,7 +53,7 @@ def main():
     from matplotlib.patches import Patch
     from matplotlib.lines import Line2D
     h = [Line2D([], [], color=C_TOT, lw=0.8, label='Fine-map entries'), Patch(fc=C_DUET, label='In DRAM table'),
-         Patch(fc=C_SP, label='Spilled'),
+         Patch(fc=C_SP, label='Evicted'),
          Line2D([], [], color=C_FB, lw=0.9, label='Fine blocks')]
     fig.tight_layout(pad=0.2, w_pad=0.6); fig.subplots_adjust(top=0.74)   # was 0.72, 0.78 (2026-11-13: same legend height)
     fig.legend(handles=h, ncol=4, fontsize=6, loc='upper center', bbox_to_anchor=(0.5, 1.03), frameon=False,

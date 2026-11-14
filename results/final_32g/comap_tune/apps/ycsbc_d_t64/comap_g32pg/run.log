@@ -1,0 +1,90 @@
+[20:41:49] === ycsbc_d_t64_comap_g32pg_20261113T204149Z -> /home/sejun000/dual_mapping/results/final_32g/comap_tune/apps/ycsbc_d_t64/comap_g32pg
+[20:41:49] insmod /home/sejun000/nvmevirt_comap/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=4270280,comap_logfrac_ppm=990000,comap_p0=990000,comap_learn=0'
+[20:41:49] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[20:41:50] memory cgroup dmapp.slice: MemoryMax=6553M MemoryHigh=5733M (20% of 34359738368 B)
+[20:41:50] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34359738368 B) before mkfs
+[20:42:47] [prefill] done in 57 s
+[20:42:47] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[20:42:48] ext4 capacity (used+avail) 31766994944 B, util 0%
+[20:42:48] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31766994944 B)
+[20:42:48] [ycsb] 16 instances x (records=625000 threads=4 workloadc)
+[20:48:10] [ballast] writing 1055 MiB to reach ~76% (pending 0 MiB)
+[20:48:23] [ballast] df util now 75%
+[20:48:47] measurement start utilisation=75% (window 73-85)
+[20:48:47] [ycsb] run 600s, 16 x 4 threads
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-r292a6f17dbd44b19a6223f75ceac81d2.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-r35b8afed2f36487e955023fc5a519b6c.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-refe52b04f3044bb8bba1d7fa4b21f2a2.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-r12bc94090f6044e5a2a25ccdf960b8a5.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-rfcd8c8690d2149ad8cac79ee85083727.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-r96e81dc472bc4b43b549793c50e1b991.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-r253c8e72fa894a10a1f81329efd687f7.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-red789ff3afce4946b1532b7be8fd1f32.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-r3022023f589c4679a9aa850b5664f456.scope/cgroup.procs: No such file or directory
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-re357bcc8e33d489aa0e70fb00d3722a1.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/final_32g/comap_tune/apps/ycsbc_d_t64/comap_g32pg
+workload=ycsbc_d_t64
+policy=comap_g32pg
+status=DONE
+start_util_pct=75.9985
+end_util_pct=75.9985
+ext4_write_kbytes_delta=6930984
+blk_read_ios=99692547
+blk_write_ios=823651
+blk_read_bytes=886043471872
+blk_write_bytes=7097327616
+blk_avg_write_req_kb=8.41495
+dev_read_lat_ms_avg=0.149292
+dev_write_lat_ms_avg=8.00757
+write_qd_max=298
+blk_read_lat_us_mean=147.477
+blk_read_lat_us_p50=117.147
+blk_read_lat_us_p90=213.978
+blk_read_lat_us_p99=453.706
+blk_read_lat_us_p99.9=944.525
+blk_read_lat_us_p99.99=14143.8
+blk_write_lat_us_mean=8297.47
+blk_write_lat_us_p50=94.1532
+blk_write_lat_us_p90=5163.55
+blk_write_lat_us_p99=182599
+blk_write_lat_us_p99.9=901304
+blk_write_lat_us_p99.99=2.57595e+06
+app_write_bytes=7329718272
+fs_waf=0.968295
+dev_host_write_pages=1732746
+dev_host_read_pages=216319207
+dev_nand_progs=8864782
+dev_waf=5.11603
+dev_waf_gc=4.06438
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.0516867
+dev_waf_other=0
+dev_nand_reads=226643554
+dev_map_reads_per_host_page=0.0150932
+dev_map_reads_per_host_read=0.015214
+dev_erases=289
+dev_map_miss=7563154
+dev_mapping_mem_bytes_end=2171740
+total_waf=4.95383
+memcg_max=6871318528
+memcg_high=6011486208
+memcg_peak=6019584000
+memcg_events_high=256838
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=365735936
+throughput=332357
+throughput_unit=ops/s
+ycsb_tenants=16
+ycsb_ops.READ.ops=1.99508e+08
+ycsb_ops.READ.avg_us=189.542
+ycsb_ops.READ.p50_us=156.688
+ycsb_ops.READ.p90_us=305.75
+ycsb_ops.READ.p95_us=352.062
+ycsb_ops.READ.p99_us=514.938
+ycsb_ops.READ.p99.9_us=3089.75
+ycsb_ops.READ.max_us=1.79507e+06
+app_read_lat_ms_avg=0.189542
+app_read_lat_ms_p99=0.514938
+[20:59:38] === ycsbc_d_t64_comap_g32pg_20261113T204149Z status DONE

@@ -43,7 +43,14 @@ every FTL except the page-level mapping FTL at the DRAM of a uniform 32\,KB coar
 an IU size used in production high-capacity SSDs~\cite{micron-iu,solidigm-csal},
 which is 4\,MB. The page-level mapping FTL uses 32\,MB. DUET uses 64\,KB coarse IUs. Its budget holds a 2.0\,MB coarse map, a 2.0\,MB
 fine-map table with 261,256 entries, a 32\,KB GTD, and 0.1\,MB of valid bitmaps for
-the chunks and the fine blocks.
+the chunks and the fine blocks. The NAND timing follows the default conventional SSD model
+of NVMeVirt~\cite{nvmevirt}. A 4\,KB read takes 36\,$\mu$s on average and a 32\,KB page program
+takes 185\,$\mu$s. Each random DRAM access to the mapping table takes 50\,ns.
+% (2026-11-14, user) NAND timing, ~/nvmevirt_proposed/ssd_config.h BASE_SSD=SAMSUNG_970PRO (Kbuild): NAND_4KB_READ_LATENCY
+% 35760 -+ 6000 ns (LSB/MSB), NAND_PROG_LATENCY 185000 ns (FLASH_PAGE_SIZE 32 KB), NAND_ERASE_LATENCY 0 (erase not
+% timed), channel 800 MB/s, FW_4KB_READ_LATENCY 21500 ns.
+% (2026-11-14, user) 50 ns moved here from the ablation. Not cited: samsung-ddr4 was verified only for burst length
+% and row size. DRAM time is modeled only with dram_ns (cuckoo search), not for DUET or the other FTLs.
 % (2026-11-13) valid bits: 1 bit per 64 KB chunk NB*P/16/8 = 70,144 B + 1 bit per page of the 11 fine blocks 45,056 B.
 
 \textbf{Workloads.} We run three types of workloads, synthetic raw I/O, real-world
@@ -71,7 +78,7 @@ device, which limits the page cache.
 % CoarseIU 4.00 MB + bit per 32 KB IU 0.13 MB; DUET coarse 2,097,764 B + GTD 32,780 + table 2,090,048 (261,256 x 8 B) + bits 0.11 MB.
 \textbf{Baselines.} We compare DUET with six other FTLs, which cover the three classes
 of Section~\ref{sec:bg}. \textbf{Page} maps
-every 4\,KB page and keeps the whole table in DRAM, without a DRAM limit.
+every 4\,KB page and keeps the whole mapping table in DRAM, without a DRAM limit.
 \textbf{DFTL}~\cite{dftl} caches mapping entries in an LRU map cache and writes back the
 dirty entries of a translation page together. Its budget holds a 32\,KB GTD, a
 1.1\,MB valid-page bitmap for GC, and a 3.0\,MB map cache. \textbf{LeaFTL}~\cite{leaftl} learns linear
@@ -83,7 +90,7 @@ that their page-level maps fit the DRAM budget, which allows 16 log blocks. \tex
 block-level mapping for each write request with a Q-learning agent. Its budget holds a
 1\,MB bitmap of page-mapped pages, a 32\,KB GTD, 2.9\,MB of page-level maps for eight
 log blocks, and a 0.2\,MB map cache. \textbf{CoarseIU}
-maps all data with a uniform 32\,KB coarse IU and keeps the whole 4.0\,MB table and a
+maps all data with a uniform 32\,KB coarse IU and keeps the whole 4.0\,MB mapping table and a
 0.1\,MB valid bitmap in DRAM.
 Small writes to the same coarse IU are merged in the 1\,MB write buffer, and a
 partial coarse IU is written with RMW only when it leaves the buffer. Its
@@ -101,7 +108,7 @@ DRAM sets the budget that every other bounded FTL receives.
 % Numbers below: results/paper_dac/eval_data.csv (per workload) and the geomeans in the header comment.
 \subsection{Read Latency}
 Figure~\ref{fig:eval-read} shows the read path. DUET reads the mapping from NAND only
-for spilled coarse IUs, so it needs 1.02 flash reads per host read on average and at
+for evicted coarse IUs, so it needs 1.02 flash reads per host read on average and at
 most 1.06, on SPFresh. DFTL and LeaFTL miss in their map caches and need up to 1.90
 and 1.84 flash reads on SPFresh. As a result, the average read latency of DUET is
 1.07$\times$ that of Page on average, whereas that of DFTL and LeaFTL is 2.51$\times$ and
@@ -151,7 +158,7 @@ of the throughput of Page on average, whereas LeaFTL, CoarseIU, DFTL, FAST, and 
 reach 71\%, 70\%, 63\%, 56\%, and 45\%. On Alibaba, DUET is 16\% faster than Page
 because its WA is 14\% lower. DUET is the slowest relative to
 Page on YCSB-A and SPFresh, at 69\% and 78\%, where its WA is 1.4$\times$ and
-2.4$\times$ that of Page and reads of spilled coarse IUs add mapping reads.
+2.4$\times$ that of Page and reads of evicted coarse IUs add mapping reads.
 
 % (2026-11-12, user) mu-FTL paragraph removed from the paper. It was: under the same DRAM budget, 1.49 flash reads per host
 % read, WA 4.0x Page, 33% of Page throughput (44 GB runs).
@@ -167,7 +174,7 @@ Page on YCSB-A and SPFresh, at 69\% and 78\%, where its WA is 1.4$\times$ and
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_ablation.pdf}
   \vspace{-6mm}
-  \caption{Ablation. The two GC decisions are added to Basic one by one, and the two rightmost bars handle a full fine map by cuckoo hashing or by spill and load (DUET). Throughput is normalized to Basic.}
+  \caption{Ablation. Basic handles a full fine map by cuckoo hashing, the techniques of DUET are added one by one, and the last step replaces cuckoo hashing with eviction and load. Throughput and p99 latencies are normalized to Basic.}
   \label{fig:eval-ablation}
   \vspace{-2.5mm}
 \end{figure}
@@ -188,24 +195,52 @@ Page on YCSB-A and SPFresh, at 69\% and 78\%, where its WA is 1.4$\times$ and
 % search; YCSB-A 6.91M searches, 1.234G probes = 179 per search. Avg fine pages Basic / coarse-or-fine / copy-or-merge: YCSB-A 154K 39K 168K, YCSB-B 156K 38K 172K, Alibaba 41K 5.8K
 % 23K, 70:30 94K 17K 38K (-75..-86% with coarse-or-fine). SPFresh (not shown): GC WA 16.4 -> DUET 13.3 (-19%), cuckoo tput 1.07 vs DUET 0.99 of Basic (+8%).
 \subsection{Ablation Study}
-Figure~\ref{fig:eval-ablation} adds the techniques of DUET to Basic on YCSB-A,
-YCSB-B, Alibaba, and 70:30. Basic fills the fine blocks up to the fine-block cap, and its fine GC always
-merges the fine pages of a victim into their coarse IUs. Coarse-or-fine victim selection shrinks the fine area,
-which helps Alibaba and 70:30 but raises WA on YCSB-A and YCSB-B. There, a merge
-copies the fine pages with the rest of their coarse IU, and new fine pages soon
-invalidate part of it. Copy-or-merge
-improves this. Together, the two decisions lower WA by up to 1.7$\times$ and raise the throughput
-by up to 1.61$\times$ over Basic.
+\label{sec:ablation}
+Figure~\ref{fig:eval-ablation} adds the techniques of DUET one by one on YCSB-A,
+YCSB-B, Alibaba, SPFresh, and 70:30. Basic keeps all page-level mappings in the DRAM
+table and handles a full bucket pair by cuckoo hashing, which moves entries along a
+path to a free entry~\cite{cuckoo,bfscuckoo}. Its breadth-first search visits up to
+500 buckets and makes one DRAM access for each bucket it expands. When the
+search finds no free entry, Basic merges a coarse IU that has an entry in the two
+buckets. Basic fills the fine blocks up to the fine-block cap, and its fine GC always
+merges the fine pages of a victim into their coarse IUs.
+% (2026-11-14) cuckoo model, ~/nvmevirt_proposed/dm: ct_kick=500 caps the buckets enqueued by the BFS (prop_ct_kick);
+% dram_ns=50 per dequeued bucket, its 4 alternative-bucket probes overlap (prop_kick_rec); dram_lock=1 runs the search
+% on the earliest-free of 4 FTL cores and host requests wait for a free core (dm_ftl.c dm_cb_dram, dm_fcore_avail).
+% A table lock (mode 2) is not modeled. A failed search merges prop_ct_best's victim (prop_fold).
 
-\emph{Cuckoo} makes room in full candidate buckets by moving entries along a path
-to a free entry~\cite{cuckoo,bfscuckoo} and merges only when no path exists. It thus
-merges less often than copy-or-merge and lowers WA by 8\% and 11\% on YCSB-A and
-YCSB-B, where the fine map fills. Its search for a free entry on writes, however,
-probes 179 and 203 buckets on average, which raises the p99 read latency by
-1.8$\times$ and 2.4$\times$ and the p99 write latency on YCSB-B by 1.6$\times$.
-DUET instead spills entries to NAND without searching and keeps the lower WA. Compared
-with \emph{Cuckoo}, DUET lowers the p99 read latency by 27\% and 60\% and the p99
-write latency by 35\% and 18\% on YCSB-A and YCSB-B.
+Coarse-or-fine victim selection reclaims a coarse block whenever it has fewer valid
+pages than a fine block, so the fine area shrinks. On YCSB-A, the average number of
+fine pages drops from 184K to 41K. This raises the throughput by 1.26$\times$ and
+1.17$\times$ on Alibaba and 70:30. On YCSB-A, YCSB-B, and SPFresh, however, it lowers
+the throughput by 8--35\% and raises WA by 1.3--2.0$\times$. Coarse-or-fine victim
+selection picks fine victims more often, and the fine GC of Basic always merges the
+fine pages into their coarse IUs regardless of the copy cost. It thus merges even
+coarse IUs with few fine pages, which frees little fine-block space per page written.
+% (2026-11-14, user) tput bkc/bk YCSB-A 0.825, YCSB-B 0.648, SPFresh 0.924 (ablation_data.csv). Avg fine blocks bk -> bkc
+% YCSB-A 10.5 -> 2.2, YCSB-B 10.4 -> 2.4 (dm_final smp_fb/smp_n). Merge (fold) pages, whole run incl. load: YCSB-A 11.4M ->
+% 33.5M, YCSB-B 9.9M -> 31.1M, SPFresh 30.2M -> 48.1M. Re-invalidation of merged chunks is not measured directly.
+Copy-or-merge then picks whichever of copying and merging frees more
+fine-block space for its copy cost. On these three workloads, it thus lowers WA by
+1.6--2.3$\times$ and raises the throughput by 1.35$\times$ on average.
+% (2026-11-14, user) paragraph ends here. ck/bkc tput YCSB-A 1.376, YCSB-B 1.585, SPFresh 1.117, geomean 1.346; WA
+% bkc/ck 1.91, 2.31, 1.58. Removed from the text (user: end the paragraph here): "With both GC decisions, WA is 12--40%
+% lower and the throughput is up to 1.60x higher than those of Basic."
+
+Eviction and load finally replace cuckoo hashing. It keeps WA within 3\% but lowers the p99
+read latency by 27\% and 60\% and the p99 write latency by 35\% and 18\% on YCSB-A
+and YCSB-B, because cuckoo hashing searches 179 and 203 buckets on average for each
+insert into a full bucket pair. On Alibaba and 70:30, all four metrics stay within
+1\%. On SPFresh, where loads add flash reads, the throughput drops by 7\%.
+% (2026-11-14) draft numbers, results/paper_dac/ablation_data.csv. bkc/bk tput Alibaba 1.263, 70:30 1.173. WA bkc/bk
+% YCSB-A 1.67, YCSB-B 2.02, SPFresh 1.34. WA bkc/ck YCSB-A 1.91, YCSB-B 2.31, SPFresh 1.58. WA ck vs bk -12.5% (A) .. -40.4%
+% (70:30), tput ck/bk max 1.604 (70:30). Avg fine pages smp_fp/smp_n, ablation2/apps/ycsba_d_t64 dm_final.txt: bk 183.5K,
+% bkc 40.7K (YCSB-B 174.6K -> 46.8K). DUET vs ck Alibaba / 70:30 tput, WA, p99 read, p99 write all within 1%.
+% Not written: DUET p99 read is above Basic on YCSB-A (8.37 vs 6.75 ms) and YCSB-B (1.00 vs 0.87 ms).
+% (2026-11-13, user) ablation v3: Basic = Basic + cuckoo (ablation2/bk), + coarse-or-fine (ablation2/bkc, new),
+% + copy-or-merge (= nskl: kick_dram YCSB-A / SPFresh, ablation YCSB-B, nsk Alibaba / 70:30), + spill/load = DUET.
+% ablation_data.csv: WA bk -> ck 70:30 16.96 -> 10.12 (1.68x), tput 70:30 1.60x. ck -> DUET WA +2% / -3% / +1% (A, B,
+% SPFresh); p99 read 11.42 -> 8.37, 2.51 -> 1.00; p99 write 383 -> 248, 262 -> 215; SPFresh tput 188609 -> 174548 (-7%).
 % (2026-11-12) WA ns / ck / DUET: YCSB-A 8.78 8.12 8.29, YCSB-B 8.59 7.67 7.43 (ck -8%, -11% vs ns; DUET vs ck +2%, -3%).
 % p99 read ns / ck / DUET: YCSB-A 6.38 11.42 8.37, YCSB-B 1.04 2.51 1.00 ms. p99 write: YCSB-A 489 383 248, YCSB-B 163 262 215 ms
 % (ck p99 write is lower than ns on YCSB-A, so only YCSB-B is cited). Alibaba and 70:30: the three bars are within 1%.
@@ -221,7 +256,7 @@ entries stay at 2.7--3.1\% of the logical pages. On Alibaba, 79\% of the written
 comes in writes of 64\,KB or larger, so the fine area stays smaller. It peaks early
 in the run at 1.8\% of all blocks and 0.8\% of the logical pages, and then shrinks to
 0.7--1.1\% of all blocks and 0.2--0.4\% of the logical pages. In both workloads,
-spilled entries stay within 1.4\% of the logical pages, and Alibaba spills none.
+the evicted entries stay within 1.4\% of the logical pages, and Alibaba evicts none.
 % (2026-11-12) write sizes from /mnt/nvme_mounted/dm_trace_32g: spfresh.csv 100% of writes < 64 KB. ali3.csv 93.1% of
 % write requests < 64 KB but 79.4% of written bytes in requests >= 64 KB.
 % (2026-11-12) 32 GB, results/final_32g/ts (proposedst_g32), NB = 274: limit 11 = 4.0%, SPFresh after the first third
@@ -246,7 +281,7 @@ spilled entries stay within 1.4\% of the logical pages, and Alibaba spills none.
 \subsection{Coarse-IU Size}
 Figure~\ref{fig:eval-usens} varies the coarse IU of DUET from 64\,KB to 512\,KB under
 the same DRAM budget. A larger coarse IU shrinks the coarse map and leaves more
-DRAM to the fine map, so fewer fine-map entries spill. On SPFresh, the flash reads
+DRAM to the fine map, so fewer fine-map entries are evicted. On SPFresh, the flash reads
 per host read drop from 1.06 to 1.00, and the throughput rises from 78\% to up to
 84\% of Page. A larger coarse IU, however, turns more writes into fine pages. On
 70:30, the 128\,KB writes still cover a 128\,KB coarse IU, but

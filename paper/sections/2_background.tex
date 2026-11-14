@@ -35,7 +35,7 @@ elsewhere and erasing it. These copies make NAND writes exceed host writes, and 
 of NAND writes to host writes is the write amplification (WA). The over-provisioned (OP) space, which the host
 cannot see, gives GC spare room.
 
-A page-level FTL keeps one entry per 4\,KB logical page, so its table is about
+A page-level FTL keeps one entry per 4\,KB logical page, so its mapping table is about
 0.1\% of the capacity. Providing this much on-device
 DRAM in a high-capacity SSD~\cite{solidigm-122tb,samsung-bm1743} is impractical because of its cost, power, and board area~\cite{micron-iu}, so
 the FTL of a high-capacity SSD must either keep part of the mapping in
@@ -43,7 +43,7 @@ flash or map data in larger units. Each of the approaches below suffers from an 
 in a different part of the I/O path.
 
 \textbf{On-demand mapping.}
-On-demand mapping stores the page-level table in non-volatile NAND flash as
+On-demand mapping stores the page-level mapping table in non-volatile NAND flash as
 flash translation pages (FTPs) and keeps only recently used entries in an on-device
 \emph{map cache}, as introduced by DFTL~\cite{dftl}. A small global translation
 directory (GTD) locates each FTP. A read that misses in the map cache must first read the
@@ -93,7 +93,7 @@ High-capacity SSDs in production simply map all data with a
 \emph{uniform coarse indirection unit} (uniform coarse IU)~\cite{micron-iu,solidigm-csal}.
 For example, Solidigm's 122.88\,TB D5-P5336 uses a 32\,KB IU~\cite{solidigm-p5336-spec}.
 Since one entry maps 32\,KB of contiguous space, the table needs about 1/8 of the
-DRAM of a 4\,KB page-level table and fits in DRAM. Every read thus takes a single
+DRAM of a 4\,KB page-level mapping table and fits in DRAM. Every read thus takes a single
 flash access, and there are no block-level merges.
 
 The cost moves to writes smaller than a coarse IU. When a write smaller than a
@@ -112,7 +112,7 @@ pages and rewrites the whole unit.
 
 \subsection{Motivation}
 Figure~\ref{fig:motiv} compares the three approaches that reduce the on-device
-DRAM with a page-level FTL that keeps its whole table in DRAM. Every FTL except the
+DRAM with a page-level FTL that keeps its whole mapping table in DRAM. Every FTL except the
 page-level FTL (\emph{Page}) gets the mapping DRAM of a uniform 32\,KB coarse IU,
 which is 1/8 of that of Page. Each bar is the geometric mean over the 9 workloads
 of Section~\ref{sec:eval} (synthetic raw I/O, real-world traces, and applications).

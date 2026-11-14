@@ -31,10 +31,10 @@ FTLs~\cite{micron-iu,solidigm-csal}, DUET writes small writes as fine pages with
 where $U$ is a power of two. A logical page number (LPN) thus belongs to coarse IU $i=\lfloor \mathrm{LPN}/U \rfloor$ at
 page offset $k=\mathrm{LPN} \bmod U$. Each coarse IU is stored as a \emph{chunk}
 of $U$ physically consecutive, $U$-page-aligned pages in a \emph{coarse block}.
-Like a page-level table, the coarse map is an array indexed by $i$, and each 4\,B
-entry holds a chunk index. It thus takes $1/U$ of the DRAM of a page-level table.
-A DRAM budget of a fraction $b$ of a page-level table requires $U > 1/b$, and the
-fine map gets the remaining $b-1/U$. For a budget of 1/8 of the size of a page-level table, $U$ must be 16 or larger.
+Like a page-level mapping table, the coarse map is an array indexed by $i$, and each 4\,B
+entry holds a chunk index. It thus takes $1/U$ of the DRAM of a page-level mapping table.
+A DRAM budget of a fraction $b$ of a page-level mapping table requires $U > 1/b$, and the
+fine map gets the remaining $b-1/U$. For a budget of 1/8 of the size of a page-level mapping table, $U$ must be 16 or larger.
 
 \textbf{Fine map.} A write smaller than a coarse IU is written out of place as 4\,KB
 \emph{fine pages} into separate \emph{fine blocks}. The fine map is a two-choice
@@ -61,38 +61,38 @@ candidate buckets. Unlike cuckoo hashing, DUET never moves an existing entry to
 its other bucket to make room, so an insert does not trigger a chain of moves.
 When both candidate buckets are full, DUET instead writes the fine-map entries
 of a victim coarse IU to a \emph{fine translation page} (FTP) in NAND and frees them
-from the table (\emph{spill}, Section~\ref{sec:spill}). A table lookup therefore checks at most the eight
+from the table (\emph{eviction}, Section~\ref{sec:spill}). A table lookup therefore checks at most the eight
 entries of the two candidate buckets, and an insert writes into a free entry of
-one of them. A spilled entry has a fixed location in NAND, so one map-page
+one of them. An evicted entry has a fixed location in NAND, so one map-page
 read returns it.
 % (2026-11-12) A cuckoo-displacement variant (BFS, Li et al. EuroSys'14, ct_kick=500) was tried and dropped: YCSB-B
 % p99 read 2.61 ms vs 1.00 ms (results/final_32g/duet_kl, kick_dram).
 
-\textbf{Entry size for large-capacity SSDs.} Even at 128\,TB, an entry in
+\textbf{Entry size for high-capacity SSDs.} Even at 128\,TB, an entry in
 the fine map fits in 8\,B. As in quotienting~\cite{quotient},
 its bucket index already encodes most of the LPN, so the entry stores only the
 remaining LPN bits, a candidate-bucket bit, and the PPN. A coarse entry grows to
-5\,B to hold a 32-bit chunk index and its flag bits, but a page-level table then
+5\,B to hold a 32-bit chunk index and its flag bits, but a page-level mapping table then
 also needs 5\,B entries, so the coarse map still takes $1/U$ of its DRAM.
 
 \textbf{Flag bits.} Each coarse entry also has three flag bits. The
 \emph{has-fine-pages} (F) bit tells whether the coarse IU has fine pages, the
-\emph{spilled} (S) bit tells whether their fine-map entries are in NAND, and the
+\emph{evicted} (E) bit tells whether their fine-map entries are in NAND, and the
 \emph{clean} (C) bit tells whether the entries in the table are identical to their
 copy in NAND (Section~\ref{sec:spill}).
 
 \subsection{Host I/O Path}
 \textbf{Read path.} As shown in Figure~\ref{fig:design}, a read first checks the
 coarse entry of coarse IU $i$, and its flag bits select one of four cases. If F is
-clear, DUET reads page $k$ of the chunk~(\rp{1}). If F is set and S is clear, DUET
+clear, DUET reads page $k$ of the chunk~(\rp{1}). If F is set and E is clear, DUET
 looks up the LPN in the fine map. It reads the fine page when the LPN is
-found~(\rp{2}), and page $k$ of the chunk otherwise~(\rp{3}). If S is set, the global
+found~(\rp{2}), and page $k$ of the chunk otherwise~(\rp{3}). If E is set, the global
 translation directory (GTD)~\cite{dftl} locates the FTP of the LPN, and DUET reads
 its slot~(\rp{4}), then the fine page that the slot points to, or page $k$ of the chunk
-when the slot is empty. Unless the coarse IU is spilled, a read thus reads at most
+when the slot is empty. Unless the coarse IU is evicted, a read thus reads at most
 three DRAM locations, the coarse entry and the two candidate buckets, each with one
 random DRAM access. Only a read
-of a spilled coarse IU adds one map-page read from NAND.
+of an evicted coarse IU adds one map-page read from NAND.
 
 \begin{figure}[t]
   \centering
@@ -199,15 +199,15 @@ workload (Section~\ref{sec:eval}).
 
 % (2026-11-13, user) Fine-area size paragraph folded into the ends of Fine-block cap and Copy-or-merge decision.
 
-\subsection{Fine-Map Spill and Load}
+\subsection{Fine-Map Eviction and Load}
 \label{sec:spill}
 Under a fixed DRAM budget, the table cannot index every fine page that the fine
 blocks can hold. The DRAM capacity is fixed in hardware, so a firmware update cannot
 enlarge it.
 For example, a commercial 122.88\,TB SSD~\cite{solidigm-p5336-spec} has DRAM for
-1/8 of a page-level table. When DUET runs within this budget, the
+1/8 of a page-level mapping table. When DUET runs within this budget, the
 coarse map takes about half of it, so only about 6\% of the DRAM of a page-level
-table is left for the fine map. In our
+mapping table is left for the fine map. In our
 evaluation setup, this indexes about 72\% of the fine pages that the fine blocks can
 hold at the fine-block cap.
 % 32 GB device: table 261,256 entries (dmesg "cuckoo2 fine table: 65314 buckets x 4") vs fine-block cap 11 x 32768 =
@@ -229,38 +229,38 @@ Merging the coarse IU of a colliding entry causes extra NAND writes.
 DUET instead keeps the fine-map entries of some coarse IUs in FTPs in NAND, so that
 DUET can map more fine pages in the fine blocks without more DRAM.
 The fine-map entries of a coarse IU move to its FTP when the table fills
-(\emph{spill}) and back to the table when the coarse IU is accessed again
+(\emph{eviction}) and back to the table when the coarse IU is accessed again
 (\emph{load}), and no data moves in either direction. Only fine pages have fine-map
-entries, so the spilled entries map at most the fine pages at the fine-block cap, which
+entries, so the evicted entries map at most the fine pages at the fine-block cap, which
 are 4.3\% of the logical capacity in our evaluation setup.
 % (2026-11-11, 32 GB) cap 11 blocks x 32768 = 360,448 pages / L 8,391,056 = 4.3%. Not cap - table (360,448 - 261,256
 % = 1.2%): spills start before the table is full (bucket pairs fill unevenly). At 44 GB YCSB-A max spilled was 2.9% of
 % L (results/final_stats) vs cap - table = (18 x 32768 - 0.6 x 18 x 32768) / 10,798,160 = 2.2%.
 
-\textbf{Spill.} As shown in Figure~\ref{fig:design}, the fine-map entry of each LPN has a
+\textbf{Eviction.} As shown in Figure~\ref{fig:design}, the fine-map entry of each LPN has a
 fixed 4\,B slot in an FTP,
 which holds the entries of 1024 consecutive LPNs. As in DFTL, the GTD locates each
 FTP with one 4\,B entry. When an insert finds both
 candidate buckets full, DUET picks a victim among the coarse IUs that have an entry in
-the two buckets. It writes all entries of the victim to its FTP, sets its S bit, and
-frees its table entries. The other coarse IUs of the same FTP are spilled with the
+the two buckets. It writes all entries of the victim to its FTP, sets its E bit, and
+frees its table entries. The other coarse IUs of the same FTP are evicted with the
 same program.
 
-\textbf{Load.} An access to a spilled coarse IU reads its FTP and loads only the
+\textbf{Load.} An access to an evicted coarse IU reads its FTP and loads only the
 entries of that coarse IU into the table. The other
-coarse IUs of the FTP stay spilled. A write loads the entries and then updates them.
+coarse IUs of the FTP stay evicted. A write loads the entries and then updates them.
 A read reads the FTP before the data, loads the entries, and sets the C bit of the
 coarse IU. The coarse IU stays clean until one of its entries changes.
 
-\textbf{What to spill.} DUET picks a clean coarse IU first to reduce FTP writes to NAND.
-A clean coarse IU is simply dropped from the table and marked spilled because its FTP
+\textbf{What to evict.} DUET picks a clean coarse IU first to reduce FTP writes to NAND.
+A clean coarse IU is simply dropped from the table and marked evicted because its FTP
 copy is still valid. If there is no clean coarse IU, DUET picks the coarse IU with the
 most fine pages, so one FTP program frees the most table slots.
 % Code: prop_ct_best(pc = spill_rp_clean) prefers clean IUs among the bucket pair, then most fragments, then older.
 
-\textbf{GC.} When GC moves fine pages of spilled coarse IUs, it reads and programs
-each FTP at most once per victim block to record the new locations of these fine pages. A merge of a spilled coarse IU reads its
-entries from the FTP and then clears its F and S bits.
+\textbf{GC.} When GC moves fine pages of evicted coarse IUs, it reads and programs
+each FTP at most once per victim block to record the new locations of these fine pages. A merge of an evicted coarse IU reads its
+entries from the FTP and then clears its F and E bits.
 % Dropped detail (2026-11-06): one recently used FTP is kept in controller SRAM. A coarse IU becomes dirty when one of its
 % fine pages changes (write, merge, GC copy).
 
@@ -268,13 +268,27 @@ entries from the FTP and then clears its F and S bits.
 High-capacity SSDs are mainly deployed as enterprise and data center SSDs, whose
 power-loss capacitors write buffered data and logs to NAND on a power
 failure~\cite{solidigm-p5336-spec,ocp-dcssd}. DUET recovers its maps by metadata
-logging~\cite{mew}. It collects the LPN and PPN of each written page in a page-sized
-log buffer in DRAM, which the capacitors protect, and writes the buffer to NAND when
-it fills. It also periodically checkpoints the coarse map, the fine-map table, and the
-GTD to NAND. At power-on, DUET loads the last checkpoint and replays the later logs in
-write order. The LPNs of a coarse IU that fill a whole $U$-page chunk are recovered
-into the coarse map, and the other LPNs into the fine map. DUET also logs the index and
-PPN of each FTP it writes, so the same replay rebuilds the GTD.
+logging~\cite{maplog,mew}, with separate logs for the coarse map and the fine map. Each
+map collects its changed entries in a superpage-sized (one page on every die) log buffer in DRAM, which the capacitors
+protect, and writes the buffer to NAND when it fills. After a fixed amount of
+coarse-map logs, DUET writes the whole coarse map to NAND as a checkpoint. After a fixed
+amount of fine-map logs, DUET applies them to a separate set of \emph{checkpointed FTPs},
+which differ from the FTPs that hold the fine-map entries evicted at run time. Each
+checkpoint page and checkpointed FTP records its index and a sequence number in its
+out-of-band (OOB) area. At power-on, DUET scans the OOB areas to load the last checkpoint
+and locate the latest checkpointed FTPs, and replays the later coarse-map logs. It
+discards the run-time FTPs, rebuilds the fine map from the checkpointed FTPs and the
+changed entries logged after them, and loads it into the table, evicting entries to new FTPs when it
+overflows, as in normal operation.
+% (2026-11-14, user) recovery FTPs renamed checkpointed FTPs, one sentence that they differ from the run-time eviction
+% FTPs. Power-on: run-time FTPs discarded, fine map rebuilt from checkpointed FTPs + later fine logs into the table,
+% overflow evicts as usual (was: recovery FTPs serve as the FTPs of evicted coarse IUs).
+% (2026-11-13, user) run-time spill FTPs are redundant after a crash: every fine change is in the logs / recovery FTPs.
+% (2026-11-13, user) separate coarse/fine logs; coarse map (+ GTD) checkpointed whole and sequentially, so no directory
+% is needed beyond one root pointer; fine-map logs are merged into FTPs (FTPs become the persistent home of the fine
+% map). (user) the recovery FTPs are separate from the spill FTPs, so the run-time spill path is unchanged. (user) no
+% root pointer / GTD in the text: checkpoint pages and recovery FTPs carry index + sequence number in OOB, found by the
+% power-on scan (the coarse map must be loaded whole anyway). Not modeled in the evaluation (no rerun, user).
 % (2026-11-13, user) was: OOB scan of LPN + timestamp in timestamp order [remapssd], FTP index in its OOB rebuilds the GTD.
 % MEW (Kim et al., IEEE TC 2016), verified in the PDF: page-sized in-memory log buffer of <LPN, PPN> entries written when
 % full (Sec. 3.4), log buffer protected by a supercapacitor, checkpointing flushes the page mapping table (Sec. 3.5), and

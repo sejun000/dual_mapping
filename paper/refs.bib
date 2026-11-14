@@ -357,6 +357,20 @@
 % Verified from the PDF (oslab.kaist.ac.kr, 2026-11-13): Sec. 3.4 metadata logging, page-sized in-memory log buffer of
 % <LPN, PPN> tuples flushed when full and protected by a supercapacitor; Sec. 3.5 checkpointing flushes the PMT; recovery
 % REDOes logs after the last checkpoint. DOI 10.1109/TC.2015.2462819.
+% Verified from the J-STAGE PDF (open access, 2026-11-13): page-level FTL; (LPN, PPN) mapping changes aggregated in an
+% in-memory MapLogInfo and flushed to one page of a dedicated MapLog block; when the MapLog block fills, the in-memory
+% metadata (page mapping table) is synced to NAND as a snapshot; PLR loads the snapshot, applies MapLog, then scans the
+% next block's spare-area LPNs for unlogged changes. DOI 10.1587/elex.10.20130339.
+@article{maplog,
+  author  = {Seung-Ho Lim},
+  title   = {Implementation of Metadata Logging and Power Loss Recovery for Page-Mapping {FTL}},
+  journal = {IEICE Electronics Express},
+  volume  = {10},
+  number  = {11},
+  pages   = {20130339},
+  year    = {2013}
+}
+
 @article{mew,
   author  = {Dongwook Kim and Youjip Won and Jaehyuk Cha and Sungroh Yoon and Jongmoo Choi and Sooyong Kang},
   title   = {Exploiting Compression-Induced Internal Fragmentation for Power-Off Recovery in {SSD}},
@@ -373,4 +387,84 @@
   booktitle = {Proceedings of the USENIX Conference on File and Storage Technologies (FAST)},
   pages     = {187--202},
   year      = {2021}
+}
+
+% (2026-11-14) Verified from the USENIX PDF: Sec. 2.1 "Capacity over-provisioning and DRAM are the most expensive
+% components in SSDs", Sec. 3.1 "the table size often requires 1GB of mappings per 1TB of media capacity".
+@inproceedings{zns,
+  author    = {Matias Bj{\o}rling and Abutalib Aghayev and Hans Holmberg and Aravind Ramesh and Damien Le Moal and Gregory R. Ganger and George Amvrosiadis},
+  title     = {{ZNS}: Avoiding the Block Interface Tax for Flash-based {SSDs}},
+  booktitle = {Proceedings of the USENIX Annual Technical Conference (ATC)},
+  pages     = {689--703},
+  year      = {2021}
+}
+
+% (2026-11-14) Verified from the SNIA PDF (members.snia.org/document/dl/26956): Table 5-1, card 31.5 mm x 111.49 mm,
+% Table 7-1 initial slot power 12 W / 25 W.
+@misc{sff-e1s,
+  author       = {{SNIA SFF Technology Affiliate}},
+  title        = {{SFF-TA-1006}: Specification for Enterprise and Datacenter 1{U} Short Device Form Factor ({E1.S})},
+  howpublished = {Rev. 2.0},
+  month        = dec,
+  year         = {2025}
+}
+
+% (2026-11-14) Verified from the SNIA PDF (members.snia.org/document/dl/26716): Table 5-1, E3.S 76 mm x 112.75 mm,
+% Table 6-1 initial slot power 25 W (E3.S), 40 W (E3.S 2T).
+@misc{sff-e3,
+  author       = {{SNIA SFF Technology Affiliate}},
+  title        = {{SFF-TA-1008}: Specification for Enterprise and Datacenter Standard Form Factor ({E3})},
+  howpublished = {Rev. 3.0a},
+  month        = jul,
+  year         = {2026}
+}
+
+% (2026-11-14) Verified from the arXiv PDF (v1, 4 Jun 2024), Sec. 1: "SSD onboard DRAM shortage stems from spatial
+% constraints. DRAM must be situated close to the SSD controller ... constraining DRAM expansion." Preprint (user: cite).
+@misc{lmb,
+  author       = {Jiapin Wang and Xiangping Zhang and Chenlei Tang and Xiang Chen and Tao Lu},
+  title        = {{LMB}: Augmenting {PCIe} Devices with {CXL}-Linked Memory Buffer},
+  howpublished = {arXiv:2406.02039},
+  year         = {2024}
+}
+
+% (2026-11-14) Verified on the page (engineering.fb.com/2025/03/04/data-center-engineering/a-case-for-qlc-ssds-in-the-data-center/).
+@misc{meta-qlc,
+  author       = {Sumit Gupta and Jens Axboe and Madhavan Ravi and Kaushal Upadhyaya and Paul Saab},
+  title        = {A Case for {QLC} {SSDs} in the Data Center},
+  howpublished = {Engineering at Meta},
+  month        = mar,
+  year         = {2025}
+}
+
+% (2026-11-14) Verified on the page (solidigm.com/products/data-center/product-briefs/d5-p5336-product-brief.html, 24 Jun 2023):
+% AI models ~10X every two years, TLC-equivalent read performance, more sustainable than TLC SSD- and HDD-based solutions.
+@misc{solidigm-p5336-brief,
+  author       = {{Solidigm}},
+  title        = {Solidigm {D5-P5336} Product Brief},
+  howpublished = {Product brief},
+  month        = jun,
+  year         = {2023}
+}
+
+% (2026-11-14) Verified from the PDF (seagate.com/files/www-content/our-story/trends/files/idc-seagate-dataage-whitepaper.pdf):
+% "IDC predicts that the Global Datasphere will grow from 33 Zettabytes (ZB) in 2018 to 175 ZB by 2025." / "Beginning in
+% 2019, more data will be stored in the enterprise core than in all the world's existing endpoints."
+@misc{idc-dataage,
+  author       = {David Reinsel and John Gantz and John Rydning},
+  title        = {The Digitization of the World: From Edge to Core},
+  howpublished = {IDC White Paper US44413318},
+  month        = nov,
+  year         = {2018}
+}
+
+% (2026-11-14) Verified from the arXiv PDF (v4, ISCA'22 industry track), Sec. 1: "steady innovation in model complexity and
+% DSAs for training are increasing data storage and bandwidth demands"; dataset size and online ingestion bandwidth grew
+% by over 2x and 4x over two years; storage and preprocessing can consume more power than the GPU trainers.
+@inproceedings{dsi,
+  author    = {Mark Zhao and Niket Agarwal and Aarti Basant and Bu{\u{g}}ra Gedik and Satadru Pan and Mustafa Ozdal and Rakesh Komuravelli and Jerry Pan and Tianshu Bao and Haowei Lu and Sundaram Narayanan and Jack Langman and Kevin Wilfong and Harsha Rastogi and Carole-Jean Wu and Christos Kozyrakis and Parik Pol},
+  title     = {Understanding Data Storage and Ingestion for Large-Scale Deep Recommendation Model Training},
+  booktitle = {Proceedings of the International Symposium on Computer Architecture (ISCA)},
+  year      = {2022},
+  doi       = {10.1145/3470496.3533044}
 }

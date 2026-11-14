@@ -189,7 +189,7 @@ def panel_duet(ax):
     # a few page-level mappings are staged in map pages and promoted back on access
     ax.add_patch(FancyArrowPatch(pe(5), S.top(4), arrowstyle='<|-|>', mutation_scale=4.5, color=C_AR, lw=0.6,
                                  ls=(0, (2, 1.2)), shrinkA=0, shrinkB=0.3))
-    lab(ax, 7.75, 4.42, 'spill/load', fontsize=SF - 1.2)   # one line: fits the narrower DRAM-NAND gap (2026-11-13)
+    lab(ax, 7.75, 4.42, 'evict/load', fontsize=SF - 1.2)   # one line: fits the narrower DRAM-NAND gap (2026-11-13)
     # merge one IU: its 2 valid pages + its 2 page-level pages -> a new IU
     arrow(ax, I.bottom(0), M.top(0), C_OK, lw=0.9)
     arrow(ax, P.bottom(1), M.top(2), C_OK, lw=0.9, rad=-0.1)

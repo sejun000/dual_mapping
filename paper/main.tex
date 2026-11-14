@@ -8,6 +8,7 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{tikz}
+\usepackage{kotex}
 % numbered badges of Figure 4: coarse GC (purple) and fine GC (blue)
 \definecolor{cgcol}{HTML}{5B3FA0}
 \definecolor{fgcol}{HTML}{1F5FA8}
@@ -15,6 +16,9 @@
 \newcommand{\cgc}[1]{\gcbadge{cgcol}{#1}}
 \newcommand{\fgc}[1]{\gcbadge{fgcol}{#1}}
 \newcommand{\rp}[1]{\gcbadge{black}{#1}}   % read-path cases of Figure 3 (black badges)
+
+\newcommand{\M}[1]{\textcolor{brown}{#1}}
+
 \usepackage[hidelinks,pdfauthor={},pdfcreator={},pdfproducer={}]{hyperref}
 % (2026-11-09) tighter heading and float spacing (IEEEtran conference: section 1.5ex+1.5ex-0.5ex / 0.7ex+1ex,
 % textfloatsep 1.55 baselineskip); fonts, margins, and columns stay as in the template

@@ -1,0 +1,141 @@
+[20:59:38] === tpcc_d_t64_comap_g32p1k_20261113T205938Z -> /home/sejun000/dual_mapping/results/final_32g/comap_tune/apps/tpcc_d_t64/comap_g32p1k
+[20:59:39] insmod /home/sejun000/nvmevirt_comap/nvmev.ko memmap_start=256G memmap_size=35073M cpus=94,95 dm_flush_dump=0 dm_params='cache_bytes=4270280,comap_logfrac_ppm=990000,comap_p0=990000,comap_period=1024'
+[20:59:39] target /dev/nvme3n1 (CSL_Virt_MN_01 32G)
+[20:59:40] memory cgroup dmapp.slice: MemoryMax=6553M MemoryHigh=5733M (20% of 34359738368 B)
+[20:59:40] [prefill] sequential 128K write of the whole /dev/nvme3n1 (34359738368 B) before mkfs
+[21:00:36] [prefill] done in 56 s
+[21:00:36] mkfs.ext4 -F -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 /dev/nvme3n1
+[21:00:37] ext4 capacity (used+avail) 31766994944 B, util 0%
+[21:00:37] mounted /dev/nvme3n1 at /mnt/dmapp (ext4, capacity 31766994944 B)
+[21:00:38] [tpcc] 16 instances x (2 warehouses, 4 terminals)
+initdb:initdb: warning:  enabling "trust" authentication for local connections
+warning: initdb: enabling "trust" authentication for local connections
+hint: initdb: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: initdb:You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+ warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb:initdb:  warning: warning: enabling "trust" authentication for local connections
+enabling "trust" authentication for local connections
+initdb:initdb:  hint: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+NOTICE:  database "benchbase" does not exist, skipping
+[21:02:40] [ballast] writing 12121 MiB to reach ~76% (pending 0 MiB)
+[21:03:23] [ballast] df util now 75%
+[21:03:41] measurement start utilisation=75% (window 73-85)
+[21:03:41] [tpcc] execute 600s, 16 x 4 terminals
+/home/sejun000/dual_mapping/tools/apps/common.sh: line 371: /sys/fs/cgroup/dmapp.slice/run-rbadc34099e9b44c7ab92ed5f98c35574.scope/cgroup.procs: No such file or directory
+case=/home/sejun000/dual_mapping/results/final_32g/comap_tune/apps/tpcc_d_t64/comap_g32p1k
+workload=tpcc_d_t64
+policy=comap_g32p1k
+status=DONE
+start_util_pct=75.9977
+end_util_pct=89.5148
+ext4_write_kbytes_delta=65545816
+blk_read_ios=3663216
+blk_write_ios=4592400
+blk_read_bytes=37654880256
+blk_write_bytes=67118915584
+blk_avg_write_req_kb=14.2727
+dev_read_lat_ms_avg=0.463329
+dev_write_lat_ms_avg=6.95047
+write_qd_max=506
+blk_read_lat_us_mean=464.04
+blk_read_lat_us_p50=123.983
+blk_read_lat_us_p90=288.088
+blk_read_lat_us_p99=662.857
+blk_read_lat_us_p99.9=67351
+blk_read_lat_us_p99.99=464051
+blk_write_lat_us_mean=6985.37
+blk_write_lat_us_p50=18.2785
+blk_write_lat_us_p90=418.702
+blk_write_lat_us_p99=235314
+blk_write_lat_us_p99.9=756280
+blk_write_lat_us_p99.99=1.18467e+06
+app_write_bytes=66776022508
+fs_waf=1.00513
+dev_host_write_pages=16386454
+dev_host_read_pages=9193086
+dev_nand_progs=158882157
+dev_waf=9.69595
+dev_waf_gc=9.10121
+dev_waf_rmw=0
+dev_waf_fold=0
+dev_waf_map=0.00458891
+dev_waf_other=0
+dev_nand_reads=158817800
+dev_map_reads_per_host_page=0.0190872
+dev_map_reads_per_host_read=0.0531098
+dev_erases=5011
+dev_map_miss=3311832
+dev_mapping_mem_bytes_end=2492608
+total_waf=9.74573
+memcg_max=6871318528
+memcg_high=6011486208
+memcg_peak=6019080192
+memcg_events_high=31180
+memcg_events_max=0
+memcg_events_oom_kill=0
+memcg_swap_current=129622016
+throughput=6725.29
+throughput_unit=txn/s
+tpcc_tenants=16
+tpcc_write.avg_ms=10.7373
+tpcc_write.p50_ms=4.12908
+tpcc_write.p90_ms=10.2495
+tpcc_write.p95_ms=24.8098
+tpcc_write.p99_ms=154.326
+tpcc_write.n=3714519
+app_write_lat_ms_avg=10.7373
+app_write_lat_ms_p99=154.326
+tpcc_read.avg_ms=1.33946
+tpcc_read.p50_ms=1.1048
+tpcc_read.p90_ms=1.90137
+tpcc_read.p95_ms=2.01092
+tpcc_read.p99_ms=2.93253
+tpcc_read.n=322701
+app_read_lat_ms_avg=1.33946
+app_read_lat_ms_p99=2.93253
+tpcc_all.avg_ms=9.98616
+tpcc_all.p50_ms=3.73786
+tpcc_all.p90_ms=9.6787
+tpcc_all.p95_ms=22.1864
+tpcc_all.p99_ms=134.145
+tpcc_all.n=4037220
+[21:14:50] === tpcc_d_t64_comap_g32p1k_20261113T205938Z status DONE
