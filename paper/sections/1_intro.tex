@@ -20,16 +20,15 @@
 % constraints are accelerating as AI adoption increases". solidigm-p5336-brief (2023, verified on the page): "The D5-P5336 delivers TLC-equivalent performance for read and
 % data-intensive workloads", "more sustainable storage infrastructure than both TLC SSD- and HDD-based solutions".
 % solidigm-122tb: "3.4X more terabytes per watt versus 30TB TLC". No verified per-watt number versus HDDs.
-The amount of data that data centers store keeps growing
-rapidly~\cite{idc-dataage}, and the adoption of AI further increases the demand for
-storage that is both large and fast~\cite{dsi,solidigm-122tb}. The power and space of data center storage,
+Data centers store a rapidly growing amount of data~\cite{idc-dataage}, and AI
+workloads further raise the demand for large and fast storage~\cite{dsi,solidigm-122tb}. The power and space of data center storage,
 however, are limited~\cite{dsi,meta-qlc,solidigm-122tb}. High-capacity quad-level cell (QLC) SSDs
 store more data than HDDs and triple-level cell (TLC) SSDs within the same power
 and space~\cite{meta-qlc,solidigm-122tb,solidigm-p5336-brief}, and provide read
 performance close to that of TLC SSDs~\cite{solidigm-p5336-brief}.
-QLC SSDs thus fit this trend. A 122\,TB QLC SSD, for example, stores 3.4$\times$ more
-data per watt than a 30\,TB TLC SSD, and network-attached storage built with it uses up
-to 84\% less power than one built with HDDs and TLC SSDs~\cite{solidigm-122tb}. SSDs of
+A 122\,TB QLC SSD, for example, stores 3.4$\times$ more
+data per watt than a 30\,TB TLC SSD and uses up to 84\% less power than hybrid HDD
+storage~\cite{solidigm-122tb}. SSDs of
 64 and 128\,TB are being released and developed~\cite{solidigm-122tb,samsung-bm1743}.
 % (2026-11-14, user: compare with HDDs) solidigm-122tb: "Consumes up to 84 percent less storage power in network-attached
 % storage (NAS) deployments versus legacy hybrid hard-disk drive (HDD) + TLC solutions". No verified per-watt or per-rack
@@ -40,9 +39,8 @@ their flash translation layer (FTL) in on-device DRAM. The FTL maps each logical
 physical address, because NAND flash must erase a whole block before it is
 overwritten, and thus every update is written out of place.
 Conventional SSDs use page-level mapping, which keeps one map entry for every 4\,KB
-page in on-device DRAM. For a high-capacity SSD, this table grows too large. A 64\,TB SSD has $2^{34}$ logical pages,
-so each entry needs at least 34 bits and the table takes 68\,GB. A 128\,TB SSD needs
-35-bit entries and 140\,GB. Providing this much on-device DRAM is impractical because
+page in on-device DRAM. For a high-capacity SSD, this table grows too large. A 128\,TB SSD has $2^{35}$ logical pages,
+so each entry needs at least 35 bits and the table takes 140\,GB. Providing this much on-device DRAM is impractical because
 of its cost and power~\cite{zns,leaftl,solidigm-csal} and the fixed board area of data
 center form factors~\cite{sff-e1s,sff-e3,lmb}, so high-capacity SSDs have to translate
 addresses with a mapping DRAM budget that is only a fraction of the full page-level

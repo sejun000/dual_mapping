@@ -174,7 +174,7 @@ Page on YCSB-A and SPFresh, at 69\% and 78\%, where its WA is 1.4$\times$ and
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_ablation.pdf}
   \vspace{-6mm}
-  \caption{Ablation. Basic handles a full fine map by cuckoo hashing, the techniques of DUET are added one by one, and the last step replaces cuckoo hashing with eviction and load. Throughput and p99 latencies are normalized to Basic.}
+  \caption{Ablation. The techniques of DUET are added to Basic one by one. Throughput and p99 latencies are normalized to Basic.}
   \label{fig:eval-ablation}
   \vspace{-2.5mm}
 \end{figure}
@@ -227,7 +227,7 @@ fine-block space for its copy cost. On these three workloads, it thus lowers WA 
 % bkc/ck 1.91, 2.31, 1.58. Removed from the text (user: end the paragraph here): "With both GC decisions, WA is 12--40%
 % lower and the throughput is up to 1.60x higher than those of Basic."
 
-Eviction and load finally replace cuckoo hashing. It keeps WA within 3\% but lowers the p99
+Eviction and load finally replace cuckoo hashing. They keep WA within 3\% but lowers the p99
 read latency by 27\% and 60\% and the p99 write latency by 35\% and 18\% on YCSB-A
 and YCSB-B, because cuckoo hashing searches 179 and 203 buckets on average for each
 insert into a full bucket pair. On Alibaba and 70:30, all four metrics stay within

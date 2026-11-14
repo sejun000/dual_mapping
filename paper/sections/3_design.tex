@@ -10,7 +10,7 @@ A \emph{coarse map} keeps one entry per coarse IU, and a \emph{fine map}
 maps the 4\,KB fine pages written for parts of a coarse IU. The coarse map is always
 in DRAM and maps every page except those currently stored as fine pages, so most
 reads need no flash read to find their mapping. Part of the fine map
-can move to NAND, but unlike demand-paging FTLs~\cite{dftl,leaftl,mftl}, most of the
+can move to NAND, but unlike on-demand mapping~\cite{dftl,leaftl,mftl}, most of the
 map stays in DRAM, so far fewer reads need a second flash read. Unlike hybrid
 FTLs~\cite{fast}, which merge one block at a time, DUET merges fine pages one
 coarse IU at a time, so each merge costs less. Unlike coarse-IU
@@ -86,8 +86,8 @@ copy in NAND (Section~\ref{sec:spill}).
 coarse entry of coarse IU $i$, and its flag bits select one of four cases. If F is
 clear, DUET reads page $k$ of the chunk~(\rp{1}). If F is set and E is clear, DUET
 looks up the LPN in the fine map. It reads the fine page when the LPN is
-found~(\rp{2}), and page $k$ of the chunk otherwise~(\rp{3}). If E is set, the global
-translation directory (GTD)~\cite{dftl} locates the FTP of the LPN, and DUET reads
+found~(\rp{2}), and page $k$ of the chunk otherwise~(\rp{3}). If E is set, the
+GTD~\cite{dftl} locates the FTP of the LPN, and DUET reads
 its slot~(\rp{4}), then the fine page that the slot points to, or page $k$ of the chunk
 when the slot is empty. Unless the coarse IU is evicted, a read thus reads at most
 three DRAM locations, the coarse entry and the two candidate buckets, each with one
@@ -98,7 +98,7 @@ of an evicted coarse IU adds one map-page read from NAND.
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_write.pdf}
   \vspace{-5.8mm}
-  \caption{DUET write and reclamation paths. Coarse GC (purple) and fine GC (blue) either (1) copy valid data or (2) merge it into new chunks.}
+  \caption{Write and reclamation path. Coarse GC (purple) and fine GC (blue) either (1) copy valid data or (2) merge it into new chunks.}
   \label{fig:write}
   \vspace{-2.5mm}
 \end{figure}
@@ -131,7 +131,7 @@ When an active block is full, DUET takes a free block as the new active block.
 % Implementation also completes a nearly full partial write as a chunk when cheaper (eager RMW): 0.1-0.8% of host
 % programs in the apps, 0 in traces / replays. Not described in the paper.
 
-\subsection{Reclaiming Path}
+\subsection{Reclamation Path}
 \label{sec:reclaim}
 DUET reclaims a block when the free blocks run low, and it has two kinds of GC. \emph{Fine GC} reclaims a fine block, and
 \emph{coarse GC} reclaims a coarse block. To find the valid data of a victim,

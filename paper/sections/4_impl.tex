@@ -28,12 +28,12 @@
 \label{sec:impl}
 
 We implement DUET and six other FTLs in NVMeVirt~\cite{nvmevirt}, a kernel-level
-NVMe SSD emulator that models the latency of every NAND read, program, and erase
-over its channels and dies. We add a common FTL interface to NVMeVirt. Each FTL
+NVMe SSD emulator that models the latency of every NAND read and program
+over its channels and dies. Each FTL
 implements the host read, write, and flush handlers and its own GC, and it issues
 every data and mapping access as a flash operation. Mapping reads and programs
 therefore take NAND time like data accesses and are counted in WA. All FTLs share
 the same NAND model, write buffer, and host interface and differ only in the FTL.
-Based on the NVMeVirt code, we also let host reads suspend programs and erases and
+Based on the NVMeVirt code, we also let host reads suspend programs and
 pace background NAND operations to mimic real SSDs. These changes apply equally to
 all FTLs. DUET takes about 1,600 lines of C.
