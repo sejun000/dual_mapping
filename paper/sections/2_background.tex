@@ -7,7 +7,7 @@
 \section{Background and Motivation}
 \label{sec:bg}
 
-\subsection{Address Translation under a DRAM Budget}
+\subsection{Address Translation in High-Capacity SSDs}
 % (2026-11-10) first two paragraphs shortened. Previous version:
 % NAND flash is read and programmed in pages (4--16\,KB) but erased only in
 % much larger blocks, and a page cannot be overwritten before its block is
@@ -31,19 +31,21 @@
 NAND flash is programmed in pages but erased only in much larger blocks, so the
 FTL writes every update out of place and maps each logical page to its current
 physical page. GC reclaims a block by copying its valid pages
-elsewhere and erasing it. These copies make NAND writes exceed host writes, and WA is the ratio
+to a free block and erasing it. These copies make NAND writes exceed host writes, and WA is defined as the ratio
 of NAND writes to host writes. The over-provisioned (OP) space, which the host
 cannot see, gives GC spare room.
 
-A page-level FTL keeps one entry per 4\,KB logical page, so its mapping table is about
+Conventional SSDs have relied on a page-level FTL, which keeps one entry per 4\,KB logical page, and its mapping table takes about
 0.1\% of the capacity. Providing this much on-device
-DRAM in a high-capacity SSD~\cite{solidigm-122tb,samsung-bm1743} is impractical because of its cost, power, and board area~\cite{zns,leaftl,solidigm-csal,sff-e3}, so
-the FTL of a high-capacity SSD must either keep part of the mapping in
+DRAM in a high-capacity SSD~\cite{solidigm-122tb,samsung-bm1743} is impractical. A larger DRAM raises both
+the price~\cite{zns,solidigm-csal,trendforce-dram-1q26} and the power consumption~\cite{leaftl,solidigm-csal} of the SSD, and
+the board of a data center form factor has limited area for DRAM chips~\cite{sff-e3}.
+The FTL of a high-capacity SSD must therefore either keep part of the mapping in
 flash or map data in larger units. Each of the approaches below suffers from an overhead
 in a different part of the I/O path.
 
 \textbf{On-demand mapping.}
-On-demand mapping stores the page-level mapping table in non-volatile NAND flash as
+On-demand mapping stores the page-level mapping table in NAND flash as
 \emph{translation pages} and keeps only recently used entries in an on-device
 \emph{map cache}, as introduced by DFTL~\cite{dftl}. A small global translation
 directory (GTD) locates each translation page. A read that misses in the map cache must first read the
@@ -62,48 +64,45 @@ spike.
 
 \textbf{Block-level hybrid mapping.}
 Block-level hybrid FTLs such as FAST (fully-associative sector
-translation)~\cite{fast} and Janus-FTL~\cite{janusftl} map most data per NAND block,
+translation)~\cite{fast}, Janus-FTL~\cite{janusftl}, and CoMap~\cite{comap} manage the mappings of most data at NAND block granularity,
 which needs only one entry per block, and absorb updates in a small pool of
 page-mapped \emph{log blocks}. When the pool runs out, a log block is reclaimed
 by \emph{merging}. The valid pages of a logical block are copied from its data
 block and the log block into a free block, and the old data block and log block
-are erased. A merge imposes a higher overhead than the GC of a page-level FTL.
-Page-level GC picks the block with the fewest valid pages, so it copies few
-pages per reclaimed block. A merge instead rewrites the whole data block even
-when only a few of its pages were updated. One log block can also hold updates
-to many logical blocks~\cite{fast}. To reclaim such a log block, the FTL merges every
-logical block that has an update in it, and each merge copies the valid pages of a
-whole logical block to a new block.
+are erased.
+
+A merge imposes a higher overhead than the GC of a page-level FTL. Page-level GC copies
+only the valid pages of the victim block to a free block. Unless the writes are fully
+sequential, a log block holds updates to many logical blocks~\cite{fast}, and a merge must
+copy all valid pages of their data blocks in addition to those of the victim log block.
 % (2026-11-13) FAST (TECS 2007), read from the local PDF: "the sectors in a victim might originate from several different
 % logical blocks and, therefore, the number of merge operations per a victim block is equal to the number of logical
 % blocks corresponding to the sectors in the victim." 
 
-The merge copies compete with host writes for NAND bandwidth, which raises
+The rewrites from merges interfere with host writes by taking up part of the NAND bandwidth, which raises
 write latency and lowers write throughput. The size of a NAND block keeps
 growing with 3D NAND generations~\cite{pen}. A larger log block holds updates to
 more logical blocks, so reclaiming it involves more merges, and each merge copies
-more pages. CoMap~\cite{comap} selects page or block mapping for each
-write request with reinforcement learning and caches the page-level mappings on
-demand, so it can suffer both mapping misses and block-level merges.
+more pages.
 % (2026-11-13) mapping cache: the paper's cache allocator splits DRAM between a read data cache and a mapping cache
 % (NOTES_comap.md, paper Section III). Page-mapped part implemented as DFTL (approved interpretation).
 
 \textbf{Uniform coarse-IU mapping.}
 High-capacity SSDs in production simply map all data with a
-\emph{uniform coarse IU}~\cite{micron-iu,solidigm-csal}.
+\emph{uniform coarse IU}~\cite{micron-iu,solidigm-csal}, in which one entry maps multiple contiguous pages.
 For example, Solidigm's 122.88\,TB D5-P5336 uses a 32\,KB IU~\cite{solidigm-p5336-spec}.
-Since one entry maps 32\,KB of contiguous space, the table needs about 1/8 of the
-DRAM of a 4\,KB page-level mapping table and fits in DRAM. Every read thus takes a single
+One entry then maps eight contiguous 4\,KB pages, and the required DRAM drops to about 1/8 of
+that of page-level mapping. The mapping table thus fits in DRAM, so every read takes a single
 flash access, and there are no block-level merges.
 
-The cost moves to writes smaller than a coarse IU. When a write smaller than a
+A uniform coarse IU, however, still pays a performance cost for writes smaller than a coarse IU. When a write smaller than a
 coarse IU arrives, the FTL must read the rest of the unit, merge the new data, and
 program the whole unit again.
+Although a write buffer can gather small writes to the same coarse IU, the FTL must still
+read the missing pages from NAND and rewrite the whole unit when a partially filled coarse IU
+is flushed from the buffer.
 The extra reads lengthen the write path, and the rewritten pages raise write
-amplification by up to the coarse-IU size over the write size. A write buffer in the
-SSD merges small writes to the same coarse IU. If these writes do not fill the coarse
-IU before they are evicted from the buffer, however, the FTL still reads the missing
-pages and rewrites the whole unit.
+amplification by up to the coarse-IU size over the write size.
 % (2026-11-13, user) bplru citation removed: BPLRU pads NAND-block-sized buffer groups, not coarse IUs.
 % (2026-11-12) BPLRU (FAST'08, Samsung), read from the USENIX PDF: a RAM write buffer inside the SSD groups buffered
 % sectors by block in LRU order and flushes the least recent block; "the victim block has only two sectors (12 and 15),
@@ -118,29 +117,26 @@ which is 1/8 of that of Page. Each bar is the geometric mean over the 9 workload
 of Section~\ref{sec:eval} (synthetic raw I/O, real-world traces, and applications).
 
 \textbf{On-demand mapping slows reads.}
-With mapping misses, DFTL needs 1.47 flash reads per host read and LeaFTL 1.26
+Because they keep only part of the mappings in DRAM and load the rest from flash,
+DFTL needs 1.47 flash reads per host read and LeaFTL 1.26
 (Figure~\ref{fig:motiv}a). Their average read latency is 2.5$\times$ and
-1.7$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b) because each
-miss adds a synchronous flash read before the data read.
+1.7$\times$ that of the page-level FTL (Figure~\ref{fig:motiv}b).
 
 \textbf{Block-level hybrid mapping and uniform coarse IUs slow writes.}
 FAST's block-level merges raise WA by 2.7$\times$ (Figure~\ref{fig:motiv}c),
 so its average write latency is 2.5$\times$ that of the page-level
-FTL (Figure~\ref{fig:motiv}d). Under random I/O, its p99 write latency is 3--4$\times$ that of the
-page-level FTL.
+FTL (Figure~\ref{fig:motiv}d).
 % (2026-11-12) 32 GB eval_data.csv FAST/Page p99 write: 50:50 3.90, 70:30 3.94, 90:10 2.98 (moved from the intro 2026-11-13).
-The uniform coarse IU avoids merges, but every 4\,KB write becomes an RMW of
+The uniform coarse IU avoids merges, but a 4\,KB write often becomes an RMW of
 its 32\,KB unit, so its WA grows by 2.2$\times$ and its write latency by 2.1$\times$.
 
-DUET uses the same DRAM budget. It lowers read latency by
-issuing fewer flash reads per host read, and it lowers write latency by merging
-efficiently, which lowers WA.
-
 \textbf{Goal.}
-An FTL that fits a limited DRAM budget should (i) minimize mapping
-reads, so that a host read almost always costs one flash read, (ii) eliminate block-level merges, and (iii) absorb small writes without RMW.
+An FTL that fits a limited DRAM budget should (i) serve almost every host read with a single flash read, (ii) eliminate block-level merges, and (iii) absorb small writes without RMW.
 DUET meets all three by keeping the coarse IU and adding a fine-grained level
 in the same budget.
+As Figure~\ref{fig:motiv} shows, it lowers read latency by
+issuing fewer flash reads per host read, and it lowers write latency by merging
+efficiently, which lowers WA.
 
 \begin{figure}[t]
   \centering

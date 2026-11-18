@@ -10,7 +10,7 @@
   \centering
   \includegraphics[width=\textwidth]{figs/fig_eval_read.pdf}
   \vspace{-6mm}
-  \caption{Read path. From top, flash reads per host read (data plus mapping reads), and average and p99 read latency.}
+  \caption{Read path. From top, flash reads per host read (data plus mapping reads), and average and p99 read latency.\M{로그 스케일이라는 언급이 여기 또는 본문에 짧게라도 있으면 좋을거같아요}}
   \label{fig:eval-read}
   \vspace{-2.5mm}
 \end{figure*}
@@ -19,21 +19,8 @@
   \centering
   \includegraphics[width=\textwidth]{figs/fig_eval_write.pdf}
   \vspace{-6mm}
-  \caption{Write path. From top, device write amplification, and average and p99 write latency. YCSB-C is read-only.}
+  \caption{Write path. From top, device write amplification, and average and p99 write latency. YCSB-C is read-only.\M{그냥 ycsb-c column이 없는게 낫지 않을까요?}}
   \label{fig:eval-write}
   \vspace{-2.5mm}
 \end{figure*}
-
-\section{Implementation}
-\label{sec:impl}
-
-We implement DUET and six other FTLs in NVMeVirt~\cite{nvmevirt}, a kernel-level
-NVMe SSD emulator that models the latency of every NAND read and program
-over its channels and dies. Each FTL
-implements the host read, write, and flush handlers and its own GC, and it issues
-every data and mapping access as a flash operation. Mapping reads and programs
-therefore take NAND time like data accesses and are counted in WA. All FTLs share
-the same NAND model, write buffer, and host interface and differ only in the FTL.
-Based on the NVMeVirt code, we also let host reads suspend programs and
-pace background NAND operations to mimic real SSDs. These changes apply equally to
-all FTLs. DUET takes about 1,600 lines of C.
+% (2026-11-18, mw review) Implementation moved to the first subsection of the Evaluation (sections/5_eval.tex).

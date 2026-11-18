@@ -13,7 +13,7 @@ US = [16, 32, 64, 128]
 COL = {16: '#3F2FD0', 32: '#8A80E6', 64: '#C3BDF2', 128: '#ECEAFB'}
 LAB = {u: f'{u * 4} KB' + (' coarse IU (default)' if u == 16 else '') for u in US}
 rows = list(csv.DictReader(open(f'{OUT}/usens_data.csv')))
-WLS = [w for w in dict.fromkeys(r['workload'] for r in rows) if w != 'GEOMEAN']   # no geomean bar (2026-11-10)
+WLS = [w for w in dict.fromkeys(r['workload'] for r in rows) if w not in ('GEOMEAN', 'YCSB-C')]   # no geomean bar (2026-11-10), YCSB-C dropped (2026-11-18, user)
 WLN = {w: ('Geo. mean' if w == 'GEOMEAN' else w) for w in WLS}
 val = {(r['workload'], int(r['U'])): r for r in rows}
 
