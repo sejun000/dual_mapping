@@ -102,11 +102,13 @@ To address these challenges, DUET introduces \emph{evict-and-load} for page-leve
 page-level mappings of a coarse IU to NAND instead of merging them when the DRAM table is full, and loads them
 back on access. It also introduces a GC policy and a merge strategy that
 track the workload to reduce WA and latency.\M{제생각에 evict-and-load는 DFTL에서 이미 한 것 같은데 이쪽 selective GC and merge가 더 강조되는게 좋을 것 같습니다. evict에 novelty로 주장할 것이 있나요? 없다면 서론이랑 abstract에서 아예 빼고 GC merge 선택 정책에 대해 좀 더 디테일하게 설명하는 것도 좋아보입니다.}
+% (2026-11-18, user) YCSB-C dropped. Geomeans over 8 workloads: avg read DUET 1.080, DFTL 2.290, LeaFTL 1.870
+% -> 53%, 42% lower. Write numbers unchanged. Throughput 0.90.
 % (2026-11-13, user) results cut to read and write latency. Geomeans over 9 workloads (write: 8, no YCSB-C),
 % results/paper_dac/eval_data.csv, normalized to Page: avg read DUET 1.066, DFTL 2.507, LeaFTL 1.746 -> 57%, 39% lower;
 % avg write DUET 1.263, FAST 2.533, CoMap 3.608, CoarseIU 2.090 -> 50%, 65%, 40% lower. Throughput 0.91.
 Under the mapping DRAM of a 32\,KB uniform coarse IU, DUET reaches
-91\% of the throughput of a page-level FTL with unlimited DRAM on average. Its average
-read latency is 39--57\% lower than that of on-demand mapping, and its average write
+90\% of the throughput of a page-level FTL with unlimited DRAM on average. Its average
+read latency is 42--53\% lower than that of on-demand mapping, and its average write
 latency is 40--65\% lower than that of block-level hybrid mapping and the uniform
 coarse IU.

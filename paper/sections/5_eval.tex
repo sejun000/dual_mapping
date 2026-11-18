@@ -71,7 +71,7 @@ sampling~\cite{shards}, together with every request to the sampled space. We rep
 SPFresh trace until it writes 64\,GB, twice the device capacity. The raw I/O and the
 traces run with 32 outstanding requests.
 The applications are YCSB
-workloads A, B, and C~\cite{ycsb} and TPC-C~\cite{tpcc} on PostgreSQL and ext4,
+workloads A and B~\cite{ycsb} and TPC-C~\cite{tpcc} on PostgreSQL and ext4,
 each with 64 client threads. They run in a memory cgroup of 6.4\,GB, 20\% of the
 device, which limits the page cache.
 
@@ -111,14 +111,17 @@ partial coarse IU is written with RMW only when it leaves the buffer.
 \subsection{Read Latency}
 Figure~\ref{fig:eval-read} shows the read path. \SJ{Only a few fine-map entries of DUET are evicted, so DUET} needs 1.02 flash reads per host read on average and at
 most 1.06, on SPFresh. DFTL and LeaFTL miss in their map caches and need 1.47
-and 1.26 flash reads on average. As a result, the average read latency of DUET is
-1.07$\times$ that of Page on average, whereas that of DFTL and LeaFTL is 2.51$\times$ and
-1.75$\times$ that of Page.
+and 1.29 flash reads on average. As a result, the average read latency of DUET is
+1.08$\times$ that of Page on average, whereas that of DFTL and LeaFTL is 2.29$\times$ and
+1.87$\times$ that of Page.
 % (2026-11-13) app averages from /sys/block stat (blklat.bt sector-keyed artifact, see tools/plot_eval.py). Was 0.91, 2.15, 1.58.
-The average read latency of DUET is 34\%, 49\%, and 20\% lower than that of FAST,
+The average read latency of DUET is 38\%, 53\%, and 24\% lower than that of FAST,
 CoMap, and CoarseIU on average. DUET directs small writes to fine
 blocks without RMW and merges one coarse IU at a time, so its reads wait less behind
 writes.
+% (2026-11-18, user) YCSB-C dropped, geomean over 8 workloads / Page: avg read DUET 1.080, DFTL 2.290, LeaFTL 1.870,
+% FAST 1.750, CoMap 2.280, CoarseIU 1.412. p99 read DUET 1.13, DFTL 1.54, LeaFTL 2.27, CoMap 2.21, FAST 1.77, CoarseIU 1.69.
+% Throughput DUET 0.900, LeaFTL 0.685, CoarseIU 0.669, DFTL 0.621, FAST 0.521, CoMap 0.409. Flash reads LeaFTL 1.295.
 % (2026-11-12) geomean over 9 workloads (eval_data.csv), avg read / DUET: FAST 1.52, CoMap 2.09, CoarseIU 1.25. / Page: DUET 0.91, FAST 1.39, CoMap 1.91, CoarseIU 1.15.
 % p99 read / Page: DUET 1.09, FAST 1.59, CoMap 2.00, CoarseIU 1.52. Was: 50:50 FAST 2.9x, CoMap 4.0x, YCSB-B CoarseIU p99 2.0x DUET.
 The p99 read latency
@@ -129,7 +132,7 @@ a limited DRAM budget.
 % SPFresh trace (dm_trace_sampled/spfresh.json): 100% 4K reads and writes, seq_frac 0.076, top 10% of 1 MB regions = 20% of writes, reads 20x writes.
 
 \subsection{Write Amplification and Write Latency}
-Figure~\ref{fig:eval-write} shows the write path. \SJ{YCSB-C is omitted because it is a read-only workload.} DUET stores small writes out of place as fine pages and merges them one coarse
+Figure~\ref{fig:eval-write} shows the write path. DUET stores small writes out of place as fine pages and merges them one coarse
 IU at a time, so its WA stays close to that of Page, with a geometric mean of 1.28$\times$ Page\SJ{, and its average write latency is 1.26$\times$ that of Page}. FAST and CoMap merge whole
 blocks, and CoarseIU often rewrites a 32\,KB unit for a smaller write. Their WA is
 2.7$\times$, 3.6$\times$, and 2.2$\times$ that of Page on average.
@@ -153,9 +156,9 @@ do~\cite{sepbit,midas,dogi}. Page writes all data to one active block, so hot an
 cold pages mix in a block and its GC copies more valid pages.
 
 \subsection{Throughput}
-Figure~\ref{fig:eval-tput} shows the throughput normalized to Page. DUET reaches 91\%
+Figure~\ref{fig:eval-tput} shows the throughput normalized to Page. DUET reaches 90\%
 of the throughput of Page on average, whereas LeaFTL, CoarseIU, DFTL, FAST, and CoMap
-reach 71\%, 70\%, 63\%, 56\%, and 45\%. On Alibaba, DUET is 16\% faster than Page
+reach 69\%, 67\%, 62\%, 52\%, and 41\%. On Alibaba, DUET is 16\% faster than Page
 because its WA is 14\% lower. DUET is the slowest relative to
 Page on YCSB-A and SPFresh, at 69\% and 78\%, because of its relatively high WA and additional flash reads.
 
