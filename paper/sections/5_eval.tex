@@ -46,7 +46,8 @@ exposes 32\,GB of capacity to the host. Its NAND blocks are 128\,MB each, and it
 that of a uniform 32\,KB coarse IU~\cite{micron-iu,solidigm-csal}, which holds its mapping table
 or map cache together with its GTD and valid bitmaps. DUET uses 64\,KB coarse IUs. Its budget holds a 2\,MB coarse map, a 2\,MB
 fine-map table with 261,256 entries, a 32\,KB GTD, and 0.1\,MB of valid bitmaps for
-the chunks and the fine blocks. In our setup, a coarse entry, a GTD entry, and an FTP slot each take 4\,B. The NAND timing follows the default conventional SSD model
+the chunks and the fine blocks. The fine-block cap is 11 of the 274 blocks, 4.0\% of all blocks (Section~\ref{sec:reclaim}),
+and the 261,256 table entries cover 3.1\% of the logical pages. In our setup, a coarse entry, a GTD entry, and an FTP slot each take 4\,B. The NAND timing follows the default conventional SSD model
 of NVMeVirt~\cite{nvmevirt}. A 4\,KB read takes 36\,$\mu$s on average and a 32\,KB page program
 takes 185\,$\mu$s. Each DRAM access to the mapping table takes 50\,ns.
 % (2026-11-14, user) NAND timing, ~/nvmevirt_proposed/ssd_config.h BASE_SSD=SAMSUNG_970PRO (Kbuild): NAND_4KB_READ_LATENCY
@@ -186,7 +187,7 @@ Page on YCSB-A and SPFresh, at 69\% and 78\%, because of its relatively high WA 
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_ts.pdf}
   \vspace{-6mm}
-  \caption{Fine-map entries, as a percentage of all logical pages, and fine blocks, as a percentage of all blocks, of DUET over time, sampled every 5\,s.}
+  \caption{Valid fine-map entries, as a percentage of all logical pages, and fine blocks, as a percentage of all blocks, of DUET over time, sampled every 5\,s.}
   \label{fig:eval-ts}
   \vspace{-2.5mm}
 \end{figure}
@@ -231,8 +232,9 @@ fine-block space for its copy cost. On these three workloads, it thus lowers WA 
 
 Evict-and-load finally replaces cuckoo hashing. It keeps WA within 3\% but lowers the p99
 read latency by 27\% and 60\% and the p99 write latency by 35\% and 18\% on YCSB-A
-and YCSB-B, \M{이 뒤로 문장 분리 추천. cucko hash가 이렇게 많이 dram 접근 하고 그로 인해 P99가 느려지는 것을 e-and-l이 완화한다}because cuckoo hashing searches 179 and 203 buckets\M{이건 각각 ycsb a, b 수치인가요? 왜 수치가 두개인지 헷갈리네요} on average for each
-insert into a full bucket pair. On Alibaba and 70:30, all four metrics stay within
+and YCSB-B, respectively. For each insert into a full bucket pair, cuckoo hashing searches 179
+buckets in YCSB-A and 203 in YCSB-B on average, and each bucket costs one DRAM access.
+Evict-and-load needs no such search, so it shortens the tail latency. On Alibaba and 70:30, all four metrics stay within
 1\%. On SPFresh, where loads add flash reads, the throughput drops by 7\%.
 % (2026-11-14) draft numbers, results/paper_dac/ablation_data.csv. bkc/bk tput Alibaba 1.263, 70:30 1.173. WA bkc/bk
 % YCSB-A 1.67, YCSB-B 2.02, SPFresh 1.34. WA bkc/ck YCSB-A 1.91, YCSB-B 2.31, SPFresh 1.58. WA ck vs bk -12.5% (A) .. -40.4%
@@ -250,16 +252,16 @@ insert into a full bucket pair. On Alibaba and 70:30, all four metrics stay with
 % 169 MB/s. YCSB-B is the other way (fold 0.37 vs 0.10 but p99 write 163 vs 215 ms), not written.
 
 \subsection{Fine-Area Size over Time}
-Figure~\ref{fig:eval-ts} shows how the fine area of DUET changes over time. Fine-map
-entries are shown as a percentage of all logical pages. The fine area grows and
-shrinks differently in each workload. On SPFresh, all writes are smaller than a
-coarse IU, so the fine blocks stay at their limit\M{이 limit에 대한 언급은 setup에 미리 한번 나와야할거 같아요 fine block cap, fine map cap}, 4.0\% of all blocks, and fine-map
+Figure~\ref{fig:eval-ts} shows how the fine area of DUET changes over time. Valid fine-map
+entries are shown as a percentage of all logical pages. On SPFresh, all writes are smaller than a
+coarse IU, so the fine blocks stay at the fine-block cap, 4.0\% of all blocks, and valid fine-map
 entries stay at 2.7--3.1\% of the logical pages. On Alibaba, 79\% of the written data
 comes in writes of 64\,KB or larger, so the fine area stays smaller. It peaks early
 in the run at 1.8\% of all blocks and 0.8\% of the logical pages, and then shrinks to
 0.7--1.1\% of all blocks and 0.2--0.4\% of the logical pages. In both workloads,
-the evicted entries stay within 1.4\% of the logical pages, and Alibaba evicts none.
-\M{이 실험은 무슨 의의를 가지나요? 마지막에 실험의 의의에 대한 한 문장 필요. 주어는 DuEt으로}
+evicted entries stay within 1.4\% of the logical pages, and Alibaba evicts none.
+DUET thus sizes its fine area to each workload's small writes within a fixed cap, which bounds its
+extra flash reads, unlike on-demand mapping.
 % (2026-11-12) write sizes from /mnt/nvme_mounted/dm_trace_32g: spfresh.csv 100% of writes < 64 KB. ali3.csv 93.1% of
 % write requests < 64 KB but 79.4% of written bytes in requests >= 64 KB.
 % (2026-11-12) 32 GB, results/final_32g/ts (proposedst_g32), NB = 274: limit 11 = 4.0%, SPFresh after the first third

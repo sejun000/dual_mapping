@@ -8,6 +8,6 @@ on-device DRAM. Under a limited DRAM budget, existing FTLs slow reads with
 mapping misses, slow writes with block-level merges, or turn small writes into
 read-modify-writes of a uniform coarse indirection unit (IU). We present DUET,
 an FTL that keeps the coarse IU and maps smaller writes as 4\,KB pages. Its GC weighs the copy cost against the free space gained to decide when to merge these pages into coarse IUs. With 1/8 of the page-level mapping DRAM,
-DUET reaches 90\% of the throughput of a page-level FTL with unlimited DRAM,
+DUET reaches 90\% of the throughput of a page-level FTL with its whole mapping table in DRAM,
 whereas existing FTLs reach at most 69\%.
 \end{abstract}

@@ -33,7 +33,7 @@ However, high-capacity SSDs cannot hold the conventional page-level mapping tabl
 This table has one entry per 4\,KB logical page, so its size is proportional to the capacity and reaches 140\,GB for a 128\,TB SSD.
 Providing this much DRAM is impractical because of its cost and power~\cite{zns,leaftl,solidigm-csal} and
 the limited board
-area of data center form factors~\cite{sff-e1s,sff-e3,lmb}.
+area of data center form factors~\cite{sff-e3,lmb}.
 High-capacity SSDs thus need a different address translation scheme that fits
 in a fraction of this DRAM.
 
@@ -118,6 +118,6 @@ Unlike in DFTL~\cite{dftl}, the evicted mappings disappear once they are merged 
 % avg write DUET 1.263, FAST 2.533, CoMap 3.608, CoarseIU 2.090 -> 50%, 65%, 40% lower. Throughput 0.91.
 Under the mapping DRAM of a 32\,KB uniform coarse IU, DUET reaches
 90\% of the throughput of a page-level FTL with unlimited DRAM on average. Its average
-read latency is 42--53\% lower than that of on-demand mapping, and its average write
+read latency is 42--53\% lower than on-demand mapping, and its average write
 latency is 40--65\% lower than that of block-level hybrid mapping and the uniform
 coarse IU.

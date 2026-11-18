@@ -21,19 +21,20 @@
 \newcommand{\SJ}[1]{\textcolor{blue}{#1}}
 
 \usepackage[hidelinks,pdfauthor={},pdfcreator={},pdfproducer={}]{hyperref}
+% (2026-11-18, user) headings loosened halfway back: section 1.0->1.25ex / 0.4->0.55ex, subsection 0.8->1.0ex / 0.3->0.4ex
 % (2026-11-09) tighter heading and float spacing (IEEEtran conference: section 1.5ex+1.5ex-0.5ex / 0.7ex+1ex,
 % textfloatsep 1.55 baselineskip); fonts, margins, and columns stay as in the template
 \makeatletter
-\def\section{\@startsection{section}{1}{\z@}{1.0ex plus 0.5ex minus 0.3ex}%
-{0.4ex plus 0.3ex minus 0ex}{\normalfont\normalsize\centering\scshape}}%
-\def\subsection{\@startsection{subsection}{2}{\z@}{0.8ex plus 0.4ex minus 0.3ex}%
-{0.3ex plus 0.2ex minus 0ex}{\normalfont\normalsize\itshape}}%
+\def\section{\@startsection{section}{1}{\z@}{1.25ex plus 0.5ex minus 0.3ex}%
+{0.55ex plus 0.3ex minus 0ex}{\normalfont\normalsize\centering\scshape}}%
+\def\subsection{\@startsection{subsection}{2}{\z@}{1.0ex plus 0.4ex minus 0.3ex}%
+{0.4ex plus 0.2ex minus 0ex}{\normalfont\normalsize\itshape}}%
 \makeatother
 \setlength{\textfloatsep}{0.9\baselineskip plus 0.2\baselineskip minus 0.3\baselineskip}
 \setlength{\dbltextfloatsep}{0.9\baselineskip plus 0.2\baselineskip minus 0.3\baselineskip}
-\setlength{\floatsep}{0.6\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}
-\setlength{\dblfloatsep}{0.6\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}
-\setlength{\abovecaptionskip}{0.35\baselineskip}
+\setlength{\floatsep}{1.0\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}   % (2026-11-18, user) was 0.6
+\setlength{\dblfloatsep}{1.0\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}   % (2026-11-18, user) was 0.6
+\setlength{\abovecaptionskip}{0.6\baselineskip}   % (2026-11-18, user) was 0.35, more room above captions
 
 \begin{document}
 \bstctlcite{IEEEexample:BSTcontrol}
