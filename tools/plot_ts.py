@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 
 B = '/home/sejun000/dual_mapping/results'
 OUT = B + '/paper_dac'
-WL = [('trace_ali3', 'Alibaba'), ('trace_spfresh', 'SPFresh')]   # 32 GB, results/final_32g/ts (2026-11-12)   # R:W 50:50 dropped (flat, no spill)
+WL = [('trace_ali3', 'Alibaba'), ('apps/ycsba_d_t64', 'YCSB-A')]   # (2026-11-18, user) YCSB-A instead of SPFresh
+# was: [('trace_ali3', 'Alibaba'), ('trace_spfresh', 'SPFresh')]   # 32 GB, results/final_32g/ts (2026-11-12)   # R:W 50:50 dropped (flat, no spill)
 C_DUET, C_SP, C_FB, C_TOT = '#7468D8', '#BDB7EE', '#C0392B', '#1F3FBF'   # was #9A91E6 / #E2DFF8 (2026-11-10)
 YMAX = 5.0   # % of logical pages
 plt.rcParams.update({'font.size': 7, 'font.family': 'DejaVu Sans', 'axes.linewidth': 0.6})
@@ -52,7 +53,7 @@ def main():
         print(lab, 'cap', cap, 'max table', max(tab), 'max spilled', max(sp), 'max fb', max(fb), 'samples', len(t))
     from matplotlib.patches import Patch
     from matplotlib.lines import Line2D
-    h = [Line2D([], [], color=C_TOT, lw=0.8, label='Fine-map entries'), Patch(fc=C_DUET, label='In DRAM table'),
+    h = [Line2D([], [], color=C_TOT, lw=0.8, label='Valid fine-map entries'), Patch(fc=C_DUET, label='In DRAM table'),
          Patch(fc=C_SP, label='Evicted'),
          Line2D([], [], color=C_FB, lw=0.9, label='Fine blocks')]
     fig.tight_layout(pad=0.2, w_pad=0.6); fig.subplots_adjust(top=0.74)   # was 0.72, 0.78 (2026-11-13: same legend height)

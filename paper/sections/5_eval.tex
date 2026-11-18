@@ -251,15 +251,18 @@ Evict-and-load needs no such search, so it shortens the tail latency. On Alibaba
 % YCSB-A merge WA (fold) 0.33 (ns) vs 0.17 (DUET). Write queue in the measured half 261 vs 132 in flight at 165 vs
 % 169 MB/s. YCSB-B is the other way (fold 0.37 vs 0.10 but p99 write 163 vs 215 ms), not written.
 
+% (2026-11-18, user) Fig. 9 right panel SPFresh -> YCSB-A (results/final_32g/ts/apps/ycsba_d_t64, stats build, 5 s samples).
+% Measured run (197-797 s): fine blocks 11 of 274 in 86 of 119 samples (one sample 12), valid entries p5-p95 2.16-3.02%,
+% max 3.12%, evicted max 1.56% (1.59% after the run). Was SPFresh: 4.0% blocks, 2.7-3.1% entries, evicted max 1.42%.
 \subsection{Fine-Area Size over Time}
 Figure~\ref{fig:eval-ts} shows how the fine area of DUET changes over time. Valid fine-map
-entries are shown as a percentage of all logical pages. On SPFresh, all writes are smaller than a
-coarse IU, so the fine blocks stay at the fine-block cap, 4.0\% of all blocks, and valid fine-map
-entries stay at 2.7--3.1\% of the logical pages. On Alibaba, 79\% of the written data
+entries are shown as a percentage of all logical pages. On YCSB-A, small updates keep the fine blocks
+at the fine-block cap, 4.0\% of all blocks, for most of the run, and valid fine-map
+entries stay at 2.2--3.0\% of the logical pages. On Alibaba, 79\% of the written data
 comes in writes of 64\,KB or larger, so the fine area stays smaller. It peaks early
 in the run at 1.8\% of all blocks and 0.8\% of the logical pages, and then shrinks to
 0.7--1.1\% of all blocks and 0.2--0.4\% of the logical pages. In both workloads,
-evicted entries stay within 1.4\% of the logical pages, and Alibaba evicts none.
+evicted entries stay within 1.6\% of the logical pages, and Alibaba evicts none.
 DUET thus sizes its fine area to each workload's small writes within a fixed cap, which bounds its
 extra flash reads, unlike on-demand mapping.
 % (2026-11-12) write sizes from /mnt/nvme_mounted/dm_trace_32g: spfresh.csv 100% of writes < 64 KB. ali3.csv 93.1% of
