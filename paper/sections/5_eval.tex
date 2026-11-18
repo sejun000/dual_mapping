@@ -142,7 +142,7 @@ latency shows a similar trend.
 % Was: TPC-C p99 write of DUET 3.7x lower than FAST.
 DFTL and LeaFTL also write out of
 place at 4\,KB granularity and keep their write latency close to that of Page, but
-they pay for it\M{pay for it 이 불명확해서 명확하게 무엇이랑 trade된다 식으로} on the read path.
+they \SJ{sacrifice read latency}.
 % avg write (excl. YCSB-C): DUET 1.11, IU+RMW 2.09, FAST 2.39, CoMap 3.06. p99 write DUET 1.06. TPC-C p99: FAST/DUET 4.6, IU+RMW/DUET 2.9.
 % WA: CoarseIU 1.5x Page on synthetic raw I/O. DUET 1.9x Page on SPFresh.
 
@@ -278,7 +278,7 @@ the evicted entries stay within 1.4\% of the logical pages, and Alibaba evicts n
   \vspace{-2.5mm}
 \end{figure}
 
-\subsection{Coarse-IU Size\M{Sensitivity to Coarse-IU Size}}
+\subsection{\SJ{Sensitivity to Coarse-IU Size}}
 Figure~\ref{fig:eval-usens} varies the coarse IU of DUET from 64\,KB to 512\,KB under
 the same DRAM budget. A larger coarse IU shrinks the coarse map and leaves more
 DRAM to the fine map, so fewer fine-map entries are evicted. On SPFresh, the flash reads

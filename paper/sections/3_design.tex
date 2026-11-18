@@ -99,7 +99,7 @@ time than a flash read~\cite{dftl}.
   \vspace{-2.5mm}
 \end{figure}
 
-\textbf{Write path.} \M{DUET keeps two active blocks for host writes, an active coarse block for chunks and an active fine block for fine pages. 다시보니 아래가 두 블록 모두에 append 한다는걸로 오해될 여지가 있는거같아요} DUET appends host writes to two \emph{active blocks}, an active
+\textbf{Write path.} \SJ{DUET keeps two \emph{active blocks} for host writes}, an active
 \emph{coarse block} for chunks and an active \emph{fine block} for fine pages.
 A host write
 is split at coarse-IU boundaries. An \emph{IU-aligned write} to a coarse IU without fine pages is written as a new chunk
