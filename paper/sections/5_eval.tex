@@ -197,6 +197,8 @@ Page on YCSB-A and SPFresh, at 69\% and 78\%, because of its relatively high WA 
 % YCSB-B 1.04 2.51 1.00 ms. p99 write YCSB-A 489 383 248 ms. Cuckoo YCSB-B: 6.05M searches, 1.23G probed buckets = 203 per
 % search; YCSB-A 6.91M searches, 1.234G probes = 179 per search. Avg fine pages Basic / coarse-or-fine / copy-or-merge: YCSB-A 154K 39K 168K, YCSB-B 156K 38K 172K, Alibaba 41K 5.8K
 % 23K, 70:30 94K 17K 38K (-75..-86% with coarse-or-fine). SPFresh (not shown): GC WA 16.4 -> DUET 13.3 (-19%), cuckoo tput 1.07 vs DUET 0.99 of Basic (+8%).
+% (2026-11-18) avg fine pages over the measured window (smp_fp / smp_n, dm_start -> dm_end), YCSB-A:
+% bk 201,898, bkc 41,873 (results/final_32g/ablation2/apps/ycsba_d_t64). Was 184K -> 41K (no source found).
 \subsection{Ablation Study}
 \label{sec:ablation}
 Figure~\ref{fig:eval-ablation} adds the techniques of DUET one by one on YCSB-A,
@@ -214,7 +216,7 @@ merges the fine pages of a victim into their coarse IUs.
 
 Coarse-or-fine victim selection reclaims a coarse block whenever it has fewer valid
 pages than a fine block, so the fine area shrinks. On YCSB-A, the average number of
-fine pages drops from 184K to 41K. This raises the throughput by 1.26$\times$ and
+fine pages drops from 202K to 42K. This raises the throughput by 1.26$\times$ and
 1.17$\times$ on Alibaba and 70:30. On YCSB-A, YCSB-B, and SPFresh, however, it lowers
 the throughput by 8--35\% and raises WA by 1.3--2.0$\times$. Coarse-or-fine victim
 selection picks fine victims more often, and the fine GC of Basic always merges the
