@@ -27,11 +27,11 @@
 % legacy hybrid hard-disk drive (HDD) + TLC solutions". No verified per-watt or per-rack number versus HDD alone.
 Data centers now need storage that provides capacity, performance, and power efficiency at the same time.
 Their data grows rapidly~\cite{idc-dataage}, and AI workloads demand large and fast storage~\cite{dsi,solidigm-122tb}, whereas their power and space remain limited~\cite{dsi,meta-qlc,solidigm-122tb}.
-High-capacity quad-level cell (QLC) SSDs fit these demands best. They store more data than triple-level cell (TLC) SSDs at nearly the same read speed, and use less power per terabyte than hard disk drives (HDDs)~\cite{meta-qlc,solidigm-122tb,solidigm-p5336-brief}.
+High-capacity quad-level cell (QLC) SSDs fit these demands best. They store more data than triple-level cell (TLC) SSDs at nearly the same read speed, and use less power per terabyte than hard disk drives (HDDs)~\cite{meta-qlc,solidigm-122tb}.
 
 However, high-capacity SSDs cannot hold the conventional page-level mapping table of their flash translation layer (FTL) in on-device DRAM (Figure~\ref{fig:intro}a)~\cite{micron-iu}.
 This table has one entry per 4\,KB logical page, so its size is proportional to the capacity and reaches 140\,GB for a 128\,TB SSD.
-Providing this much DRAM is impractical because of its cost and power~\cite{zns,leaftl,solidigm-csal} and
+Providing this much DRAM is impractical because of its cost and power~\cite{zns,leaftl} and
 the limited board
 area of data center form factors~\cite{sff-e3,lmb}.
 High-capacity SSDs thus need a different address translation scheme that fits
@@ -60,7 +60,7 @@ must copy all valid pages of a whole NAND block.
 These extra writes interfere with host writes, so write latency increases.
 The third technique is the \emph{uniform coarse indirection unit} (uniform coarse IU) of
 \mbox{16--64\,KB}, which many recent commercial high-capacity SSDs
-use~\cite{micron-iu,solidigm-csal,solidigm-p5336-spec}. Each map entry points to a
+use~\cite{micron-iu,solidigm-p5336-spec}. Each map entry points to a
 coarse IU instead of a page. When a write is smaller than a coarse IU, however, the
 FTL reads the rest of the unit, merges the new data, and writes the whole unit again
 (read-modify-write, RMW). 
@@ -96,11 +96,11 @@ so the FTL needs to adapt its choice to the workload.
 
 % (2026-11-18, user) GC challenge first to match the order of Section III and the ablation. Evict-and-load no longer claimed as a contribution (mw review: DFTL already evicts), copy-or-merge
 % emphasized, eviction framed as a staging area before the merge.
-To address this challenge, DUET adopts several GC techniques that selectively reclaim the coarse-IU and
-page-mapped areas and merge page-mapped data into coarse IUs. Its key technique, \emph{copy-or-merge}, weighs the copy cost against
-the free space gained and adjusts how often DUET merges, reducing WA for each workload.
-To make room for page-level mappings within the limited DRAM budget, DUET evicts only part of the map to NAND.
-Unlike in DFTL~\cite{dftl}, the evicted mappings disappear once they are merged into coarse IUs.
+To address this challenge, DUET is designed to reduce WA in how it writes data and reclaims space across the two mapping granularities. In particular, its key technique, \emph{copy-or-merge}, weighs the copy cost against
+the free space gained and adjusts how often DUET merges for each workload.
+% (2026-11-19, user) dropped, the DUET paragraph already says most page-level mappings stay in DRAM:
+% To make room for page-level mappings within the limited DRAM budget, DUET evicts only part of the map to NAND.
+% Unlike in DFTL~\cite{dftl}, the evicted mappings disappear once they are merged into coarse IUs.
 % (2026-11-14, user) "many options, so a good policy is needed" added. 1.7x still holds with the v3 ablation:
 % Basic (bk) vs both GC decisions (ck) on 70:30, WA 16.96 vs 10.12 (results/paper_dac/ablation_data.csv).
 % (2026-11-10) contributions list merged into this paragraph. Averages = geomean over the 10 workloads,

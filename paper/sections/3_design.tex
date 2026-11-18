@@ -13,14 +13,14 @@ can move to NAND, but unlike on-demand mapping~\cite{dftl,leaftl,mftl}, most of 
 map stays in DRAM, so far fewer reads need an extra flash read to load their mapping. Unlike block-level hybrid
 FTLs~\cite{fast,janusftl,comap}, which merge one block at a time, DUET merges fine pages one
 coarse IU at a time, so each merge costs less. Unlike coarse-IU
-FTLs~\cite{micron-iu,solidigm-csal}, DUET stores small writes as fine pages without RMW.
+FTLs~\cite{micron-iu}, DUET stores small writes as fine pages without RMW.
 % TODO: user mentioned "comboftl" as a demand-paging scheme to cite, not in refs.bib yet.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_design.pdf}
   \vspace{-6mm}
-  \caption{DUET mapping structures and read path. Entry sizes are for a 128\,TB SSD, and each FTP holds $n$ slots.}
+  \caption{DUET mapping structures and read path. Entry sizes are for a 128\,TB SSD.}
   \label{fig:design}
   \vspace{-2.5mm}
 \end{figure}
@@ -32,7 +32,7 @@ page offset $k$ ($=\mathrm{LPN} \bmod U$). Each coarse IU is mapped to a \emph{c
 which consists of $U$ physically consecutive pages and starts at a $U$-page-aligned address.
 The coarse map is an array indexed by $i$, and each
 entry holds a chunk index and its flag bits.
-It reduces the number of entries to $1/U$ of that of a page-level mapping table and thus cuts the DRAM usage to about $1/U$.
+It reduces the number of entries and thus cuts the DRAM usage to about $1/U$ of that of a page-level mapping table.
 A DRAM budget of a fraction $b$ of a page-level mapping table requires $U > 1/b$, and the
 fine map gets the remaining $b-1/U$. For a budget of 1/8 of the size of a page-level mapping table, $U$ must be 16 or larger.
 
@@ -121,7 +121,7 @@ DUET keeps fine pages and chunks in different blocks. Fine pages hold the small 
 that were written relatively recently and are likely to be updated again, and chunks hold the rest.
 Mixing data of different update
 frequencies in one NAND block raises the GC cost~\cite{hotcold,dwf,multistream}.
-As in other FTLs~\cite{sepbit}, DUET also separates host writes from internal
+As in other FTLs~\cite{fast,sepbit,midas,dogi}, DUET also separates host writes from internal
 writes (GC and merges), so it keeps four active blocks (Figure~\ref{fig:write}).
 When an active block is full, DUET takes a free block as the new active block.
 % Final runs (results/final_vbm, q_vbm2.sh) use coarse_class=0 and uni_onefront=0, i.e. exactly four active blocks.

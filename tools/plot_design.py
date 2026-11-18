@@ -109,15 +109,16 @@ def main():
     gx0 = 15.1
     cells(ax, gx0, zy, EW, zh, 7)
     ax.add_patch(Rectangle((gx0, zy), EW, zh, fc='none', ec=K, lw=1.2))
-    lab(ax, gx0 - 0.4, zy + zh + 0.85, 'GTD (5B per FTP)', fontweight='bold')
-    lab(ax, gx0 - 0.4, zy + zh + 0.35, r'entry $\lfloor \mathrm{LPN}/n \rfloor$', fontsize=SF - 0.6)
+    lab(ax, gx0 - 0.4, zy + zh + 0.4, 'GTD (5B per FTP)', fontweight='bold')
+    # (2026-11-19, user) 'entry floor(LPN/n)' label removed, n was not explained in the figure
+    # lab(ax, gx0 - 0.4, zy + zh + 0.35, r'entry $\lfloor \mathrm{LPN}/n \rfloor$', fontsize=SF - 0.6)
 
     # ---- F = 1, S = 0: lookup in the fine map;  F = 1, S = 1: GTD -> FTP (lane under the DRAM structures)
     arrow(ax, (zx + ZW, zy + zh / 2), (fx0 - 0.05, FY + 2 * SH), rad=0.3)
     ly, lx = 5.3, 14.6
     ax.plot([f[2], f[2], lx, lx], [zy, ly, ly, zy + zh / 2], color=C_AR, lw=0.6)
     arrow(ax, (lx, zy + zh / 2), (gx0, zy + zh / 2))
-    num(ax, 12.0, ly + 0.33, '4')
+    num(ax, 12.0, ly + 0.33, '3')
 
     # ---- NAND: coarse block (chunk of coarse IU i), fine block (fine page), map block (FTPs)
     BP, BH = 0.31, 0.7                                              # page width / height: 16-page blocks
@@ -134,7 +135,7 @@ def main():
     point(ax, (f[0] + 0.3, zy), A, 4, 4)                            # chunk index -> the whole chunk (coarse IU i)
     ax.add_patch(Rectangle((A.x + 6 * BP, NR), BP, BH, fc='none', ec=K, lw=1.2))   # + offset k -> page k
     ax.text(A.x + 6.5 * BP, NR + BH / 2, '$k$', ha='center', va='center', fontsize=SF - 1.2)
-    num(ax, 3.05, 5.75, '1'); num(ax, 3.6, 5.75, '3')
+    num(ax, 3.05, 5.75, '1')   # (2026-11-19, user) cases numbered 1, 2, 3 as in the text (was 1 and 3 here, 4 on the GTD lane)
     hbar(ax, A.x, A.x + BP, NR + BH)                                # (2026-11-13, user) one 4 KB page
     lab(ax, A.x + BP / 2, NR + BH + 0.45, '4KB', ha='center', fontsize=SF - 0.7)
     lab(ax, A.x + 8 * BP + 0.2, NR + BH + 0.3, r'chunk index $\times\ U+k$', fontsize=SF - 0.7)

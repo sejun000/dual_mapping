@@ -43,7 +43,7 @@ the same NAND model, write buffer, and host interface and differ only in the add
 \textbf{Setup.} We run all experiments on a server with an Intel Xeon Gold 6342 CPU
 and Linux kernel 6.8. The emulated SSD has eight channels with two dies each and
 exposes 32\,GB of capacity to the host. Its NAND blocks are 128\,MB each, and its OP space is 7\% of the exposed capacity. The page-level mapping FTL uses 32\,MB of mapping DRAM. Every other FTL has a budget of about 4.1\,MB,
-that of a uniform 32\,KB coarse IU~\cite{micron-iu,solidigm-csal}, which holds its mapping table
+that of a uniform 32\,KB coarse IU~\cite{micron-iu}, which holds its mapping table
 or map cache together with its GTD and valid bitmaps. DUET uses 64\,KB coarse IUs. Its budget holds a 2\,MB coarse map, a 2\,MB
 fine-map table with 261,256 entries, a 32\,KB GTD, and 0.1\,MB of valid bitmaps for
 the chunks and the fine blocks. The fine-block cap is 11 of the 274 blocks, 4.0\% of all blocks (Section~\ref{sec:reclaim}),
