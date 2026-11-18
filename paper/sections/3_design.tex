@@ -20,7 +20,7 @@ FTLs~\cite{micron-iu,solidigm-csal}, DUET stores small writes as fine pages with
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_design.pdf}
   \vspace{-6mm}
-  \caption{DUET mapping structures and read path. \SJ{4B+ marks entries that take 4\,B and are bit-packed when they need more bits.}}
+  \caption{DUET mapping structures and read path. Entry sizes are for a 128\,TB SSD, and each FTP holds $n$ slots.}
   \label{fig:design}
   \vspace{-2.5mm}
 \end{figure}
@@ -32,12 +32,9 @@ page offset $k$ ($=\mathrm{LPN} \bmod U$). Each coarse IU is mapped to a \emph{c
 which consists of $U$ physically consecutive pages and starts at a $U$-page-aligned address.
 The coarse map is an array indexed by $i$, and each
 entry holds a chunk index and its flag bits.
-\M{아래 문장은 similar가 불명확한거 같아요. 그래서 그냥 IU map size에 대해서만. Its number of entries and its DRAM size are thus 1/U of those of a page-level mapping table.}
-It thus reduces the number of entries to $1/U$ of that of a page-level mapping table, which cuts the DRAM usage by \SJ{a similar} ratio.
+It reduces the number of entries to $1/U$ of that of a page-level mapping table and thus cuts the DRAM usage to about $1/U$.
 A DRAM budget of a fraction $b$ of a page-level mapping table requires $U > 1/b$, and the
 fine map gets the remaining $b-1/U$. For a budget of 1/8 of the size of a page-level mapping table, $U$ must be 16 or larger.
-\SJ{When a chunk index and the flag bits need more than 32 bits, as in a
-128\,TB SSD, DUET bit-packs the coarse entries without byte alignment.}
 
 \textbf{Fine map.} A write smaller than a coarse IU is written out of place as 4\,KB
 \emph{fine pages}. The fine map is a two-choice
@@ -60,13 +57,12 @@ bucket~\cite{balanced}, so a bucket overflows much less often.
 The table is similar to cuckoo hashing~\cite{cuckoo} in that each entry has two
 candidate buckets. Unlike cuckoo hashing, DUET never moves an existing entry to
 its other bucket to make room, so an insert does not trigger a chain of moves.
-When both candidate buckets are full, DUET instead \SJ{picks a victim among the coarse IUs that already have an entry in
-the two buckets, writes all fine-map entries of the victim}\M{이건 과정 설명은 생략하고 eviction process를 따른다라고만 쓰고 뒷 챕터의 설명으로 때우는 건 어떨까요? 괄호에 뒷 챕터가 있어서 괜찮을듯 합니다.} to a \emph{fine translation page} (FTP) in NAND, and frees them
-from the table (\emph{eviction}, Section~\ref{sec:spill}). A table lookup therefore checks at most the eight
+When both candidate buckets are full, DUET instead evicts existing fine-map entries to a
+\emph{fine translation page} (FTP) in NAND (Section~\ref{sec:spill}). A table lookup therefore checks at most the eight
 entries of the two candidate buckets, and an insert writes into a free entry of
 one of them. Each bucket of the fine map is 32\,B, so reading
-it takes one random DRAM access~\cite{samsung-ddr4,rixner}. An evicted entry has a fixed location in NAND, so one map-page
-read returns it. \SJ{Each LPN has a fixed slot in an FTP, and as in DFTL, the GTD locates each FTP.}\M{이 문장은 흐름에 어울리지 않는 것 같은데 꼭 필요한가요?}
+it takes one random DRAM access~\cite{samsung-ddr4,rixner}. An evicted entry has a fixed location in NAND, so reading
+it takes one flash read.
 % (2026-11-12) A cuckoo-displacement variant (BFS, Li et al. EuroSys'14, ct_kick=500) was tried and dropped: YCSB-B
 % p99 read 2.61 ms vs 1.00 ms (results/final_32g/duet_kl, kick_dram).
 
@@ -78,14 +74,19 @@ read returns it. \SJ{Each LPN has a fixed slot in an FTP, and as in DFTL, the GT
 \emph{clean} (C) bit tells whether the entries in the table are identical to their
 copy in NAND (Section~\ref{sec:spill}).
 
+% (2026-11-18, user) bit-packing sentence removed, entry sizes back with 5 B: 128 TB = 2^35 LPNs, 7% OP,
+% 2^31 x 1.07 chunks of 64 KB -> 32-bit chunk index + 3 flag bits = 35 bits, PPN 36 bits. All fit in 40 bits.
+\textbf{Entry size.} For a 128\,TB SSD, a 32-bit chunk index and the three flag bits exceed 4\,B,
+so each coarse entry takes 5\,B. A GTD entry and an FTP slot each hold a 36-bit PPN, so they also take 5\,B.
+
 \subsection{Host I/O Path}
 \textbf{Read path.} As shown in Figure~\ref{fig:design}, a read first checks the
 coarse entry of coarse IU $i$, and its flag bits select one of three cases. If F is
 clear, DUET reads page $k$ of the chunk~(\rp{1}). If F is set and E is clear, DUET
 looks up the LPN in the fine map. It reads the fine page when the LPN is
-found~(\rp{2}), and page $k$ of the chunk otherwise~(\SJ{\rp{1}}). If E is set, the
+found~(\rp{2}), and page $k$ of the chunk otherwise~(\rp{1}). If E is set, the
 GTD~\cite{dftl} locates the FTP of the LPN, and DUET reads
-its slot~(\SJ{\rp{3}}), then the fine page that the slot points to, or page $k$ of the chunk
+its slot~(\rp{3}), then the fine page that the slot points to, or page $k$ of the chunk
 when the slot is empty. Unless the fine-map entries of the coarse IU are evicted, a read thus makes at most
 three DRAM accesses, for the coarse entry and the two candidate buckets, which take far less
 time than a flash read~\cite{dftl}.
@@ -99,7 +100,7 @@ time than a flash read~\cite{dftl}.
   \vspace{-2.5mm}
 \end{figure}
 
-\textbf{Write path.} \SJ{DUET keeps two \emph{active blocks} for host writes}, an active
+\textbf{Write path.} DUET keeps two \emph{active blocks} for host writes, an active
 \emph{coarse block} for chunks and an active \emph{fine block} for fine pages.
 A host write
 is split at coarse-IU boundaries. An \emph{IU-aligned write} to a coarse IU without fine pages is written as a new chunk
@@ -183,9 +184,7 @@ frees its $d$ fine pages. The cost-benefit value, that is, the number of pages
 freed in the fine blocks per page written, is thus $(P-v)/v$ for copying
 (\fgc{1}) and $d/U$ for a merge (\fgc{2}). DUET copies the fine pages when
 $(P-v)/v \ge d/U$, and otherwise merges the coarse IU. DUET makes this decision for
-every coarse IU that has valid fine pages in the victim fine block. Copying keeps the
-\SJ{fine pages} and a merge frees them, so the \SJ{fine area} grows or shrinks with the
-workload (Section~\ref{sec:eval}).\M{이 마지막 문장은 빼도 괜찮을거 같아요}
+every coarse IU that has valid fine pages in the victim fine block.
 % Implementation also keeps hot fine pages (cost_cold, rec_block=1): no merge if a fine page of the IU sits in a host
 % fine block newer than the victim. Not described in the paper.
 

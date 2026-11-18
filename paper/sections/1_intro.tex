@@ -44,7 +44,7 @@ in a fraction of this DRAM.
   \caption{Address translation of four FTLs. In (d), page-level mappings are evicted
   to map pages instead of being merged when the DRAM table is full, and are loaded back on access.}
   \label{fig:intro}
-  \vspace{-5mm}
+  \vspace{-3mm}
 \end{figure}
 
 % Existing techniques reduce the mapping DRAM, but each of them pays for it in
@@ -85,23 +85,32 @@ a whole NAND block to a single coarse IU.
 % results/paper_dac/ablation_data.csv (Fig. 8).
 % (2026-11-11) challenge rewritten with the user (was: manage 4 KB mappings and coarse-IU mappings together, how many
 % 4 KB blocks to keep, merge or keep). (2026-11-12) 1.7x = Basic (nsfm) vs DUET WA on RW 70:30 (17.0 vs 10.1), 32 GB ablation; recheck after YCSB-B / TPC-C.
-However, letting page-level mapping and coarse-IU mapping coexist raises two challenges. First, the coarse map already takes much of the DRAM budget,
-so little DRAM is left for page-level mappings. The FTL needs a way to handle the
-page-level mappings that outgrow it without merging them into coarse IUs too often. Second, with two mapping granularities, the FTL has many options
-for where to place each kind of data and how to reclaim space. In garbage collection (GC), it can reclaim
-either kind of block, and it can either copy page-mapped data or merge it back into coarse IUs. In our
-experiments, they change WA by up to 1.7$\times$, so the FTL needs to adapt its choice to the workload.
+However, letting page-level mapping and coarse-IU mapping coexist raises a new challenge.
+With two mapping granularities, the FTL has many options for where to place each kind of data and
+how to reclaim space. In garbage collection (GC), it can reclaim either the coarse-IU or the page-mapped area, and it can either copy
+page-mapped data or merge it back into coarse IUs. In our experiments, they change WA by up to 1.7$\times$,
+so the FTL needs to adapt its choice to the workload.
+% (2026-11-18, user) DRAM challenge dropped as a challenge, its reason kept as one sentence in the next paragraph.
+% It was: Second, the coarse map already takes much of the DRAM budget, so little DRAM is left for page-level
+% mappings. The FTL needs a way to handle the page-level mappings that outgrow it without merging them into
+% coarse IUs too often.
+
+% (2026-11-18, user) GC challenge first to match the order of Section III and the ablation. Evict-and-load no longer claimed as a contribution (mw review: DFTL already evicts), copy-or-merge
+% emphasized, eviction framed as a staging area before the merge.
+To address this challenge, DUET adopts several GC techniques that selectively reclaim the coarse-IU and
+page-mapped areas and merge page-mapped data into coarse IUs. Its key technique, \emph{copy-or-merge}, weighs the copy cost against
+the free space gained and adjusts how often DUET merges, reducing WA for each workload.
+To make room for page-level mappings within the limited DRAM budget, DUET evicts only part of the map to NAND.
+Unlike in DFTL~\cite{dftl}, the evicted mappings disappear once they are merged into coarse IUs.
 % (2026-11-14, user) "many options, so a good policy is needed" added. 1.7x still holds with the v3 ablation:
 % Basic (bk) vs both GC decisions (ck) on 70:30, WA 16.96 vs 10.12 (results/paper_dac/ablation_data.csv).
-
 % (2026-11-10) contributions list merged into this paragraph. Averages = geomean over the 10 workloads,
 % results/paper_dac/eval_data.csv: mapping reads per host read DUET 0.05, DFTL 0.46, LeaFTL 0.22. avg read DUET/x 0.43
 % (DFTL), 0.63 (LeaFTL). WA DUET/x 0.44 (FAST), 0.35 (CoMap), 0.49 (CoarseIU), excl. YCSB-C.
 % Previous version also had: read latency up to 2.4x lower than on-demand (YCSB-B), p99 write 4.6x lower than FAST on TPC-C.
-To address these challenges, DUET introduces \emph{evict-and-load} for page-level mappings, which evicts the
-page-level mappings of a coarse IU to NAND instead of merging them when the DRAM table is full, and loads them
-back on access. It also introduces a GC policy and a merge strategy that
-track the workload to reduce WA and latency.\M{제생각에 evict-and-load는 DFTL에서 이미 한 것 같은데 이쪽 selective GC and merge가 더 강조되는게 좋을 것 같습니다. evict에 novelty로 주장할 것이 있나요? 없다면 서론이랑 abstract에서 아예 빼고 GC merge 선택 정책에 대해 좀 더 디테일하게 설명하는 것도 좋아보입니다.}
+% Old solution paragraph (before 2026-11-18): DUET introduces evict-and-load for page-level mappings, which evicts the
+% page-level mappings of a coarse IU to NAND instead of merging them when the DRAM table is full, and loads them
+% back on access. It also introduces a GC policy and a merge strategy that track the workload to reduce WA and latency.
 % (2026-11-18, user) YCSB-C dropped. Geomeans over 8 workloads: avg read DUET 1.080, DFTL 2.290, LeaFTL 1.870
 % -> 53%, 42% lower. Write numbers unchanged. Throughput 0.90.
 % (2026-11-13, user) results cut to read and write latency. Geomeans over 9 workloads (write: 8, no YCSB-C),

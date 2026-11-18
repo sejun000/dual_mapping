@@ -42,13 +42,13 @@ the same NAND model, write buffer, and host interface and differ only in the add
 % Old (per-workload devices, 22--97 GB): kept in git history.
 \textbf{Setup.} We run all experiments on a server with an Intel Xeon Gold 6342 CPU
 and Linux kernel 6.8. The emulated SSD has eight channels with two dies each and
-exposes 32\,GB \SJ{of capacity} to the host. Its NAND blocks are 128\,MB each, and its OP space is 7\% of the exposed capacity. The page-level mapping FTL uses 32\,MB of mapping DRAM. Every other FTL has a budget of \SJ{about 4.1\,MB},
+exposes 32\,GB of capacity to the host. Its NAND blocks are 128\,MB each, and its OP space is 7\% of the exposed capacity. The page-level mapping FTL uses 32\,MB of mapping DRAM. Every other FTL has a budget of about 4.1\,MB,
 that of a uniform 32\,KB coarse IU~\cite{micron-iu,solidigm-csal}, which holds its mapping table
-or map cache together with its GTD and valid bitmaps. DUET uses 64\,KB coarse IUs. Its budget holds a \SJ{2\,MB} coarse map, a \SJ{2\,MB}
+or map cache together with its GTD and valid bitmaps. DUET uses 64\,KB coarse IUs. Its budget holds a 2\,MB coarse map, a 2\,MB
 fine-map table with 261,256 entries, a 32\,KB GTD, and 0.1\,MB of valid bitmaps for
 the chunks and the fine blocks. In our setup, a coarse entry, a GTD entry, and an FTP slot each take 4\,B. The NAND timing follows the default conventional SSD model
 of NVMeVirt~\cite{nvmevirt}. A 4\,KB read takes 36\,$\mu$s on average and a 32\,KB page program
-takes 185\,$\mu$s. Each DRAM access to the mapping table takes 50\,ns.\M{이문장은 생략하는게 낫지 않나요? timing 관련 논문은 아니라} \SJ{Ablation에서 cuckoo hashing의 DRAM access 비용(bucket당 한 번)을 설명하는 근거라 남겨뒀습니다}
+takes 185\,$\mu$s. Each DRAM access to the mapping table takes 50\,ns.
 % (2026-11-14, user) NAND timing, ~/nvmevirt_proposed/ssd_config.h BASE_SSD=SAMSUNG_970PRO (Kbuild): NAND_4KB_READ_LATENCY
 % 35760 -+ 6000 ns (LSB/MSB), NAND_PROG_LATENCY 185000 ns (FLASH_PAGE_SIZE 32 KB), NAND_ERASE_LATENCY 0 (erase not
 % timed), channel 800 MB/s, FW_4KB_READ_LATENCY 21500 ns.
@@ -109,7 +109,7 @@ partial coarse IU is written with RMW only when it leaves the buffer.
 
 % Numbers below: results/paper_dac/eval_data.csv (per workload) and the geomeans in the header comment.
 \subsection{Read Latency}
-Figure~\ref{fig:eval-read} shows the read path. \SJ{Only a few fine-map entries of DUET are evicted, so DUET} needs 1.02 flash reads per host read on average and at
+Figure~\ref{fig:eval-read} shows the read path. Only a few fine-map entries of DUET are evicted, so DUET needs 1.02 flash reads per host read on average and at
 most 1.06, on SPFresh. DFTL and LeaFTL miss in their map caches and need 1.47
 and 1.29 flash reads on average. As a result, the average read latency of DUET is
 1.08$\times$ that of Page on average, whereas that of DFTL and LeaFTL is 2.29$\times$ and
@@ -133,7 +133,7 @@ a limited DRAM budget.
 
 \subsection{Write Amplification and Write Latency}
 Figure~\ref{fig:eval-write} shows the write path. DUET stores small writes out of place as fine pages and merges them one coarse
-IU at a time, so its WA stays close to that of Page, with a geometric mean of 1.28$\times$ Page\SJ{, and its average write latency is 1.26$\times$ that of Page}. FAST and CoMap merge whole
+IU at a time, so its WA stays close to that of Page, with a geometric mean of 1.28$\times$ Page, and its average write latency is 1.26$\times$ that of Page. FAST and CoMap merge whole
 blocks, and CoarseIU often rewrites a 32\,KB unit for a smaller write. Their WA is
 2.7$\times$, 3.6$\times$, and 2.2$\times$ that of Page on average.
 % (2026-11-12) geomean WA / Page over 8 workloads (no YCSB-C): FAST 2.72, CoMap 3.59, CoarseIU 2.16, DUET 1.28.
@@ -145,7 +145,7 @@ latency shows a similar trend.
 % Was: TPC-C p99 write of DUET 3.7x lower than FAST.
 DFTL and LeaFTL also write out of
 place at 4\,KB granularity and keep their write latency close to that of Page, but
-they \SJ{sacrifice read latency}.
+they sacrifice read latency.
 % avg write (excl. YCSB-C): DUET 1.11, IU+RMW 2.09, FAST 2.39, CoMap 3.06. p99 write DUET 1.06. TPC-C p99: FAST/DUET 4.6, IU+RMW/DUET 2.9.
 % WA: CoarseIU 1.5x Page on synthetic raw I/O. DUET 1.9x Page on SPFresh.
 
@@ -276,12 +276,12 @@ the evicted entries stay within 1.4\% of the logical pages, and Alibaba evicts n
   \centering
   \includegraphics[width=\columnwidth]{figs/fig_usens.pdf}
   \vspace{-6mm}
-  \caption{DUET with coarse IUs of 64--512\,KB under the same DRAM budget, normalized to Page.}
+  \caption{DUET with coarse IUs of 64--512\,KB under the same DRAM budget. Throughput and WA are normalized to Page.}
   \label{fig:eval-usens}
   \vspace{-2.5mm}
 \end{figure}
 
-\subsection{\SJ{Sensitivity to Coarse-IU Size}}
+\subsection{Sensitivity to Coarse-IU Size}
 Figure~\ref{fig:eval-usens} varies the coarse IU of DUET from 64\,KB to 512\,KB under
 the same DRAM budget. A larger coarse IU shrinks the coarse map and leaves more
 DRAM to the fine map, so fewer fine-map entries are evicted. On SPFresh, the flash reads

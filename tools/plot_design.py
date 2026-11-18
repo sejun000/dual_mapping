@@ -78,7 +78,7 @@ def main():
     f = fields(ax, zx, zy, zh, [(2.85, 'chunk index', F_MAP), (0.55, 'F', F_MAP), (0.55, 'E', F_MAP), (0.55, 'C', F_MAP)])
     zoom(ax, (cx0 + ci * EW, EY), (cx0 + (ci + 1) * EW, EY), (zx, zy + zh), (zx + ZW, zy + zh))
     hbar(ax, zx, zx + ZW, zy + zh)                               # entry size
-    lab(ax, zx + ZW / 2, zy + zh + 0.35, '4B', ha='center', fontsize=SF - 0.7)
+    lab(ax, zx + ZW / 2, zy + zh + 0.35, '5B', ha='center', fontsize=SF - 0.7)   # (2026-11-18, user) 128 TB entry sizes
 
     # ---- fine map: 9 buckets x 4 entries, candidate buckets h1 / h2 framed, zoomed entry below
     fx0, BW, SH, NB, FY = 7.9, 0.58, 0.36, 9, 7.87   # FY was 7.65
@@ -96,19 +96,21 @@ def main():
     lab(ax, fx0, LY - 0.25, 'fine map (hash)', fontweight='bold')
     lab(ax, fx0, LY - 0.75, r'2 buckets $\times$ 4 entries per LPN', fontsize=SF - 0.6)
     zx2 = fx0
-    fz = fields(ax, zx2, zy, zh, [(1.6, 'LPN', F_MAP), (1.6, 'PPN', F_MAP)])
+    fz = fields(ax, zx2, zy, zh, [(1.2, 'LPN', F_MAP), (2.0, 'PPN', F_MAP)])   # (2026-11-18, user) 3 B + 5 B
     sx, sy = fx0 + h1 * BW, FY + 2 * SH                            # zoomed entry: bucket h1, way 2
     ax.add_patch(Rectangle((sx + 0.04, FY + 2 * SH + 0.03), BW - 0.08, SH - 0.06, fc='none', ec=K, lw=1.3))
     zoom(ax, (sx, sy), (sx + BW, sy), (zx2, zy + zh), (zx2 + 3.2, zy + zh))
-    hbar(ax, zx2, zx2 + 3.2, zy + zh)
-    lab(ax, zx2 + 1.6, zy + zh + 0.35, '8B', ha='center', fontsize=SF - 0.7)   # (2026-11-13, user) closer to LPN/PPN, away from h1/h2
+    hbar(ax, zx2 + 0.03, zx2 + 1.17, zy + zh)
+    lab(ax, zx2 + 0.6, zy + zh + 0.35, '3B', ha='center', fontsize=SF - 0.7)
+    hbar(ax, zx2 + 1.23, zx2 + 3.2, zy + zh)
+    lab(ax, zx2 + 2.2, zy + zh + 0.35, '5B', ha='center', fontsize=SF - 0.7)   # (2026-11-13, user) closer to LPN/PPN, away from h1/h2
 
     # ---- GTD: one 4 B entry per FTP (entry 0 = FTP of coarse IU i), on the zoom row
     gx0 = 15.1
     cells(ax, gx0, zy, EW, zh, 7)
     ax.add_patch(Rectangle((gx0, zy), EW, zh, fc='none', ec=K, lw=1.2))
-    lab(ax, gx0 - 0.4, zy + zh + 0.85, 'GTD (4B per FTP)', fontweight='bold')
-    lab(ax, gx0 - 0.4, zy + zh + 0.35, r'entry $\lfloor \mathrm{LPN}/1024 \rfloor$', fontsize=SF - 0.6)
+    lab(ax, gx0 - 0.4, zy + zh + 0.85, 'GTD (5B per FTP)', fontweight='bold')
+    lab(ax, gx0 - 0.4, zy + zh + 0.35, r'entry $\lfloor \mathrm{LPN}/n \rfloor$', fontsize=SF - 0.6)
 
     # ---- F = 1, S = 0: lookup in the fine map;  F = 1, S = 1: GTD -> FTP (lane under the DRAM structures)
     arrow(ax, (zx + ZW, zy + zh / 2), (fx0 - 0.05, FY + 2 * SH), rad=0.3)
@@ -124,11 +126,7 @@ def main():
     LGX, LGY = 17.4, 10.95                                          # (2026-11-13, user) legend at the top right
     ax.add_patch(Rectangle((LGX, LGY - BH / 2), BP, BH, fc=F_INV, ec=K, lw=0.35))
     lab(ax, LGX + BP + 0.2, LGY, 'invalid', fontsize=SF - 0.7)
-    for j, t in enumerate(('F=0: $k$-th page of chunk', 'F=1, E=0, found in fine map: fine page',
-                           'F=1, E=0, not found: $k$-th page of chunk', 'F=1, E=1: FTP slot via GTD')):
-        y = 1.95 - 0.5 * j                                           # read cases, numbered on the arrows
-        num(ax, 1.05, y, str(j + 1), SF - 0.9)
-        ax.text(1.45, y, t, va='center_baseline', fontsize=SF - 0.3)
+    # (2026-11-18, user) read-case legend at the bottom left removed (cases are described in the text)
     Fb = Blk(ax, 7.7, NR, [F_PG] * 12 + [F_FREE] * 4, hatch=(3, 5, 9), pw=BP, ph=BH)
     lab(ax, Fb.x + Fb.w / 2, NR - 0.4, 'fine block', ha='center')
     T = Blk(ax, 14.5, NR, [F_MAP] * 6 + [F_FREE] * 10, pw=BP, ph=BH)
@@ -172,7 +170,7 @@ def main():
                            lw=1.0))                                  # row of the victim coarse IU
     zoom(ax, (T.x + BP, NR), (T.x + 2 * BP, NR), (qx, qy + R * qh), (qx + C * qw, qy + R * qh))
     hbar(ax, qx + 3 * qw + 0.03, qx + 4 * qw - 0.03, qy + R * qh)   # (2026-11-13, user) one FTP slot = 4 B
-    lab(ax, qx + 3.5 * qw, qy + R * qh + 0.45, '4B', ha='center', fontsize=SF - 0.7)
+    lab(ax, qx + 3.5 * qw, qy + R * qh + 0.45, '5B', ha='center', fontsize=SF - 0.7)
     lab(ax, qx + C * qw + 0.35, qy + R * qh - 0.25, 'coarse IUs\n' + r'$\times\ U$ entries (4 KB)',
         fontsize=SF - 0.7, linespacing=0.95)
 

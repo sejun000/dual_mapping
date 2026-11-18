@@ -18,7 +18,7 @@ WLN = {w: ('Geo. mean' if w == 'GEOMEAN' else w) for w in WLS}
 val = {(r['workload'], int(r['U'])): r for r in rows}
 
 fig, axs = plt.subplots(1, 2, figsize=(3.4, 1.0))   # was 1.15, then 0.9 (2026-11-10)
-for ax, m, yl, ttl in ((axs[0], 'tput', 'Throughput', '(a) Throughput'), (axs[1], 'waf', 'WA', '(b) Write amplification')):
+for ax, m, yl, ttl in ((axs[0], 'tput', 'Norm. throughput', '(a) Throughput'), (axs[1], 'waf', 'WA', '(b) Write amplification')):
     bw = 0.8 / len(US)
     for i, u in enumerate(US):
         xs = [k + (i - 1.5) * bw for k in range(len(WLS))]
@@ -27,7 +27,7 @@ for ax, m, yl, ttl in ((axs[0], 'tput', 'Throughput', '(a) Throughput'), (axs[1]
     ax.set_xticks(range(len(WLS))); ax.set_xticklabels([WLN[w] for w in WLS], fontsize=5.2, rotation=30, ha='right',
                                                         rotation_mode='anchor')
     ax.set_xlim(-0.55, len(WLS) - 0.45)
-    ax.set_ylabel(yl + ' / Page', fontsize=6.0, labelpad=1.5); ax.set_xlabel(ttl, fontsize=6.4, labelpad=1.5)
+    ax.set_ylabel(yl, fontsize=6.0, labelpad=1.5); ax.set_xlabel(ttl, fontsize=6.4, labelpad=1.5)
     ax.tick_params(axis='y', labelsize=5.4, pad=1); ax.tick_params(axis='x', pad=1, length=0)
     ax.grid(axis='y', alpha=0.3, lw=0.5); ax.set_axisbelow(True)
 axs[0].set_ylim(0, 1.4); axs[0].set_yticks([0, 0.5, 1]); axs[1].set_ylim(0, 2.8); axs[1].set_yticks([0, 1, 2])
