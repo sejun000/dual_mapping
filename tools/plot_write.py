@@ -94,7 +94,7 @@ def main():
     for c, s in ((0, '0–3'), (1, '20–23')):
         lab(ax, cx(cv, c), RC - 0.3, s, ha='center', **tiny)
     arrow(ax, (cx(cv, 0), RC + PH + 0.03), (cx(gc, 0), RB - 0.03), C_CG)            # (1) copy
-    badge(ax, cx(cv, 0) - 0.35, (RC + PH + RB) / 2, '1', C_CG)
+    badge(ax, cx(cv, 0) - 0.35, RC + PH + 0.7, '1', C_CG)   # (2026-11-19, user) same height as (2) at the join point (was (RC + PH + RB) / 2)
     # fine block below it with the fine pages of LPN 21 and 23 (fine map lookup)
     fb = blk(ax, CX, RD, [F_PG] * 12 + [F_FREE] * 4, hatch=(1, 5, 6, 10))
     for k, s in ((3, '21'), (8, '23')):
@@ -112,7 +112,7 @@ def main():
     lab(ax, jx + 0.15, (RC + PH + jy) / 2, '20, 22', color=C_CG, **tiny)            # what each source sends
     lab(ax, rx + 0.15, RD + PH + 0.5, '21, 23', color=C_CG, **tiny)
     arrow(ax, (jx, jy), (cx(gc, 1), RB - 0.03), C_CG)
-    badge(ax, rx, (RD + RC) / 2 + 0.5, '2', C_CG)
+    badge(ax, jx - 0.4, jy, '2', C_CG)   # (2026-11-19, user) next to the join point, not on the line (was rx, (RD + RC) / 2 + 0.5)
 
     # ---- fine GC victim: (1) live fine pages copied, (2) fine pages of two coarse IUs merged with their chunks
     fv = blk(ax, FX, RC, [F_PG] * 16, hatch=(1, 3, 6, 10, 13))
@@ -142,7 +142,7 @@ def main():
     ax.plot(lx, RC + PH / 2, 'o', ms=1.6, color=C_FG)
     for c in (2, 3):
         arrow(ax, (cx(gc, c), ty), (cx(gc, c), RB - 0.03), C_FG)
-    badge(ax, lx, (RD + RC) / 2 + 0.5, '2', C_FG)
+    badge(ax, lx - 0.4, RC + PH / 2, '2', C_FG)   # (2026-11-19, user) next to the join point (was lx, (RD + RC) / 2 + 0.5)
     # new chunks in the active coarse GC block
     for c, s in enumerate(('0–3', '20–23', '8–11', '24–27')):
         lab(ax, cx(gc, c), RB + PH + 0.2, s, ha='center', **tiny)
