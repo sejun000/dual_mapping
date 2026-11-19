@@ -18,7 +18,7 @@ WLN = {w: ('Geo. mean' if w == 'GEOMEAN' else w) for w in WLS}
 val = {(r['workload'], int(r['U'])): r for r in rows}
 
 fig, axs = plt.subplots(1, 2, figsize=(3.4, 1.0))   # was 1.15, then 0.9 (2026-11-10)
-for ax, m, yl, ttl in ((axs[0], 'tput', 'Norm. throughput', '(a) Throughput'), (axs[1], 'waf', 'WA', '(b) Write amplification')):
+for ax, m, yl, ttl in ((axs[0], 'tput', 'Norm. throughput', '(a) Throughput'), (axs[1], 'waf', 'Norm. WA', '(b) Write amplification')):
     bw = 0.8 / len(US)
     for i, u in enumerate(US):
         xs = [k + (i - 1.5) * bw for k in range(len(WLS))]
